@@ -1,0 +1,3 @@
+containerd_version: "1.7.18"
+containerd_config_dir: /etc/containerd
+sandbox_image: "registry.k8s.io/pause:3.9"

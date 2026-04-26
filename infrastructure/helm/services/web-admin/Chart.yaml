@@ -1,0 +1,6 @@
+apiVersion: v2
+name: web-admin
+description: AIbank Web Admin — Bank employee admin panel (Next.js 14)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

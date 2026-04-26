@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TenantConfig",
+  "type": "object",
+  "required": ["schema_version", "tenant", "onboarding", "notifications", "integrations"],
+  "properties": {
+    "schema_version": {"type": "string", "pattern": "^\\d+\\.\\d+$"},
+    "tenant": {
+      "type": "object",
+      "required": ["id", "name", "slug", "legal_forms", "brand"],
+      "properties": {
+        "id": {"type": "string"},
+        "name": {"type": "string"},
+        "slug": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+        "legal_forms": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["ooo", "ao", "pao", "ip", "zao"]},
+          "minItems": 1
+        },
+        "brand": {
+          "type": "object",
+          "required": ["primary_color", "logo_url"],
+          "properties": {
+            "primary_color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+            "logo_url": {"type": "string"},
+            "support_email": {"type": "string", "format": "email"},
+            "support_phone": {"type": "string"}
+          }
+        }
+      }
+    },
+    "onboarding": {
+      "type": "object",
+      "required": ["steps", "required_documents", "risk_rules"],
+      "properties": {
+        "steps": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["company_info", "documents", "validation", "signing", "account"]}
+        },
+        "required_documents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["type", "required"],
+            "properties": {
+              "type": {"type": "string"},
+              "required": {"type": "boolean"},
+              "max_size_mb": {"type": "integer", "minimum": 1, "maximum": 100},
+              "allowed_formats": {"type": "array", "items": {"type": "string"}}
+            }
+          }
+        },
+        "risk_rules": {
+          "type": "object",
+          "properties": {
+            "auto_approve_threshold": {"type": "integer", "minimum": 0, "maximum": 100},
+            "auto_reject_threshold": {"type": "integer", "minimum": 0, "maximum": 100},
+            "max_ubo_depth": {"type": "integer", "minimum": 1, "maximum": 10}
+          }
+        },
+        "sla_hours": {
+          "type": "object",
+          "properties": {
+            "auto_decision": {"type": "integer"},
+            "manual_review": {"type": "integer"}
+          }
+        }
+      }
+    },
+    "notifications": {
+      "type": "object",
+      "properties": {
+        "channels": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["email", "sms", "push"]}
+        },
+        "templates": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "subject": {"type": "string"},
+              "body": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "integrations": {
+      "type": "object",
+      "properties": {
+        "abs": {
+          "type": "object",
+          "required": ["adapter"],
+          "properties": {
+            "adapter": {"type": "string", "enum": ["cft", "diasoft", "rs-bank", "mock"]},
+            "endpoint": {"type": "string"},
+            "timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 120}
+          }
+        },
+        "egrul": {"type": "object", "properties": {"cache_ttl_hours": {"type": "integer"}}},
+        "rosfinmon": {"type": "object", "properties": {"enabled": {"type": "boolean"}}},
+        "fssp": {"type": "object", "properties": {"enabled": {"type": "boolean"}}},
+        "spark": {"type": "object", "properties": {"enabled": {"type": "boolean"}, "api_key": {"type": "string"}}}
+      }
+    },
+    "ai": {
+      "type": "object",
+      "properties": {
+        "ocr_enabled": {"type": "boolean"},
+        "ubo_tracing_enabled": {"type": "boolean"},
+        "risk_explanation_enabled": {"type": "boolean"},
+        "conversational_enabled": {"type": "boolean"},
+        "preferred_model": {"type": "string"}
+      }
+    }
+  }
+}

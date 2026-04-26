@@ -1,0 +1,30 @@
+replicaCount: 2
+
+image:
+  repository: aibank/bff-onboarding
+  tag: ""
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8094
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+env:
+  ONBOARDING_URL: "http://onboarding-orchestrator:8084"
+  CLIENT_URL: "http://client-service:8087"
+  DOCUMENT_URL: "http://document-service:8082"
+  AUDIT_URL: "http://audit-service:8081"

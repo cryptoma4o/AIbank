@@ -1,0 +1,6 @@
+apiVersion: v2
+name: abs-adapter-cft
+description: AIbank abs-adapter-cft — ЦФТ (Центр Финансовых Технологий) ABS adapter
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

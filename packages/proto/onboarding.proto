@@ -1,0 +1,126 @@
+syntax = "proto3";
+
+package aibank.v1;
+
+option go_package = "github.com/aibank/proto/v1;v1";
+
+// ApplicationStatus represents the full onboarding state machine.
+enum ApplicationStatus {
+  APPLICATION_STATUS_UNSPECIFIED           = 0;
+  APPLICATION_STATUS_DRAFT                 = 1;
+  APPLICATION_STATUS_DOCUMENTS_PENDING     = 2;
+  APPLICATION_STATUS_VALIDATION_IN_PROGRESS = 3;
+  APPLICATION_STATUS_RISK_SCORING          = 4;
+  APPLICATION_STATUS_MANUAL_REVIEW         = 5;
+  APPLICATION_STATUS_AUTO_APPROVED         = 6;
+  APPLICATION_STATUS_REJECTED              = 7;
+  APPLICATION_STATUS_ACCOUNT_OPENING       = 8;
+  APPLICATION_STATUS_COMPLETED             = 9;
+  APPLICATION_STATUS_CANCELLED             = 10;
+}
+
+// Application is the root aggregate for an onboarding request.
+message Application {
+  // id is the ULID of the application.
+  string id = 1;
+  // tenant_id is the ULID of the bank tenant handling this application.
+  string tenant_id = 2;
+  // applicant_type is the legal entity type (e.g. "IP", "LLC", "JSC").
+  string applicant_type = 3;
+  // status is the current state in the onboarding state machine.
+  ApplicationStatus status = 4;
+  // inn is the taxpayer identification number of the applicant.
+  string inn = 5;
+  // applicant_name is the full legal name of the applicant entity.
+  string applicant_name = 6;
+  // contact_email is the primary contact e-mail address.
+  string contact_email = 7;
+  // contact_phone is the primary contact phone number.
+  string contact_phone = 8;
+  // risk_score is the numeric risk score assigned by the risk engine (0–100).
+  int32 risk_score = 9;
+  // risk_level is the categorical risk level (e.g. "low", "medium", "high").
+  string risk_level = 10;
+  // created_at is the RFC 3339 timestamp when the application was created.
+  string created_at = 11;
+  // submitted_at is the RFC 3339 timestamp of submission (empty if not submitted).
+  string submitted_at = 12;
+  // decided_at is the RFC 3339 timestamp of the final decision (empty if pending).
+  string decided_at = 13;
+}
+
+// --- Request / Response messages ---
+
+message CreateApplicationRequest {
+  // tenant_id is the ULID of the bank tenant for which this application is created.
+  string tenant_id = 1;
+  // applicant_type is the legal entity type of the applicant.
+  string applicant_type = 2;
+  // inn is the taxpayer identification number.
+  string inn = 3;
+  // contact_email is the primary contact e-mail address.
+  string contact_email = 4;
+  // contact_phone is the primary contact phone number.
+  string contact_phone = 5;
+}
+
+message GetApplicationRequest {
+  // id is the ULID of the application to retrieve.
+  string id = 1;
+  // tenant_id scopes the request to a specific tenant.
+  string tenant_id = 2;
+}
+
+message ListApplicationsRequest {
+  // tenant_id restricts results to a specific tenant.
+  string tenant_id = 1;
+  // status_filter optionally restricts results to a specific status.
+  ApplicationStatus status_filter = 2;
+  // page_size is the maximum number of items to return (0 = server default).
+  int32 page_size = 3;
+  // page_token is the continuation token from a previous ListApplications response.
+  string page_token = 4;
+}
+
+message ListApplicationsResponse {
+  repeated Application applications = 1;
+  // next_page_token is empty when there are no further pages.
+  string next_page_token            = 2;
+}
+
+message UpdateApplicationStatusRequest {
+  // id is the ULID of the application to update.
+  string id = 1;
+  // tenant_id scopes the request to a specific tenant.
+  string tenant_id = 2;
+  // status is the new status to set.
+  ApplicationStatus status = 3;
+  // reason optionally describes why the status changed (e.g. rejection reason).
+  string reason = 4;
+}
+
+message SubmitApplicationRequest {
+  // id is the ULID of the application to submit.
+  string id = 1;
+  // tenant_id scopes the request to a specific tenant.
+  string tenant_id = 2;
+}
+
+// OnboardingService orchestrates the digital onboarding workflow.
+service OnboardingService {
+  // CreateApplication initialises a new onboarding application in DRAFT status.
+  rpc CreateApplication(CreateApplicationRequest) returns (Application);
+
+  // GetApplication retrieves the full application record by its ULID.
+  rpc GetApplication(GetApplicationRequest) returns (Application);
+
+  // ListApplications returns a paginated, optionally filtered list of applications.
+  rpc ListApplications(ListApplicationsRequest) returns (ListApplicationsResponse);
+
+  // UpdateApplicationStatus transitions an application to a new status.
+  rpc UpdateApplicationStatus(UpdateApplicationStatusRequest) returns (Application);
+
+  // SubmitApplication transitions the application from DRAFT, triggering downstream
+  // document validation and risk-scoring workflows.
+  rpc SubmitApplication(SubmitApplicationRequest) returns (Application);
+}

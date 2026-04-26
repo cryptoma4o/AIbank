@@ -1,0 +1,32 @@
+---
+- name: Initialize Kubernetes cluster
+  command: >
+    kubeadm init
+    --pod-network-cidr={{ pod_network_cidr }}
+    --service-cidr={{ service_cidr }}
+    --control-plane-endpoint="{{ ansible_host }}:6443"
+    --upload-certs
+  register: kubeadm_init
+  args:
+    creates: /etc/kubernetes/admin.conf
+
+- name: Create .kube directory for ansible user
+  file:
+    path: "/home/ansible/.kube"
+    state: directory
+    owner: ansible
+    group: ansible
+
+- name: Copy kubeconfig for ansible user
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /home/ansible/.kube/config
+    remote_src: true
+    owner: ansible
+    group: ansible
+    mode: '0600'
+
+- name: Install Flannel CNI
+  command: kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf

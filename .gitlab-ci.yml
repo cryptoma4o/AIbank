@@ -1,0 +1,244 @@
+stages:
+  - lint
+  - test
+  - build
+  - security
+  - deploy-staging
+  - deploy-prod
+
+variables:
+  REGISTRY: registry.gitlab.com/aibank
+  GO_VERSION: "1.22"
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+
+default:
+  image: alpine:3.19
+  tags:
+    - docker
+
+# ─── LINT ──────────────────────────────────────────────────────────────────────
+
+lint:go:
+  stage: lint
+  image: golangci/golangci-lint:v1.57
+  script:
+    - |
+      for dir in services/*/; do
+        [ -f "$dir/go.mod" ] && (cd "$dir" && golangci-lint run ./...) || true
+      done
+    - |
+      for dir in packages/*/; do
+        [ -f "$dir/go.mod" ] && (cd "$dir" && golangci-lint run ./...) || true
+      done
+  rules:
+    - changes:
+        - "services/**/*.go"
+        - "packages/**/*.go"
+
+lint:python:
+  stage: lint
+  image: python:3.12-slim
+  script:
+    - pip install ruff --quiet
+    - ruff check ai/ packages/audit-sdk/python/ tools/data-generator/
+  rules:
+    - changes:
+        - "ai/**/*.py"
+        - "packages/**/*.py"
+        - "tools/**/*.py"
+
+lint:frontend:
+  stage: lint
+  image: node:20-alpine
+  script:
+    - |
+      for dir in apps/*/; do
+        [ -f "$dir/package.json" ] && (cd "$dir" && npm ci --silent && npm run lint) || true
+      done
+  rules:
+    - changes:
+        - "apps/**/*.ts"
+        - "apps/**/*.tsx"
+
+lint:proto:
+  stage: lint
+  image: bufbuild/buf:1.30
+  script:
+    - cd packages/proto && buf lint
+  rules:
+    - changes:
+        - "packages/proto/**/*.proto"
+
+# ─── TEST ──────────────────────────────────────────────────────────────────────
+
+test:go:packages:
+  stage: test
+  image: golang:1.22-alpine
+  services:
+    - name: postgres:16-alpine
+      alias: postgres
+  variables:
+    POSTGRES_USER: aibank
+    POSTGRES_PASSWORD: aibank
+    POSTGRES_DB: aibank_test
+    DATABASE_URL: "postgres://aibank:aibank@postgres:5432/aibank_test?sslmode=disable"
+  script:
+    - |
+      for dir in packages/*/; do
+        [ -f "$dir/go.mod" ] && (cd "$dir" && go test ./... -v -count=1) || true
+      done
+  rules:
+    - changes:
+        - "packages/**/*.go"
+
+test:go:services:
+  stage: test
+  image: golang:1.22-alpine
+  services:
+    - name: postgres:16-alpine
+      alias: postgres
+    - name: redis:7-alpine
+      alias: redis
+  variables:
+    POSTGRES_USER: aibank
+    POSTGRES_PASSWORD: aibank
+    POSTGRES_DB: aibank_test
+    DATABASE_URL: "postgres://aibank:aibank@postgres:5432/aibank_test?sslmode=disable"
+    REDIS_URL: "redis://redis:6379"
+  script:
+    - |
+      for dir in services/*/; do
+        [ -f "$dir/go.mod" ] && (cd "$dir" && go test ./... -v -count=1 -short) || true
+      done
+  rules:
+    - changes:
+        - "services/**/*.go"
+
+test:python:
+  stage: test
+  image: python:3.12-slim
+  script:
+    - pip install pytest pytest-asyncio httpx pydantic rich click --quiet
+    - cd ai/eval-harness && python -m pytest tests/ -v
+  rules:
+    - changes:
+        - "ai/**/*.py"
+
+test:eval-harness:
+  stage: test
+  image: python:3.12-slim
+  script:
+    - pip install pytest pytest-asyncio httpx pydantic rich click --quiet
+    - cd ai/eval-harness && python -m pytest tests/ -v
+  rules:
+    - changes:
+        - "ai/eval-harness/**"
+
+# ─── BUILD ─────────────────────────────────────────────────────────────────────
+
+.build-docker:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - |
+      docker build -t $REGISTRY/$SERVICE:$CI_COMMIT_SHORT_SHA -t $REGISTRY/$SERVICE:latest ./$BUILD_DIR
+      docker push $REGISTRY/$SERVICE:$CI_COMMIT_SHORT_SHA
+      docker push $REGISTRY/$SERVICE:latest
+  only:
+    - main
+
+build:api-gateway:
+  extends: .build-docker
+  variables:
+    SERVICE: api-gateway
+    BUILD_DIR: services/api-gateway
+
+build:onboarding-orchestrator:
+  extends: .build-docker
+  variables:
+    SERVICE: onboarding-orchestrator
+    BUILD_DIR: services/onboarding-orchestrator
+
+build:llm-gateway:
+  extends: .build-docker
+  variables:
+    SERVICE: llm-gateway
+    BUILD_DIR: ai/llm-gateway
+
+build:web-onboarding:
+  extends: .build-docker
+  variables:
+    SERVICE: web-onboarding
+    BUILD_DIR: apps/web-onboarding
+
+build:web-admin:
+  extends: .build-docker
+  variables:
+    SERVICE: web-admin
+    BUILD_DIR: apps/web-admin
+
+# ─── SECURITY ──────────────────────────────────────────────────────────────────
+
+security:secrets:
+  stage: security
+  image: trufflesecurity/trufflehog:latest
+  script:
+    - trufflehog git file://. --since-commit HEAD~1 --fail
+  allow_failure: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+security:go-vuln:
+  stage: security
+  image: golang:1.22-alpine
+  script:
+    - go install golang.org/x/vuln/cmd/govulncheck@latest
+    - |
+      for dir in services/*/; do
+        [ -f "$dir/go.mod" ] && (cd "$dir" && govulncheck ./...) || true
+      done
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ─── DEPLOY ────────────────────────────────────────────────────────────────────
+
+deploy:staging:
+  stage: deploy-staging
+  image: bitnami/kubectl:1.30
+  script:
+    - kubectl config use-context $KUBE_CONTEXT_STAGING
+    - helm upgrade --install aibank-staging infrastructure/helm/aibank/
+        --namespace aibank-staging
+        --create-namespace
+        --set global.imageTag=$CI_COMMIT_SHORT_SHA
+        --wait --timeout 10m
+  environment:
+    name: staging
+    url: https://staging.aibank.ru
+  only:
+    - main
+
+deploy:prod:
+  stage: deploy-prod
+  image: bitnami/kubectl:1.30
+  script:
+    - kubectl config use-context $KUBE_CONTEXT_PROD
+    - helm upgrade --install aibank infrastructure/helm/aibank/
+        --namespace aibank
+        --create-namespace
+        --set global.imageTag=$CI_COMMIT_SHORT_SHA
+        --wait --timeout 15m
+  environment:
+    name: production
+    url: https://aibank.ru
+  when: manual
+  only:
+    - main

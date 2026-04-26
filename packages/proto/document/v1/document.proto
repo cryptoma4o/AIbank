@@ -1,0 +1,141 @@
+syntax = "proto3";
+
+package aibank.document.v1;
+
+import "common/v1/common.proto";
+
+option go_package = "github.com/aibank/platform/gen/go/document/v1;documentv1";
+
+// DocumentType enumerates the supported document categories for onboarding.
+enum DocumentType {
+  DOCUMENT_TYPE_UNSPECIFIED = 0;
+  // PASSPORT — Russian Federation internal passport.
+  DOCUMENT_TYPE_PASSPORT = 1;
+  // INN — Taxpayer Identification Number certificate (ИНН).
+  DOCUMENT_TYPE_INN = 2;
+  // OGRN — Primary State Registration Number certificate (ОГРН / ОГРНИП).
+  DOCUMENT_TYPE_OGRN = 3;
+  // USTAV — Company charter (Устав).
+  DOCUMENT_TYPE_USTAV = 4;
+  // BANK_STATEMENT — Bank account statement.
+  DOCUMENT_TYPE_BANK_STATEMENT = 5;
+  // FINANCIAL_REPORT — Annual financial reporting document.
+  DOCUMENT_TYPE_FINANCIAL_REPORT = 6;
+  // POWER_OF_ATTORNEY — Notarised power of attorney (Доверенность).
+  DOCUMENT_TYPE_POWER_OF_ATTORNEY = 7;
+  // OTHER — Catch-all for additional supporting documents.
+  DOCUMENT_TYPE_OTHER = 99;
+}
+
+// DocumentStatus reflects the verification lifecycle of an uploaded document.
+enum DocumentStatus {
+  DOCUMENT_STATUS_UNSPECIFIED = 0;
+  // PENDING — document has been uploaded and awaits verification.
+  DOCUMENT_STATUS_PENDING = 1;
+  // VERIFIED — document passed all automated and manual checks.
+  DOCUMENT_STATUS_VERIFIED = 2;
+  // REJECTED — document was rejected (e.g. illegible, expired, tampered).
+  DOCUMENT_STATUS_REJECTED = 3;
+  // EXPIRED — document has passed its validity date.
+  DOCUMENT_STATUS_EXPIRED = 4;
+}
+
+// Document is the metadata record for an uploaded applicant document.
+// Binary content is stored separately in object storage; this message
+// carries only the descriptor fields.
+message Document {
+  // id is the ULID of the document record.
+  string id = 1;
+  // application_id is the ULID of the owning application.
+  string application_id = 2;
+  // document_type categorises the document.
+  DocumentType document_type = 3;
+  // status is the current verification state.
+  DocumentStatus status = 4;
+  // file_size_bytes is the size of the uploaded file in bytes.
+  int64 file_size_bytes = 5;
+  // mime_type is the IANA media type of the file (e.g. "application/pdf").
+  string mime_type = 6;
+  // uploaded_at is the RFC 3339 timestamp when the file was uploaded.
+  string uploaded_at = 7;
+}
+
+// --- Request / Response messages ---
+
+message UploadDocumentRequest {
+  // application_id is the ULID of the application this document belongs to.
+  string application_id = 1;
+  // tenant_context scopes the request to a specific tenant.
+  aibank.common.v1.TenantContext tenant_context = 2;
+  // document_type categorises the document being uploaded.
+  DocumentType document_type = 3;
+  // mime_type is the IANA media type of the file.
+  string mime_type = 4;
+  // file_size_bytes is the size of the file in bytes.
+  int64 file_size_bytes = 5;
+  // content is the raw binary content of the document file.
+  bytes content = 6;
+}
+
+message UploadDocumentResponse {
+  Document document = 1;
+}
+
+message GetDocumentRequest {
+  // id is the ULID of the document to retrieve.
+  string id = 1;
+  // tenant_context scopes the request to a specific tenant.
+  aibank.common.v1.TenantContext tenant_context = 2;
+}
+
+message GetDocumentResponse {
+  Document document = 1;
+}
+
+message ListDocumentsRequest {
+  // application_id is the ULID of the application whose documents are listed.
+  string application_id = 1;
+  // tenant_context scopes the request to a specific tenant.
+  aibank.common.v1.TenantContext tenant_context = 2;
+  // pagination controls which page of results is returned.
+  aibank.common.v1.Pagination pagination = 3;
+  // status_filter optionally restricts results to a specific document status.
+  DocumentStatus status_filter = 4;
+}
+
+message ListDocumentsResponse {
+  repeated Document documents = 1;
+  aibank.common.v1.PagedResponse paged_response = 2;
+}
+
+message UpdateDocumentStatusRequest {
+  // id is the ULID of the document to update.
+  string id = 1;
+  // tenant_context scopes the request to a specific tenant.
+  aibank.common.v1.TenantContext tenant_context = 2;
+  // status is the new document status to set.
+  DocumentStatus status = 3;
+  // rejection_reason optionally describes why a document was rejected.
+  string rejection_reason = 4;
+}
+
+message UpdateDocumentStatusResponse {
+  Document document = 1;
+}
+
+// DocumentService manages document upload and verification lifecycle.
+service DocumentService {
+  // UploadDocument stores a new document file and creates its metadata record.
+  rpc UploadDocument(UploadDocumentRequest) returns (UploadDocumentResponse);
+
+  // GetDocument retrieves the metadata record for a single document by its ULID.
+  rpc GetDocument(GetDocumentRequest) returns (GetDocumentResponse);
+
+  // ListDocuments returns a paginated list of documents for an application,
+  // optionally filtered by status.
+  rpc ListDocuments(ListDocumentsRequest) returns (ListDocumentsResponse);
+
+  // UpdateDocumentStatus transitions a document's verification status
+  // (e.g. from PENDING to VERIFIED or REJECTED).
+  rpc UpdateDocumentStatus(UpdateDocumentStatusRequest) returns (UpdateDocumentStatusResponse);
+}

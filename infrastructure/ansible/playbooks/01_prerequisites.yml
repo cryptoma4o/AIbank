@@ -1,0 +1,82 @@
+---
+- name: Configure prerequisites on all hosts
+  hosts: all
+  roles:
+    - common
+  tasks:
+    - name: Set hostname
+      hostname:
+        name: "{{ inventory_hostname }}"
+
+    - name: Update apt cache and upgrade
+      apt:
+        update_cache: true
+        upgrade: safe
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      apt:
+        name:
+          - curl
+          - wget
+          - git
+          - htop
+          - vim
+          - net-tools
+          - nfs-common
+          - apt-transport-https
+          - ca-certificates
+          - gnupg
+          - lsb-release
+          - python3-pip
+          - chrony
+        state: present
+
+    - name: Configure chrony NTP
+      template:
+        src: chrony.conf.j2
+        dest: /etc/chrony.conf
+      notify: restart chrony
+
+    - name: Disable swap permanently
+      block:
+        - command: swapoff -a
+        - replace:
+            path: /etc/fstab
+            regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+            replace: '# \1'
+
+    - name: Configure sysctl for Kubernetes
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        sysctl_set: true
+        state: present
+        reload: true
+      loop:
+        - { key: net.bridge.bridge-nf-call-iptables, value: "1" }
+        - { key: net.bridge.bridge-nf-call-ip6tables, value: "1" }
+        - { key: net.ipv4.ip_forward, value: "1" }
+        - { key: vm.max_map_count, value: "262144" }
+        - { key: fs.file-max, value: "1000000" }
+
+    - name: Load kernel modules
+      modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - overlay
+        - br_netfilter
+
+    - name: Persist kernel modules
+      copy:
+        content: |
+          overlay
+          br_netfilter
+        dest: /etc/modules-load.d/aibank.conf
+
+  handlers:
+    - name: restart chrony
+      service:
+        name: chrony
+        state: restarted

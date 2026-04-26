@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package aibank.v1;
+
+option go_package = "github.com/aibank/proto/v1;v1";
+
+// TenantStatus reflects the lifecycle state of a tenant.
+enum TenantStatus {
+  TENANT_STATUS_UNSPECIFIED = 0;
+  TENANT_STATUS_ACTIVE      = 1;
+  TENANT_STATUS_SUSPENDED   = 2;
+  TENANT_STATUS_OFFBOARDED  = 3;
+}
+
+// Tenant represents a bank or financial institution using the platform.
+message Tenant {
+  // id is the ULID of the tenant.
+  string id = 1;
+  // name is the human-readable name of the tenant organisation.
+  string name = 2;
+  // slug is the URL-safe short identifier for the tenant.
+  string slug = 3;
+  // status is the current lifecycle state.
+  TenantStatus status = 4;
+  // config_version is the version tag of the currently active configuration.
+  string config_version = 5;
+  // created_at is the RFC 3339 timestamp when the tenant was created.
+  string created_at = 6;
+}
+
+// TenantConfig holds the raw YAML configuration blob for a tenant.
+message TenantConfig {
+  // tenant_id is the ULID of the owning tenant.
+  string tenant_id = 1;
+  // raw_yaml is the serialised configuration as raw YAML bytes.
+  bytes raw_yaml = 2;
+  // version is the schema version of the supplied config (e.g. "v1.2").
+  string version = 3;
+  // updated_at is the RFC 3339 timestamp of the last configuration update.
+  string updated_at = 4;
+}
+
+// --- Request / Response messages ---
+
+message GetTenantRequest {
+  // id is the ULID of the tenant; mutually exclusive with slug.
+  string id = 1;
+  // slug is the URL-safe identifier; mutually exclusive with id.
+  string slug = 2;
+}
+
+message ListTenantsRequest {
+  // status_filter optionally restricts results to a specific lifecycle status.
+  TenantStatus status_filter = 1;
+  // page_size is the maximum number of items to return (0 = server default).
+  int32 page_size = 2;
+  // page_token is the continuation token from a previous ListTenants response.
+  string page_token = 3;
+}
+
+message ListTenantsResponse {
+  repeated Tenant tenants    = 1;
+  // next_page_token is empty when there are no further pages.
+  string next_page_token     = 2;
+}
+
+message GetTenantConfigRequest {
+  // tenant_id is the ULID of the tenant whose config is requested.
+  string tenant_id = 1;
+}
+
+// TenantService manages tenant lifecycle and configuration.
+service TenantService {
+  // GetTenant retrieves a single tenant by its ULID or slug.
+  rpc GetTenant(GetTenantRequest) returns (Tenant);
+
+  // ListTenants returns a paginated list of tenants, optionally filtered by status.
+  rpc ListTenants(ListTenantsRequest) returns (ListTenantsResponse);
+
+  // GetTenantConfig retrieves the current configuration blob for a tenant.
+  rpc GetTenantConfig(GetTenantConfigRequest) returns (TenantConfig);
+}

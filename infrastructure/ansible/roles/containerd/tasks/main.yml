@@ -1,0 +1,54 @@
+---
+- name: Install containerd dependencies
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+    state: present
+
+- name: Add Docker apt key (for containerd)
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add Docker apt repository
+  apt_repository:
+    repo: "deb https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+
+- name: Install containerd
+  apt:
+    name: "containerd.io={{ containerd_version }}-1"
+    state: present
+    update_cache: true
+
+- name: Create containerd config directory
+  file:
+    path: "{{ containerd_config_dir }}"
+    state: directory
+
+- name: Configure containerd with SystemdCgroup
+  copy:
+    content: |
+      version = 2
+      [plugins."io.containerd.grpc.v1.cri"]
+        sandbox_image = "{{ sandbox_image }}"
+        [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+          runtime_type = "io.containerd.runc.v2"
+          [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+            SystemdCgroup = true
+    dest: /etc/containerd/config.toml
+  notify: restart containerd
+
+- name: Enable and start containerd
+  service:
+    name: containerd
+    state: started
+    enabled: true
+
+handlers:
+  - name: restart containerd
+    service:
+      name: containerd
+      state: restarted

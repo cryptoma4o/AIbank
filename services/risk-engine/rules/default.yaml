@@ -1,0 +1,52 @@
+version: "1.0"
+rules:
+  - id: BLOCK_ROSFINMON
+    name: Block entities on Rosfinmon list
+    enabled: true
+    priority: 1
+    conditions:
+      - field: rosfinmon_hit
+        operator: eq
+        value: true
+    action: block
+    weight: 0
+  - id: BLOCK_HIGH_RISK_OKVED
+    name: Block high-risk OKVED codes
+    enabled: true
+    priority: 2
+    conditions:
+      - field: okved
+        operator: in
+        value: ["64.19", "66.19", "47.91", "92.00"]
+    action: block
+    weight: 0
+  - id: FLAG_NEW_COMPANY
+    name: Flag companies under 1 year
+    enabled: true
+    priority: 10
+    conditions:
+      - field: company_age_years
+        operator: lt
+        value: 1
+    action: flag
+    weight: 0
+  - id: SCORE_BOOST_ESTABLISHED
+    name: Boost score for companies older than 5 years
+    enabled: true
+    priority: 20
+    conditions:
+      - field: company_age_years
+        operator: gt
+        value: 5
+    action: score
+    weight: 10
+  - id: SCORE_PENALTY_NO_OGRN
+    name: Penalize missing OGRN
+    enabled: true
+    priority: 30
+    conditions:
+      - field: ogrn
+        operator: eq
+        value: ""
+    action: score
+    weight: -20

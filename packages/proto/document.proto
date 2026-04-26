@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+package aibank.v1;
+
+option go_package = "github.com/aibank/proto/v1;v1";
+
+// DocumentType enumerates the supported document categories for onboarding.
+enum DocumentType {
+  DOCUMENT_TYPE_UNSPECIFIED       = 0;
+  DOCUMENT_TYPE_PASSPORT          = 1;
+  DOCUMENT_TYPE_INN               = 2;
+  DOCUMENT_TYPE_OGRN              = 3;
+  DOCUMENT_TYPE_USTAV             = 4;
+  DOCUMENT_TYPE_BANK_STATEMENT    = 5;
+  DOCUMENT_TYPE_FINANCIAL_REPORT  = 6;
+  DOCUMENT_TYPE_POWER_OF_ATTORNEY = 7;
+  DOCUMENT_TYPE_OTHER             = 99;
+}
+
+// DocumentStatus reflects the verification lifecycle of an uploaded document.
+enum DocumentStatus {
+  DOCUMENT_STATUS_UNSPECIFIED = 0;
+  DOCUMENT_STATUS_PENDING     = 1;
+  DOCUMENT_STATUS_VERIFIED    = 2;
+  DOCUMENT_STATUS_REJECTED    = 3;
+  DOCUMENT_STATUS_EXPIRED     = 4;
+}
+
+// Document is the metadata record for an uploaded applicant document.
+message Document {
+  // id is the ULID of the document record.
+  string id = 1;
+  // tenant_id is the ULID of the owning tenant.
+  string tenant_id = 2;
+  // application_id is the ULID of the owning application.
+  string application_id = 3;
+  // document_type categorises the document.
+  DocumentType document_type = 4;
+  // filename is the original filename supplied by the uploader.
+  string filename = 5;
+  // size_bytes is the size of the uploaded file in bytes.
+  int64 size_bytes = 6;
+  // status is the current verification state.
+  DocumentStatus status = 7;
+  // ocr_confidence is the OCR extraction confidence score in [0.0, 1.0].
+  double ocr_confidence = 8;
+  // created_at is the RFC 3339 timestamp when the document record was created.
+  string created_at = 9;
+}
+
+// ExtractedField represents a single key-value field extracted via OCR.
+message ExtractedField {
+  // key is the field name (e.g. "inn", "series", "number").
+  string key = 1;
+  // value is the extracted string value.
+  string value = 2;
+  // confidence is the per-field OCR confidence score in [0.0, 1.0].
+  double confidence = 3;
+}
+
+// --- Request / Response messages ---
+
+message UploadDocumentRequest {
+  // tenant_id is the ULID of the tenant context.
+  string tenant_id = 1;
+  // application_id is the ULID of the application this document belongs to.
+  string application_id = 2;
+  // document_type categorises the document being uploaded.
+  DocumentType document_type = 3;
+  // filename is the original filename.
+  string filename = 4;
+  // content is the raw binary content of the document file.
+  bytes content = 5;
+}
+
+message GetDocumentRequest {
+  // id is the ULID of the document to retrieve.
+  string id = 1;
+  // tenant_id scopes the request to a specific tenant.
+  string tenant_id = 2;
+}
+
+message ListDocumentsRequest {
+  // tenant_id scopes the request to a specific tenant.
+  string tenant_id = 1;
+  // application_id restricts results to documents belonging to this application.
+  string application_id = 2;
+  // status_filter optionally restricts results to a specific document status.
+  DocumentStatus status_filter = 3;
+  // page_size is the maximum number of items to return (0 = server default).
+  int32 page_size = 4;
+  // page_token is the continuation token from a previous ListDocuments response.
+  string page_token = 5;
+}
+
+message ListDocumentsResponse {
+  repeated Document documents = 1;
+  // next_page_token is empty when there are no further pages.
+  string next_page_token      = 2;
+}
+
+message GetExtractedFieldsRequest {
+  // document_id is the ULID of the document whose OCR fields are requested.
+  string document_id = 1;
+  // tenant_id scopes the request to a specific tenant.
+  string tenant_id = 2;
+}
+
+message GetExtractedFieldsResponse {
+  // document_id is the ULID of the source document.
+  string document_id = 1;
+  // fields contains all key-value pairs extracted by OCR.
+  repeated ExtractedField fields = 2;
+}
+
+// DocumentService manages document upload and verification lifecycle.
+service DocumentService {
+  // UploadDocument stores a new document and creates its metadata record.
+  rpc UploadDocument(UploadDocumentRequest) returns (Document);
+
+  // GetDocument retrieves the metadata record for a single document by its ULID.
+  rpc GetDocument(GetDocumentRequest) returns (Document);
+
+  // ListDocuments returns a paginated list of documents for an application,
+  // optionally filtered by status.
+  rpc ListDocuments(ListDocumentsRequest) returns (ListDocumentsResponse);
+
+  // GetExtractedFields returns all OCR-extracted key-value fields for a document.
+  rpc GetExtractedFields(GetExtractedFieldsRequest) returns (GetExtractedFieldsResponse);
+}

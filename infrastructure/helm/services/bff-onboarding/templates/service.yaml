@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "bff-onboarding.fullname" . }}
+  labels:
+    {{- include "bff-onboarding.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 8094
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "bff-onboarding.selectorLabels" . | nindent 4 }}

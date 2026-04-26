@@ -1,0 +1,6 @@
+---
+- include_tasks: master.yml
+  when: kubernetes_action == 'init'
+
+- include_tasks: worker.yml
+  when: kubernetes_action == 'join_worker'

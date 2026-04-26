@@ -1,0 +1,5 @@
+---
+- name: Install and configure containerd
+  hosts: masters:workers
+  roles:
+    - containerd

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: document-service
+description: AIbank Document Service — Document intake, storage, versioning and signing (УКЭП)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

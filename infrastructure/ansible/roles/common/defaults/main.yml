@@ -1,0 +1,3 @@
+ssh_port: 22
+timezone: Europe/Moscow
+ulimit_nofile: 65536

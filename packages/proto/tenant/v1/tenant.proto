@@ -1,0 +1,129 @@
+syntax = "proto3";
+
+package aibank.tenant.v1;
+
+import "common/v1/common.proto";
+
+option go_package = "github.com/aibank/platform/gen/go/tenant/v1;tenantv1";
+
+// TenantStatus reflects the lifecycle state of a tenant.
+enum TenantStatus {
+  TENANT_STATUS_UNSPECIFIED = 0;
+  // ACTIVE means the tenant is fully operational.
+  TENANT_STATUS_ACTIVE = 1;
+  // SUSPENDED means the tenant is temporarily disabled.
+  TENANT_STATUS_SUSPENDED = 2;
+  // OFFBOARDED means the tenant has been permanently deactivated.
+  TENANT_STATUS_OFFBOARDED = 3;
+}
+
+// DeploymentMode describes how the tenant's infrastructure is deployed.
+enum DeploymentMode {
+  DEPLOYMENT_MODE_UNSPECIFIED = 0;
+  // CLOUD means the tenant runs fully in the shared cloud environment.
+  DEPLOYMENT_MODE_CLOUD = 1;
+  // HYBRID means the tenant has an on-premise component with cloud integration.
+  DEPLOYMENT_MODE_HYBRID = 2;
+  // ON_PREMISE means the tenant runs entirely on their own infrastructure.
+  DEPLOYMENT_MODE_ON_PREMISE = 3;
+}
+
+// Tenant represents a bank or financial institution using the platform.
+message Tenant {
+  // id is the ULID of the tenant.
+  string id = 1;
+  // name is the human-readable name of the tenant organisation.
+  string name = 2;
+  // status is the current lifecycle state of the tenant.
+  TenantStatus status = 3;
+  // deployment_mode describes where the tenant's infrastructure is hosted.
+  DeploymentMode deployment_mode = 4;
+  // created_at is the RFC 3339 timestamp when the tenant was created.
+  string created_at = 5;
+}
+
+// TenantConfig holds the raw YAML/JSON configuration blob for a tenant.
+message TenantConfig {
+  // tenant_id is the ULID of the owning tenant.
+  string tenant_id = 1;
+  // raw_config is the serialised configuration (JSON or YAML bytes).
+  bytes raw_config = 2;
+  // schema_version identifies the config schema in use (e.g. "v1.2").
+  string schema_version = 3;
+  // updated_at is the RFC 3339 timestamp of the last configuration update.
+  string updated_at = 4;
+}
+
+// --- Request / Response messages ---
+
+message GetTenantRequest {
+  // tenant_id is the ULID of the tenant to retrieve.
+  string tenant_id = 1;
+}
+
+message GetTenantResponse {
+  Tenant tenant = 1;
+}
+
+message ListTenantsRequest {
+  // pagination controls which page of results is returned.
+  aibank.common.v1.Pagination pagination = 1;
+  // status_filter optionally restricts results to a specific status.
+  TenantStatus status_filter = 2;
+}
+
+message ListTenantsResponse {
+  repeated Tenant tenants = 1;
+  aibank.common.v1.PagedResponse paged_response = 2;
+}
+
+message CreateTenantRequest {
+  // name is the human-readable name of the new tenant.
+  string name = 1;
+  // deployment_mode specifies the hosting model for the new tenant.
+  DeploymentMode deployment_mode = 2;
+}
+
+message CreateTenantResponse {
+  Tenant tenant = 1;
+}
+
+message UpdateTenantConfigRequest {
+  // tenant_id is the ULID of the tenant whose config is being updated.
+  string tenant_id = 1;
+  // raw_config is the new serialised configuration blob.
+  bytes raw_config = 2;
+  // schema_version is the schema version of the supplied config.
+  string schema_version = 3;
+}
+
+message UpdateTenantConfigResponse {
+  TenantConfig config = 1;
+}
+
+message GetTenantConfigRequest {
+  // tenant_id is the ULID of the tenant.
+  string tenant_id = 1;
+}
+
+message GetTenantConfigResponse {
+  TenantConfig config = 1;
+}
+
+// TenantService manages tenant lifecycle and configuration.
+service TenantService {
+  // GetTenant retrieves a single tenant by its ULID.
+  rpc GetTenant(GetTenantRequest) returns (GetTenantResponse);
+
+  // ListTenants returns a paginated list of tenants, optionally filtered by status.
+  rpc ListTenants(ListTenantsRequest) returns (ListTenantsResponse);
+
+  // CreateTenant registers a new bank tenant on the platform.
+  rpc CreateTenant(CreateTenantRequest) returns (CreateTenantResponse);
+
+  // UpdateTenantConfig replaces the configuration blob for a tenant.
+  rpc UpdateTenantConfig(UpdateTenantConfigRequest) returns (UpdateTenantConfigResponse);
+
+  // GetTenantConfig retrieves the current configuration blob for a tenant.
+  rpc GetTenantConfig(GetTenantConfigRequest) returns (GetTenantConfigResponse);
+}

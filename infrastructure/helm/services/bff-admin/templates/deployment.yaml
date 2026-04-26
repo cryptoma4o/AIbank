@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bff-admin.fullname" . }}
+  labels:
+    {{- include "bff-admin.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "bff-admin.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "bff-admin.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: bff-admin
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8095
+              protocol: TCP
+          env:
+            - name: TENANT_URL
+              value: {{ .Values.env.TENANT_URL | quote }}
+            - name: AUDIT_URL
+              value: {{ .Values.env.AUDIT_URL | quote }}
+            - name: CLIENT_URL
+              value: {{ .Values.env.CLIENT_URL | quote }}
+            - name: UBO_URL
+              value: {{ .Values.env.UBO_URL | quote }}
+            - name: BILLING_URL
+              value: {{ .Values.env.BILLING_URL | quote }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8095
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8095
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

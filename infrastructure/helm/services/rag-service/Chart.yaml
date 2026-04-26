@@ -1,0 +1,6 @@
+apiVersion: v2
+name: rag-service
+description: AIbank RAG Service — RAG service for compliance document search (Qdrant + LLM)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ext-fssp.fullname" . }}
+  labels:
+    {{- include "ext-fssp.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 8092
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "ext-fssp.selectorLabels" . | nindent 4 }}

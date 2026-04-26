@@ -1,0 +1,667 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://aibank.io/schemas/domain-model/v1.0.0/schema.json",
+  "title": "AIbankDomain",
+  "description": "Canonical domain model for the AIbank white-label digital onboarding platform. Single source of truth — Go, TypeScript, and Python types are derived from this.",
+  "type": "object",
+  "$defs": {
+
+    "TenantId": {
+      "type": "string",
+      "pattern": "^tnt_[0-9A-Z]{26}$",
+      "description": "Tenant identifier with prefix tnt_"
+    },
+    "ApplicationId": {
+      "type": "string",
+      "pattern": "^app_[0-9A-Z]{26}$",
+      "description": "Application identifier with prefix app_"
+    },
+    "PersonId": {
+      "type": "string",
+      "pattern": "^per_[0-9A-Z]{26}$",
+      "description": "Person identifier with prefix per_"
+    },
+    "LegalEntityId": {
+      "type": "string",
+      "pattern": "^le_[0-9A-Z]{26}$",
+      "description": "LegalEntity identifier with prefix le_"
+    },
+    "DocumentId": {
+      "type": "string",
+      "pattern": "^doc_[0-9A-Z]{26}$",
+      "description": "Document identifier with prefix doc_"
+    },
+    "AccountId": {
+      "type": "string",
+      "pattern": "^acc_[0-9A-Z]{26}$",
+      "description": "Account identifier with prefix acc_"
+    },
+    "RiskAssessmentId": {
+      "type": "string",
+      "pattern": "^ris_[0-9A-Z]{26}$",
+      "description": "RiskAssessment identifier with prefix ris_"
+    },
+    "DecisionId": {
+      "type": "string",
+      "pattern": "^dec_[0-9A-Z]{26}$",
+      "description": "Decision identifier with prefix dec_"
+    },
+    "UBOGraphId": {
+      "type": "string",
+      "pattern": "^ubn_[0-9A-Z]{26}$",
+      "description": "UBOGraph identifier with prefix ubn_"
+    },
+    "AuditEventId": {
+      "type": "string",
+      "pattern": "^cev_[0-9A-Z]{26}$",
+      "description": "AuditEvent identifier with prefix cev_"
+    },
+
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp in ISO 8601 format"
+    },
+
+    "INN10": {
+      "type": "string",
+      "pattern": "^[0-9]{10}$",
+      "description": "Taxpayer identification number — exactly 10 digits for legal entities"
+    },
+    "INN12": {
+      "type": "string",
+      "pattern": "^[0-9]{12}$",
+      "description": "Individual taxpayer number — exactly 12 digits for natural persons"
+    },
+    "OGRN": {
+      "type": "string",
+      "pattern": "^[0-9]{13}$",
+      "description": "Primary state registration number — exactly 13 digits"
+    },
+    "KPP": {
+      "type": "string",
+      "pattern": "^[0-9]{9}$",
+      "description": "Tax registration reason code — exactly 9 digits"
+    },
+    "SNILS": {
+      "type": "string",
+      "pattern": "^[0-9]{11}$",
+      "description": "Insurance number of individual personal account — exactly 11 digits"
+    },
+    "BIK": {
+      "type": "string",
+      "pattern": "^[0-9]{9}$",
+      "description": "Bank Identification Code — exactly 9 digits"
+    },
+    "AccountNumber": {
+      "type": "string",
+      "pattern": "^[0-9]{20}$",
+      "description": "20-digit account number per the Russian bank account plan"
+    },
+
+    "ApplicationStatus": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "documents_pending",
+        "validation_in_progress",
+        "risk_scoring",
+        "manual_review",
+        "auto_approved",
+        "rejected",
+        "account_opening",
+        "completed",
+        "cancelled"
+      ],
+      "description": "State machine status for an onboarding application"
+    },
+
+    "DocumentType": {
+      "type": "string",
+      "enum": [
+        "passport",
+        "inn_certificate",
+        "ogrn_certificate",
+        "charter",
+        "beneficial_owners_registry",
+        "ceo_appointment_order",
+        "bank_account_application",
+        "power_of_attorney",
+        "financial_statements",
+        "other"
+      ],
+      "description": "Semantic category of an uploaded document"
+    },
+
+    "DocumentStatus": {
+      "type": "string",
+      "enum": ["uploaded", "processing", "verified", "rejected"],
+      "description": "Processing state of a document"
+    },
+
+    "LegalForm": {
+      "type": "string",
+      "enum": ["ooo", "ao", "pao", "ip", "zao"],
+      "description": "Legal organisational form of a Russian entity"
+    },
+
+    "LegalEntityStatus": {
+      "type": "string",
+      "enum": ["active", "liquidating", "liquidated", "reorganizing"],
+      "description": "Lifecycle status of a legal entity from the state register"
+    },
+
+    "RiskLevel": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "Bucketed risk classification"
+    },
+
+    "Recommendation": {
+      "type": "string",
+      "enum": ["approve", "manual_review", "reject"],
+      "description": "Model recommendation based on risk score"
+    },
+
+    "DecisionType": {
+      "type": "string",
+      "enum": [
+        "auto_approved",
+        "auto_rejected",
+        "manual_approved",
+        "manual_rejected",
+        "escalated"
+      ],
+      "description": "How and in which direction the decision was made"
+    },
+
+    "Currency": {
+      "type": "string",
+      "enum": ["RUB", "USD", "EUR"],
+      "description": "ISO 4217 currency code"
+    },
+
+    "AccountType": {
+      "type": "string",
+      "enum": ["settlement", "deposit", "loan"],
+      "description": "Functional type of a bank account"
+    },
+
+    "SignatureType": {
+      "type": "string",
+      "enum": ["ukep", "pep", "none"],
+      "description": "Type of electronic signature on a document"
+    },
+
+    "UBONodeType": {
+      "type": "string",
+      "enum": ["person", "legal_entity"],
+      "description": "Type of node in the beneficial ownership graph"
+    },
+
+    "RiskFactor": {
+      "description": "A single factor contributing to a risk score",
+      "type": "object",
+      "required": ["name", "value", "impact", "explanation"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Machine-readable factor identifier"
+        },
+        "value": {
+          "description": "Observed value of the factor (any scalar)"
+        },
+        "impact": {
+          "type": "integer",
+          "description": "Signed integer contribution to the overall score (positive = higher risk)"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "Human-readable explanation of how this factor affects the score"
+        }
+      }
+    },
+
+    "UBONode": {
+      "description": "A node (person or legal entity) in the beneficial ownership graph",
+      "type": "object",
+      "required": ["id", "name", "node_type", "direct_stake", "effective_stake", "is_ubo"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Node identifier within the graph"
+        },
+        "person_id": {
+          "$ref": "#/$defs/PersonId",
+          "description": "Reference to Person entity — present when node_type is person"
+        },
+        "legal_entity_id": {
+          "$ref": "#/$defs/LegalEntityId",
+          "description": "Reference to LegalEntity — present when node_type is legal_entity"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name of the node"
+        },
+        "node_type": {
+          "$ref": "#/$defs/UBONodeType"
+        },
+        "direct_stake": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Direct ownership stake as a percentage (0–100)"
+        },
+        "effective_stake": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Computed effective (indirect + direct) ownership stake as a percentage"
+        },
+        "is_ubo": {
+          "type": "boolean",
+          "description": "True when effective_stake >= 25% (ultimate beneficial owner threshold)"
+        }
+      }
+    },
+
+    "UBOEdge": {
+      "description": "A directed ownership edge between two nodes in the beneficial ownership graph",
+      "type": "object",
+      "required": ["from_node_id", "to_node_id", "stake"],
+      "additionalProperties": false,
+      "properties": {
+        "from_node_id": {
+          "type": "string",
+          "description": "Source node identifier"
+        },
+        "to_node_id": {
+          "type": "string",
+          "description": "Target node identifier"
+        },
+        "stake": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Ownership stake on this edge as a percentage"
+        },
+        "document_id": {
+          "$ref": "#/$defs/DocumentId",
+          "description": "Supporting document that evidences this ownership stake"
+        }
+      }
+    },
+
+    "Tenant": {
+      "description": "A bank that uses the AIbank platform. Root multi-tenant entity — every other entity belongs to exactly one Tenant.",
+      "type": "object",
+      "required": ["id", "name", "slug", "status", "config_version", "created_at", "updated_at"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/TenantId" },
+        "name": {
+          "type": "string",
+          "description": "Display name, e.g. 'Альфа-Банк'"
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "description": "Kebab-case unique identifier used in URLs and config paths"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "suspended", "trial"],
+          "description": "Lifecycle status of the tenant account"
+        },
+        "config_version": {
+          "type": "string",
+          "description": "Semver of the tenant configuration currently applied"
+        },
+        "created_at": { "$ref": "#/$defs/Timestamp" },
+        "updated_at": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+
+    "Application": {
+      "description": "A single onboarding application. Core state-machine entity — one per legal entity from draft to account opening or rejection.",
+      "type": "object",
+      "required": ["id", "tenant_id", "status", "created_at", "updated_at"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/ApplicationId" },
+        "tenant_id": { "$ref": "#/$defs/TenantId" },
+        "client_id": {
+          "type": "string",
+          "description": "External client reference (nullable)"
+        },
+        "legal_entity_id": {
+          "$ref": "#/$defs/LegalEntityId",
+          "description": "Legal entity under review (nullable until entity is created)"
+        },
+        "status": { "$ref": "#/$defs/ApplicationStatus" },
+        "workflow_id": {
+          "type": "string",
+          "description": "Temporal workflow execution ID tracking this application"
+        },
+        "created_at": { "$ref": "#/$defs/Timestamp" },
+        "updated_at": { "$ref": "#/$defs/Timestamp" },
+        "submitted_at": {
+          "$ref": "#/$defs/Timestamp",
+          "description": "When the applicant submitted the application (left draft state)"
+        },
+        "decided_at": {
+          "$ref": "#/$defs/Timestamp",
+          "description": "When a final approve/reject decision was recorded"
+        },
+        "account_id": {
+          "$ref": "#/$defs/AccountId",
+          "description": "Opened account — null until status is completed"
+        }
+      }
+    },
+
+    "Person": {
+      "description": "Any natural person in the system: applicant, director, founder, UBO, signatory.",
+      "type": "object",
+      "required": ["id", "tenant_id", "last_name", "first_name", "birth_date", "inn", "passport_series", "passport_number", "passport_issued_by", "passport_issued_at", "created_at"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/PersonId" },
+        "tenant_id": { "$ref": "#/$defs/TenantId" },
+        "last_name": { "type": "string" },
+        "first_name": { "type": "string" },
+        "middle_name": {
+          "type": "string",
+          "description": "Patronymic (отчество), optional"
+        },
+        "birth_date": {
+          "$ref": "#/$defs/Timestamp",
+          "description": "Date of birth, UTC ISO 8601"
+        },
+        "inn": { "$ref": "#/$defs/INN12" },
+        "snils": {
+          "$ref": "#/$defs/SNILS",
+          "description": "Insurance number — optional"
+        },
+        "passport_series": {
+          "type": "string",
+          "pattern": "^[0-9]{4}$",
+          "description": "Russian passport series (4 digits)"
+        },
+        "passport_number": {
+          "type": "string",
+          "pattern": "^[0-9]{6}$",
+          "description": "Russian passport number (6 digits)"
+        },
+        "passport_issued_by": {
+          "type": "string",
+          "description": "Name of the issuing authority"
+        },
+        "passport_issued_at": {
+          "$ref": "#/$defs/Timestamp",
+          "description": "Date the passport was issued, UTC ISO 8601"
+        },
+        "created_at": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+
+    "LegalEntity": {
+      "description": "A Russian legal entity (ООО, АО, etc.) undergoing or having completed onboarding.",
+      "type": "object",
+      "required": ["id", "tenant_id", "full_name", "short_name", "inn", "ogrn", "legal_form", "legal_address", "okved_primary", "okved_secondary", "registration_date", "status", "ceo_person_id", "created_at", "updated_at"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/LegalEntityId" },
+        "tenant_id": { "$ref": "#/$defs/TenantId" },
+        "full_name": {
+          "type": "string",
+          "description": "Full official name from EGRUL"
+        },
+        "short_name": {
+          "type": "string",
+          "description": "Abbreviated name, e.g. 'ООО «Ромашка»'"
+        },
+        "inn": { "$ref": "#/$defs/INN10" },
+        "ogrn": { "$ref": "#/$defs/OGRN" },
+        "kpp": {
+          "$ref": "#/$defs/KPP",
+          "description": "KPP — nullable for individual entrepreneurs (IP)"
+        },
+        "legal_form": { "$ref": "#/$defs/LegalForm" },
+        "legal_address": {
+          "type": "string",
+          "description": "Registered legal address as plain text"
+        },
+        "actual_address": {
+          "type": "string",
+          "description": "Actual operating address — nullable if same as legal_address"
+        },
+        "okved_primary": {
+          "type": "string",
+          "description": "Primary OKVED activity code"
+        },
+        "okved_secondary": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Additional OKVED activity codes"
+        },
+        "registration_date": {
+          "$ref": "#/$defs/Timestamp",
+          "description": "Date of state registration"
+        },
+        "status": { "$ref": "#/$defs/LegalEntityStatus" },
+        "ceo_person_id": {
+          "$ref": "#/$defs/PersonId",
+          "description": "Reference to the Person who is the current CEO/director"
+        },
+        "created_at": { "$ref": "#/$defs/Timestamp" },
+        "updated_at": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+
+    "UBOGraph": {
+      "description": "Computed beneficial ownership graph for one legal entity in the context of an application.",
+      "type": "object",
+      "required": ["id", "tenant_id", "application_id", "legal_entity_id", "nodes", "edges", "computed_at"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/UBOGraphId" },
+        "tenant_id": { "$ref": "#/$defs/TenantId" },
+        "application_id": { "$ref": "#/$defs/ApplicationId" },
+        "legal_entity_id": { "$ref": "#/$defs/LegalEntityId" },
+        "nodes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/UBONode" },
+          "description": "All persons and entities in the ownership chain"
+        },
+        "edges": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/UBOEdge" },
+          "description": "Directed ownership edges between nodes"
+        },
+        "computed_at": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+
+    "Document": {
+      "description": "A document uploaded by the applicant or retrieved from an external source.",
+      "type": "object",
+      "required": ["id", "tenant_id", "application_id", "document_type", "filename", "mime_type", "size_bytes", "s3_key", "checksum_sha256", "status", "signature_type", "created_at", "updated_at"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/DocumentId" },
+        "tenant_id": { "$ref": "#/$defs/TenantId" },
+        "application_id": { "$ref": "#/$defs/ApplicationId" },
+        "document_type": { "$ref": "#/$defs/DocumentType" },
+        "filename": {
+          "type": "string",
+          "description": "Original filename as provided by the uploader"
+        },
+        "mime_type": {
+          "type": "string",
+          "description": "MIME type, e.g. 'application/pdf', 'image/jpeg'"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "File size in bytes"
+        },
+        "s3_key": {
+          "type": "string",
+          "description": "Object storage key, e.g. 'tnt_xxx/app_yyy/doc_zzz/passport.pdf'"
+        },
+        "checksum_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Hex-encoded SHA-256 checksum of the file content"
+        },
+        "status": { "$ref": "#/$defs/DocumentStatus" },
+        "extracted_fields": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Key-value pairs extracted by OCR/ML — schema varies by document_type"
+        },
+        "ocr_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Overall OCR confidence score (0–1); null when not yet processed"
+        },
+        "signed_at": {
+          "$ref": "#/$defs/Timestamp",
+          "description": "When the document was electronically signed — null if unsigned"
+        },
+        "signature_type": { "$ref": "#/$defs/SignatureType" },
+        "created_at": { "$ref": "#/$defs/Timestamp" },
+        "updated_at": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+
+    "RiskAssessment": {
+      "description": "ML-based risk scoring result for an onboarding application.",
+      "type": "object",
+      "required": ["id", "tenant_id", "application_id", "score", "risk_level", "recommendation", "factors", "model_version", "assessed_at"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/RiskAssessmentId" },
+        "tenant_id": { "$ref": "#/$defs/TenantId" },
+        "application_id": { "$ref": "#/$defs/ApplicationId" },
+        "score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Risk score from 0 (lowest risk) to 100 (highest risk)"
+        },
+        "risk_level": { "$ref": "#/$defs/RiskLevel" },
+        "recommendation": { "$ref": "#/$defs/Recommendation" },
+        "factors": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/RiskFactor" },
+          "description": "Ordered list of factors that contributed to the score"
+        },
+        "model_version": {
+          "type": "string",
+          "description": "Semver of the risk model that produced this assessment"
+        },
+        "assessed_at": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+
+    "Decision": {
+      "description": "The final underwriting decision on an onboarding application.",
+      "type": "object",
+      "required": ["id", "tenant_id", "application_id", "decision_type", "reason", "risk_assessment_id", "created_at"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/DecisionId" },
+        "tenant_id": { "$ref": "#/$defs/TenantId" },
+        "application_id": { "$ref": "#/$defs/ApplicationId" },
+        "decision_type": { "$ref": "#/$defs/DecisionType" },
+        "actor_id": {
+          "type": "string",
+          "description": "User ID of the operator for manual decisions; null for automated decisions"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Human-readable explanation — mandatory for rejections"
+        },
+        "risk_assessment_id": {
+          "$ref": "#/$defs/RiskAssessmentId",
+          "description": "The risk assessment that informed this decision"
+        },
+        "created_at": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+
+    "Account": {
+      "description": "A bank account opened for the legal entity after an approved application.",
+      "type": "object",
+      "required": ["id", "tenant_id", "application_id", "legal_entity_id", "account_number", "bik", "bank_name", "currency", "account_type", "opened_at", "created_at"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/AccountId" },
+        "tenant_id": { "$ref": "#/$defs/TenantId" },
+        "application_id": { "$ref": "#/$defs/ApplicationId" },
+        "legal_entity_id": { "$ref": "#/$defs/LegalEntityId" },
+        "account_number": { "$ref": "#/$defs/AccountNumber" },
+        "bik": { "$ref": "#/$defs/BIK" },
+        "bank_name": {
+          "type": "string",
+          "description": "Name of the bank holding the account"
+        },
+        "currency": { "$ref": "#/$defs/Currency" },
+        "account_type": { "$ref": "#/$defs/AccountType" },
+        "opened_at": { "$ref": "#/$defs/Timestamp" },
+        "abs_reference": {
+          "type": "string",
+          "description": "Internal reference identifier in the bank's core banking system (АБС)"
+        },
+        "created_at": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+
+    "AuditEvent": {
+      "description": "Immutable append-only audit log entry.",
+      "type": "object",
+      "required": ["id", "tenant_id", "event_type", "actor_id", "actor_role", "resource_type", "resource_id", "payload", "created_at"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/AuditEventId" },
+        "tenant_id": { "$ref": "#/$defs/TenantId" },
+        "event_type": {
+          "type": "string",
+          "description": "Dot-namespaced event name, e.g. 'application.submitted', 'document.uploaded'"
+        },
+        "actor_id": {
+          "type": "string",
+          "description": "Identifier of the actor: a user ID, 'system', or an AI agent name"
+        },
+        "actor_role": {
+          "type": "string",
+          "description": "Role of the actor, e.g. 'operator', 'system', 'ai_agent'"
+        },
+        "resource_type": {
+          "type": "string",
+          "description": "Domain entity type that was affected, e.g. 'application', 'document', 'decision'"
+        },
+        "resource_id": {
+          "type": "string",
+          "description": "Identifier of the affected entity"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Domain-specific event payload; schema varies by event_type"
+        },
+        "ip_address": {
+          "type": "string",
+          "description": "IP address of the request origin — null for system-generated events"
+        },
+        "created_at": { "$ref": "#/$defs/Timestamp" }
+      }
+    }
+
+  }
+}

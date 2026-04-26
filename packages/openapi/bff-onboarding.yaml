@@ -1,0 +1,95 @@
+openapi: "3.0.3"
+info:
+  title: AIbank BFF Onboarding
+  version: "1.0.0"
+  description: >
+    Backend-for-Frontend gateway for the applicant-facing onboarding UI.
+    Exposes a single GraphQL endpoint for all domain queries and mutations,
+    plus a REST health-check endpoint for infrastructure probes.
+
+paths:
+  /graphql:
+    post:
+      summary: GraphQL endpoint
+      description: >
+        Accepts any GraphQL query or mutation. The schema covers applications,
+        documents, tenants, and identity operations.
+      operationId: graphqlExecute
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  description: The GraphQL query or mutation document.
+                  example: "{ application(id: \"01J...\" ) { id status } }"
+                variables:
+                  type: object
+                  description: Named variable values for the query.
+                  additionalProperties: true
+                operationName:
+                  type: string
+                  description: >
+                    Optional name of the operation to execute when the document
+                    contains multiple named operations.
+      responses:
+        "200":
+          description: GraphQL response (errors may still be present in the body).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    description: The operation result payload.
+                  errors:
+                    type: array
+                    description: List of field-level or request-level errors.
+                    items:
+                      type: object
+                      properties:
+                        message:
+                          type: string
+                        locations:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              line:
+                                type: integer
+                              column:
+                                type: integer
+                        path:
+                          type: array
+                          items: {}
+                        extensions:
+                          type: object
+        "400":
+          description: Malformed request (not a valid GraphQL document).
+        "401":
+          description: Missing or invalid authentication token.
+        "500":
+          description: Internal server error.
+
+  /healthz:
+    get:
+      summary: Health check
+      description: Liveness probe used by Kubernetes and load-balancer health checks.
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Service is healthy.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok

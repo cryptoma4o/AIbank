@@ -1,0 +1,21 @@
+# Overrides for bitnami/postgresql chart
+auth:
+  database: aibank
+  username: aibank
+  existingSecret: aibank-postgresql
+
+primary:
+  persistence:
+    size: 50Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true

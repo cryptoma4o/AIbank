@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RiskPolicyThresholds",
+  "type": "object",
+  "required": ["schema_version", "thresholds"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1.0"},
+    "thresholds": {
+      "type": "object",
+      "required": ["low_max", "medium_max", "auto_approve_max"],
+      "properties": {
+        "low_max": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000,
+          "description": "Upper bound for low risk score"
+        },
+        "medium_max": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000,
+          "description": "Upper bound for medium risk score; must be >= low_max"
+        },
+        "auto_approve_max": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500,
+          "description": "Max score for auto-approval; must be <= low_max"
+        },
+        "auto_reject_min": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000,
+          "description": "Min score for auto-rejection"
+        }
+      },
+      "allOf": [
+        {
+          "description": "auto_approve_max must be <= low_max",
+          "if": {
+            "required": ["auto_approve_max", "low_max"]
+          },
+          "then": {
+            "properties": {
+              "auto_approve_max": {
+                "maximum": 500
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

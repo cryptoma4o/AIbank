@@ -1,0 +1,40 @@
+---
+- name: Add PostgreSQL apt key
+  apt_key:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    state: present
+
+- name: Add PostgreSQL apt repository
+  apt_repository:
+    repo: "deb http://apt.postgresql.org/pub/repos/apt {{ ansible_distribution_release }}-pgdg main"
+    state: present
+
+- name: Install PostgreSQL
+  apt:
+    name: "postgresql-{{ postgresql_version }}"
+    state: present
+    update_cache: true
+
+- name: Configure postgresql.conf
+  lineinfile:
+    path: "/etc/postgresql/{{ postgresql_version }}/main/postgresql.conf"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  loop:
+    - { regexp: "^#?max_connections", line: "max_connections = {{ postgresql_max_connections }}" }
+    - { regexp: "^#?shared_buffers", line: "shared_buffers = {{ postgresql_shared_buffers }}" }
+    - { regexp: "^#?work_mem", line: "work_mem = {{ postgresql_work_mem }}" }
+    - { regexp: "^#?listen_addresses", line: "listen_addresses = '*'" }
+  notify: restart postgresql
+
+- name: Enable and start PostgreSQL
+  service:
+    name: postgresql
+    state: started
+    enabled: true
+
+handlers:
+  - name: restart postgresql
+    service:
+      name: "postgresql@{{ postgresql_version }}-main"
+      state: restarted

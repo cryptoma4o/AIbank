@@ -1,0 +1,26 @@
+schema_version: "1.0"
+models:
+  document_parsing:
+    model_name: production-vision     # маппинг на реальную модель в llm-gateway
+    rate_limit_rpm: 60
+    cost_alert_usd_per_day: 50
+  reconciliation:
+    model_name: production-reasoning
+    rate_limit_rpm: 30
+    cost_alert_usd_per_day: 30
+  ubo_tracing:
+    model_name: production-thinking
+    rate_limit_rpm: 10
+    cost_alert_usd_per_day: 20
+  risk_explanation:
+    model_name: production-reasoning
+    rate_limit_rpm: 30
+    cost_alert_usd_per_day: 10
+  conversational:
+    model_name: production-chat-ru
+    rate_limit_rpm: 120
+    cost_alert_usd_per_day: 20
+  rag:
+    model_name: production-vision
+    rate_limit_rpm: 60
+    cost_alert_usd_per_day: 15

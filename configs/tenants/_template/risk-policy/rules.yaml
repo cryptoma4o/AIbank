@@ -1,0 +1,19 @@
+schema_version: "1.0"
+rules:
+  - id: ROSFINMON_MATCH
+    description: "Совпадение с перечнями Росфинмониторинга"
+    severity: critical
+    action: auto_reject
+    immutable: true   # нельзя отключить
+
+  - id: BANKRUPTCY
+    description: "Процедура банкротства"
+    severity: high
+    action: manual_review
+    immutable: false
+
+  - id: BLOCKED_OKVED
+    description: "ОКВЭД из запрещённого списка банка"
+    severity: medium
+    action: manual_review
+    immutable: false

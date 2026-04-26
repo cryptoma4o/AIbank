@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TenantConfig",
+  "type": "object",
+  "required": ["schema_version", "tenant"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1.0"},
+    "tenant": {
+      "type": "object",
+      "required": ["id", "name", "bik", "inn", "deployment", "features"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9-]{3,50}$"},
+        "name": {"type": "string"},
+        "bik": {"type": "string", "pattern": "^[0-9]{9}$"},
+        "inn": {"type": "string", "pattern": "^[0-9]{10}$"},
+        "status": {
+          "type": "string",
+          "enum": ["trial", "active", "suspended", "terminated"],
+          "default": "trial"
+        },
+        "deployment": {
+          "type": "object",
+          "required": ["mode"],
+          "properties": {
+            "mode": {"type": "string", "enum": ["saas", "on_prem", "hybrid"]}
+          }
+        },
+        "features": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "array", "items": {"type": "string"}},
+            "disabled": {"type": "array", "items": {"type": "string"}}
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,41 @@
+# Claude Code / tooling internals
+.claude/
+.swarm/
+.omc/
+
+# Claude-flow config (keep .claude-flow/config.yaml, exclude data)
+.claude-flow/*.db
+.claude-flow/*.log
+
+# Node
+node_modules/
+.next/
+.nuxt/
+dist/
+build/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Go
+vendor/
+*.test
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

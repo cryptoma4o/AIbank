@@ -1,0 +1,146 @@
+openapi: "3.0.3"
+info:
+  title: AIbank ext-egrul
+  version: "1.0.0"
+  description: >
+    Adapter service that proxies ЕГРЮЛ (Unified State Register of Legal Entities)
+    lookups, caches results in Redis, and exposes a simple REST API consumed by the
+    onboarding risk and validation pipelines.
+
+paths:
+  /v1/egrul/{inn}:
+    get:
+      summary: Get company info by INN
+      description: >
+        Returns legal entity data from the ЕГРЮЛ registry for the given INN.
+        Results are cached; the `cached` flag and `cached_at` timestamp indicate
+        whether the response originated from the cache.
+      operationId: getEgrulByInn
+      parameters:
+        - name: inn
+          in: path
+          required: true
+          description: >
+            Taxpayer Identification Number (ИНН).
+            10 digits for legal entities (ООО, АО) or 12 digits for individual
+            entrepreneurs (ИП).
+          schema:
+            type: string
+            pattern: '^\d{10}$|^\d{12}$'
+          example: "7707083893"
+        - name: X-Tenant-ID
+          in: header
+          required: true
+          description: ULID of the tenant making the request. Used for rate-limiting and audit logging.
+          schema:
+            type: string
+          example: "01J6Z8KQNVH3M1PQRSTUVWXYZ"
+      responses:
+        "200":
+          description: Company information retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EGRULRecord'
+        "400":
+          description: Invalid INN format.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: No record found for the given INN.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "502":
+          description: Upstream ЕГРЮЛ service unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /healthz:
+    get:
+      summary: Health check
+      description: Liveness probe for Kubernetes and load-balancer health checks.
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Service is healthy.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+components:
+  schemas:
+    EGRULRecord:
+      type: object
+      description: Legal entity information from the ЕГРЮЛ registry.
+      properties:
+        inn:
+          type: string
+          description: Taxpayer Identification Number (ИНН).
+          example: "7707083893"
+        ogrn:
+          type: string
+          description: Primary State Registration Number (ОГРН).
+          example: "1027700132195"
+        full_name:
+          type: string
+          description: Full legal name of the entity.
+          example: "ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО \"СБЕРБАНК РОССИИ\""
+        short_name:
+          type: string
+          description: Short (trade) name of the entity.
+          example: "ПАО Сбербанк"
+        legal_address:
+          type: string
+          description: Registered legal address.
+          example: "117997, г. Москва, ул. Вавилова, д. 19"
+        status:
+          type: string
+          description: >
+            Current registration status of the entity
+            (e.g. "ACTIVE", "LIQUIDATED", "IN_LIQUIDATION").
+          example: "ACTIVE"
+        ceo:
+          type: string
+          description: Full name of the chief executive officer (генеральный директор).
+          example: "Греф Герман Оскарович"
+        okved_primary:
+          type: string
+          description: Primary ОКВЭД activity code.
+          example: "64.19"
+        registration_date:
+          type: string
+          format: date
+          description: Date the entity was registered with the state.
+          example: "1991-06-20"
+        cached:
+          type: boolean
+          description: True if the response was served from the local cache.
+          example: true
+        cached_at:
+          type: string
+          format: date-time
+          description: RFC 3339 timestamp of when the record was last cached.
+          example: "2024-03-15T10:30:00Z"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code.
+          example: "not_found"
+        message:
+          type: string
+          description: Human-readable error description.
+          example: "No EGRUL record found for INN 0000000000"

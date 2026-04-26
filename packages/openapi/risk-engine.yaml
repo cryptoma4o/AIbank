@@ -1,0 +1,165 @@
+openapi: "3.0.3"
+info:
+  title: AIbank risk-engine
+  version: "1.0.0"
+  description: >
+    Rule-based risk scoring service. Accepts a set of key-value facts for an
+    application, evaluates them against the tenant's configured rule set, and
+    returns a numeric score, categorical risk level, and underwriting recommendation.
+
+paths:
+  /v1/score:
+    post:
+      summary: Score an application
+      description: >
+        Runs the tenant's rule engine against the supplied facts and returns a
+        risk assessment. If any blocking rule is triggered the `blocked` flag is
+        set to true and the recommendation will be `reject`.
+      operationId: scoreApplication
+      parameters:
+        - name: X-Tenant-ID
+          in: header
+          required: true
+          description: ULID of the tenant whose rule set should be applied.
+          schema:
+            type: string
+          example: "01J6Z8KQNVH3M1PQRSTUVWXYZ"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - application_id
+                - facts
+              properties:
+                application_id:
+                  type: string
+                  description: ULID of the application being scored.
+                  example: "01J6Z8KQNVH3M1PQRSTUVWXYZ"
+                facts:
+                  type: object
+                  description: >
+                    Key-value map of facts evaluated by the rule engine.
+                    Keys are rule-defined identifiers (e.g. "inn", "company_age_days",
+                    "founders_count"); values are always strings and are coerced
+                    to the appropriate type by each rule.
+                  additionalProperties: true
+                  example:
+                    inn: "7707083893"
+                    company_age_days: "12410"
+                    founders_count: "3"
+                    okved_primary: "64.19"
+                    region_code: "77"
+      responses:
+        "200":
+          description: Risk assessment computed successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  application_id:
+                    type: string
+                    description: ULID of the scored application.
+                    example: "01J6Z8KQNVH3M1PQRSTUVWXYZ"
+                  score:
+                    type: integer
+                    minimum: 0
+                    maximum: 100
+                    description: Aggregate risk score; higher values indicate greater risk.
+                    example: 35
+                  risk_level:
+                    type: string
+                    enum:
+                      - low
+                      - medium
+                      - high
+                      - critical
+                    description: Categorical risk classification derived from the score.
+                    example: medium
+                  recommendation:
+                    type: string
+                    enum:
+                      - approve
+                      - manual_review
+                      - reject
+                    description: Underwriting recommendation produced by the rule engine.
+                    example: approve
+                  blocked:
+                    type: boolean
+                    description: >
+                      True if a blocking rule (e.g. sanctions list match) was triggered.
+                      When true the recommendation is always `reject`.
+                    example: false
+                  rules_triggered:
+                    type: array
+                    description: List of rules that fired during evaluation.
+                    items:
+                      type: object
+                      properties:
+                        rule_id:
+                          type: string
+                          description: Unique identifier of the triggered rule.
+                          example: "low_company_age"
+                        action:
+                          type: string
+                          description: >
+                            Action taken by the rule (e.g. "score", "block", "flag").
+                          example: "score"
+                        score_delta:
+                          type: integer
+                          description: >
+                            Points added to (positive) or subtracted from (negative)
+                            the aggregate score by this rule.
+                          example: 10
+        "400":
+          description: Invalid request body or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Application not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal rule engine error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /healthz:
+    get:
+      summary: Health check
+      description: Liveness probe for Kubernetes and load-balancer health checks.
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Service is healthy.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code.
+          example: "invalid_request"
+        message:
+          type: string
+          description: Human-readable error description.
+          example: "Field 'application_id' is required"

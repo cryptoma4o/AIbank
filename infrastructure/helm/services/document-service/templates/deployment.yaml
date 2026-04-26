@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "document-service.fullname" . }}
+  labels:
+    {{- include "document-service.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "document-service.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "document-service.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: document-service
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8082
+              protocol: TCP
+          env:
+            - name: DATABASE_URL
+              value: {{ .Values.env.DATABASE_URL | quote }}
+            - name: MINIO_ENDPOINT
+              value: {{ .Values.env.MINIO_ENDPOINT | quote }}
+            - name: MINIO_ACCESS_KEY
+              value: {{ .Values.env.MINIO_ACCESS_KEY | quote }}
+            - name: MINIO_SECRET_KEY
+              value: {{ .Values.env.MINIO_SECRET_KEY | quote }}
+            - name: AUDIT_URL
+              value: {{ .Values.env.AUDIT_URL | quote }}
+            - name: LLM_GATEWAY_URL
+              value: {{ .Values.env.LLM_GATEWAY_URL | quote }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8082
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8082
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

@@ -1,0 +1,24 @@
+---
+- name: Deploy AIbank application
+  hosts: masters[0]
+  tasks:
+    - name: Create aibank namespace
+      command: kubectl create namespace aibank --dry-run=client -o yaml | kubectl apply -f -
+
+    - name: Create aibank secrets from vault
+      command: >
+        kubectl create secret generic aibank-postgresql
+        --from-literal=postgresql-password={{ postgresql_password }}
+        --namespace aibank
+        --dry-run=client -o yaml | kubectl apply -f -
+
+    - name: Add aibank helm repo
+      command: helm repo add aibank file:///opt/aibank/helm
+
+    - name: Deploy aibank umbrella chart
+      command: >
+        helm upgrade --install aibank aibank/aibank
+        --namespace aibank
+        --values /opt/aibank/helm/aibank/values.yaml
+        --set global.postgresql.host={{ hostvars[groups['databases'][0]]['ansible_host'] }}
+        --wait --timeout 10m

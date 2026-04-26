@@ -1,0 +1,35 @@
+# Project
+project_name: aibank
+environment: onprem
+
+# Network
+pod_network_cidr: "10.244.0.0/16"
+service_cidr: "10.96.0.0/12"
+dns_domain: aibank.local
+
+# Versions
+kubernetes_version: "1.30.0"
+containerd_version: "1.7.18"
+postgresql_version: "16"
+redis_version: "7"
+kafka_version: "3.7.0"
+minio_version: "RELEASE.2024-05-01T01-11-10Z"
+
+# PostgreSQL
+postgresql_port: 5432
+postgresql_db: aibank
+postgresql_user: aibank
+# postgresql_password: set via vault or extra-vars
+
+# MinIO
+minio_data_dirs:
+  - /data/minio-1
+  - /data/minio-2
+minio_port: 9000
+minio_console_port: 9001
+# minio_root_user / minio_root_password: via vault
+
+# Kafka
+kafka_port: 9092
+kafka_data_dir: /var/lib/kafka
+kafka_heap_size: 2G

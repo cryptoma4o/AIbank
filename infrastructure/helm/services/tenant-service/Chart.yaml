@@ -1,0 +1,6 @@
+apiVersion: v2
+name: tenant-service
+description: AIbank Tenant Service — CRUD for tenants and configurations
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

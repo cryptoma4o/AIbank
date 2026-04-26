@@ -1,0 +1,102 @@
+schema_version: "1.0"
+
+tenant:
+  id: "tnt_01HQ8X4Z2MNPQRSTUVWXYZABC"
+  name: "Банк Альфа"
+  slug: "bank-alpha"
+  legal_forms:
+    - ooo
+    - ao
+    - ip
+  brand:
+    primary_color: "#1B4FCC"
+    logo_url: "https://cdn.bank-alpha.ru/logo.svg"
+    support_email: "onboarding@bank-alpha.ru"
+    support_phone: "+7 (800) 555-01-23"
+
+onboarding:
+  steps:
+    - company_info
+    - documents
+    - validation
+    - signing
+    - account
+  required_documents:
+    - type: passport
+      required: true
+      max_size_mb: 10
+      allowed_formats: [pdf, jpg, jpeg, png]
+    - type: inn_certificate
+      required: true
+      max_size_mb: 10
+      allowed_formats: [pdf, jpg, jpeg, png]
+    - type: ogrn_certificate
+      required: true
+      max_size_mb: 10
+      allowed_formats: [pdf, jpg, jpeg, png]
+    - type: charter
+      required: true
+      max_size_mb: 50
+      allowed_formats: [pdf]
+    - type: beneficial_owners_registry
+      required: false
+      max_size_mb: 20
+      allowed_formats: [pdf]
+    - type: ceo_appointment_order
+      required: true
+      max_size_mb: 10
+      allowed_formats: [pdf, jpg, jpeg, png]
+    - type: financial_statements
+      required: false
+      max_size_mb: 50
+      allowed_formats: [pdf, xlsx]
+  risk_rules:
+    auto_approve_threshold: 75
+    auto_reject_threshold: 30
+    max_ubo_depth: 5
+  sla_hours:
+    auto_decision: 2
+    manual_review: 48
+
+notifications:
+  channels:
+    - email
+    - sms
+  templates:
+    application_submitted:
+      subject: "Заявка на открытие счёта принята"
+      body: "Уважаемый клиент, ваша заявка №{{application_id}} принята в обработку. Ожидаемый срок рассмотрения — {{sla_hours}} часов."
+    application_approved:
+      subject: "Счёт открыт — Банк Альфа"
+      body: "Поздравляем! Расчётный счёт {{account_number}} успешно открыт. Реквизиты направлены на email."
+    application_rejected:
+      subject: "Отказ в открытии счёта"
+      body: "К сожалению, мы не можем открыть счёт по заявке №{{application_id}}. Причина: {{reason}}. Вы можете обратиться в отделение банка."
+    manual_review_requested:
+      subject: "Заявка требует дополнительной проверки"
+      body: "Ваша заявка №{{application_id}} направлена на ручную проверку. Мы свяжемся с вами в течение {{sla_hours}} часов."
+    document_required:
+      subject: "Требуется дополнительный документ"
+      body: "Для обработки заявки №{{application_id}} необходимо предоставить: {{document_list}}."
+
+integrations:
+  abs:
+    adapter: mock
+    endpoint: "http://mock-abs:9000"
+    timeout_seconds: 30
+  egrul:
+    cache_ttl_hours: 24
+  rosfinmon:
+    enabled: true
+  fssp:
+    enabled: true
+  spark:
+    enabled: false
+    api_key: ""
+
+ai:
+  ocr_enabled: true
+  ubo_tracing_enabled: true
+  risk_explanation_enabled: true
+  conversational_enabled: true
+  preferred_model: "gemma"

@@ -1,0 +1,29 @@
+replicaCount: 1
+
+image:
+  repository: aibank/rag-service
+  tag: ""
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8105
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+env:
+  LLM_GATEWAY_URL: "http://llm-gateway:8100"
+  QDRANT_URL: "http://qdrant:6333"
+  AUDIT_URL: "http://audit-service:8081"

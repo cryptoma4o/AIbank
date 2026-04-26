@@ -1,0 +1,16 @@
+schema_version: "1.0"
+tenant:
+  id: "{tenant-id}"          # DNS-safe, e.g. alfa-bank
+  name: "{Bank Full Name}"
+  bik: "000000000"           # 9 digits
+  inn: "0000000000"          # 10 digits for legal entity
+  status: trial
+  deployment:
+    mode: saas               # saas | on_prem | hybrid
+  features:
+    enabled:
+      - kyb_egrul
+      - kyb_rosfinmon
+      - risk_scoring
+    disabled:
+      - spark_integration    # enable if bank has SPARK contract

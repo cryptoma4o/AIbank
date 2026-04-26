@@ -1,0 +1,6 @@
+postgresql_version: "16"
+postgresql_port: 5432
+postgresql_data_dir: "/var/lib/postgresql/{{ postgresql_version }}/main"
+postgresql_max_connections: 400
+postgresql_shared_buffers: "512MB"
+postgresql_work_mem: "16MB"

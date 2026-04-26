@@ -1,0 +1,6 @@
+apiVersion: v2
+name: ubo-service
+description: AIbank UBO Service — UBO ownership graph storage with recursive CTE computation
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

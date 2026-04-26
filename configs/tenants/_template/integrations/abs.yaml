@@ -1,0 +1,7 @@
+schema_version: "1.0"
+abs:
+  type: cft                         # cft | diasoft | rs_bank
+  endpoint: "vault://kv/tenants/{tenant-id}/abs/endpoint"
+  api_key: "vault://kv/tenants/{tenant-id}/abs/api_key"
+  timeout_seconds: 30
+  retry_attempts: 3

@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package aibank.v1;
+
+option go_package = "github.com/aibank/proto/v1;v1";
+
+// RiskLevel is the categorical risk classification for an application.
+enum RiskLevel {
+  RISK_LEVEL_UNSPECIFIED = 0;
+  RISK_LEVEL_LOW         = 1;
+  RISK_LEVEL_MEDIUM      = 2;
+  RISK_LEVEL_HIGH        = 3;
+  RISK_LEVEL_CRITICAL    = 4;
+}
+
+// Recommendation is the underwriting decision produced by the risk engine.
+enum Recommendation {
+  RECOMMENDATION_UNSPECIFIED   = 0;
+  RECOMMENDATION_APPROVE       = 1;
+  RECOMMENDATION_MANUAL_REVIEW = 2;
+  RECOMMENDATION_REJECT        = 3;
+}
+
+// RiskFactor is a single scored signal that contributed to the overall risk assessment.
+message RiskFactor {
+  // name is the identifier of the rule or signal (e.g. "inn_blacklist").
+  string name = 1;
+  // impact is the numeric score delta applied by this factor.
+  int32 impact = 2;
+  // explanation is a human-readable description of why this factor was triggered.
+  string explanation = 3;
+}
+
+// RiskAssessment is the result produced by the risk engine for an application.
+message RiskAssessment {
+  // id is the ULID of this assessment record.
+  string id = 1;
+  // application_id is the ULID of the assessed application.
+  string application_id = 2;
+  // score is the aggregate risk score in [0, 100].
+  int32 score = 3;
+  // risk_level is the categorical classification derived from the score.
+  RiskLevel risk_level = 4;
+  // recommendation is the underwriting decision.
+  Recommendation recommendation = 5;
+  // factors lists each signal that contributed to the score.
+  repeated RiskFactor factors = 6;
+  // assessed_at is the RFC 3339 timestamp when the assessment was produced.
+  string assessed_at = 7;
+}
+
+// --- Request / Response messages ---
+
+message ScoreApplicationRequest {
+  // application_id is the ULID of the application to score.
+  string application_id = 1;
+  // tenant_id scopes the request to a specific tenant.
+  string tenant_id = 2;
+  // facts is a map of key-value pairs supplied to the rule engine.
+  map<string, string> facts = 3;
+}
+
+message GetRiskAssessmentRequest {
+  // id is the ULID of the risk assessment to retrieve.
+  string id = 1;
+  // tenant_id scopes the request to a specific tenant.
+  string tenant_id = 2;
+}
+
+// RiskService evaluates applications against configurable risk rules.
+service RiskService {
+  // ScoreApplication runs the rule engine against the supplied facts and
+  // persists the resulting RiskAssessment.
+  rpc ScoreApplication(ScoreApplicationRequest) returns (RiskAssessment);
+
+  // GetRiskAssessment retrieves a previously computed risk assessment by its ULID.
+  rpc GetRiskAssessment(GetRiskAssessmentRequest) returns (RiskAssessment);
+}

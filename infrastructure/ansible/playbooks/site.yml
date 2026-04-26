@@ -1,0 +1,21 @@
+---
+- name: AIbank full on-prem deployment
+  import_playbook: 01_prerequisites.yml
+
+- name: Install containerd
+  import_playbook: 02_containerd.yml
+
+- name: Setup Kubernetes cluster
+  import_playbook: 03_kubernetes.yml
+
+- name: Setup MinIO storage
+  import_playbook: 04_storage.yml
+
+- name: Setup databases
+  import_playbook: 05_databases.yml
+
+- name: Setup Kafka
+  import_playbook: 06_kafka.yml
+
+- name: Deploy AIbank application
+  import_playbook: 07_aibank.yml

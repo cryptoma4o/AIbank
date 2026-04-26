@@ -1,0 +1,33 @@
+---
+- name: Setup PostgreSQL and Redis
+  hosts: databases
+  roles:
+    - postgresql
+  tasks:
+    - name: Install Redis
+      apt:
+        name: redis-server
+        state: present
+
+    - name: Configure Redis
+      lineinfile:
+        path: /etc/redis/redis.conf
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      loop:
+        - { regexp: '^bind ', line: 'bind 0.0.0.0' }
+        - { regexp: '^maxmemory ', line: 'maxmemory 2gb' }
+        - { regexp: '^maxmemory-policy ', line: 'maxmemory-policy allkeys-lru' }
+      notify: restart redis
+
+    - name: Enable and start Redis
+      service:
+        name: redis-server
+        state: started
+        enabled: true
+
+  handlers:
+    - name: restart redis
+      service:
+        name: redis-server
+        state: restarted

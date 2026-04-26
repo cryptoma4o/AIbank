@@ -1,0 +1,28 @@
+replicaCount: 1
+
+image:
+  repository: aibank/abs-adapter-diasoft
+  tag: ""
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 9002
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
+
+env:
+  AUDIT_URL: "http://audit-service:8081"
+  DIASOFT_ENDPOINT: ""

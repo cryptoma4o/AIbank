@@ -1,0 +1,31 @@
+replicaCount: 2
+
+image:
+  repository: aibank/bff-admin
+  tag: ""
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8095
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+env:
+  TENANT_URL: "http://tenant-service:8080"
+  AUDIT_URL: "http://audit-service:8081"
+  CLIENT_URL: "http://client-service:8087"
+  UBO_URL: "http://ubo-service:8088"
+  BILLING_URL: "http://billing-service:8096"

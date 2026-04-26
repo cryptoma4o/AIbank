@@ -1,0 +1,18 @@
+{
+  "promptDelete": false,
+  "trashOption": "local",
+  "attachmentFolderPath": "docs/assets",
+  "newFileLocation": "folder",
+  "newFileFolderPath": "docs",
+  "showUnsupportedFiles": false,
+  "defaultViewMode": "source",
+  "foldIndent": true,
+  "showLineNumber": true,
+  "readableLineLength": true,
+  "strictLineBreaks": false,
+  "autoConvertHtml": true,
+  "smartIndentList": true,
+  "spellcheck": false,
+  "spellcheckLanguages": ["ru"],
+  "useMarkdownLinks": true
+}

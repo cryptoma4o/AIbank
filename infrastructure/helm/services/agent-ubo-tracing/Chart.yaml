@@ -1,0 +1,6 @@
+apiVersion: v2
+name: agent-ubo-tracing
+description: AIbank Agent UBO Tracing — AI agent for UBO ownership graph construction from ЕГРЮЛ data
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

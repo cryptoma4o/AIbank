@@ -1,0 +1,6 @@
+schema_version: "1.0"
+thresholds:
+  low_max: 300
+  medium_max: 700
+  auto_approve_max: 250
+  auto_reject_min: 800

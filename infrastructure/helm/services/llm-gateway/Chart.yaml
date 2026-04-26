@@ -1,0 +1,6 @@
+apiVersion: v2
+name: llm-gateway
+description: AIbank LLM Gateway — OpenAI-compatible LLM gateway with model routing and multi-backend support
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

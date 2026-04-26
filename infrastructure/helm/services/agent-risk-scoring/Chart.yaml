@@ -1,0 +1,6 @@
+apiVersion: v2
+name: agent-risk-scoring
+description: AIbank Agent Risk Scoring — AI agent for risk scoring with LLM-generated Russian explanations
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

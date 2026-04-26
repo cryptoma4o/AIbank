@@ -1,0 +1,11 @@
+schema_version: "1.0"
+targets:
+  ip:
+    auto_processing_minutes: 5
+    total_minutes: 60
+  llc:
+    auto_processing_minutes: 15
+    total_minutes: 240
+  jsc:
+    auto_processing_minutes: 30
+    total_minutes: 480

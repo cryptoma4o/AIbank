@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package aibank.common.v1;
+
+option go_package = "github.com/aibank/platform/gen/go/common/v1;commonv1";
+
+// Money represents a monetary amount in the smallest currency unit (kopecks for RUB).
+message Money {
+  // amount is the value in the smallest currency unit (e.g. kopecks for RUB).
+  int64 amount = 1;
+  // currency is the ISO 4217 currency code (e.g. "RUB").
+  string currency = 2;
+}
+
+// ULID is a Universally Unique Lexicographically Sortable Identifier.
+message ULID {
+  // value is the string representation of the ULID.
+  string value = 1;
+}
+
+// Pagination holds parameters for paginated list requests.
+message Pagination {
+  // page is the 1-based page number.
+  int32 page = 1;
+  // page_size is the number of items per page.
+  int32 page_size = 2;
+}
+
+// PagedResponse carries pagination metadata returned alongside list responses.
+message PagedResponse {
+  // total is the total number of items across all pages.
+  int32 total = 1;
+  // page is the current 1-based page number.
+  int32 page = 2;
+  // page_size is the number of items per page.
+  int32 page_size = 3;
+}
+
+// TenantContext identifies the tenant scope for a request.
+message TenantContext {
+  // tenant_id is the ULID of the tenant.
+  string tenant_id = 1;
+}

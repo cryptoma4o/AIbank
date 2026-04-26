@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AIModelsConfig",
+  "type": "object",
+  "required": ["schema_version", "models"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1.0"},
+    "models": {
+      "type": "object",
+      "required": [
+        "document_parsing",
+        "reconciliation",
+        "ubo_tracing",
+        "risk_explanation",
+        "conversational",
+        "rag"
+      ],
+      "properties": {
+        "document_parsing": {"$ref": "#/definitions/model_config"},
+        "reconciliation": {"$ref": "#/definitions/model_config"},
+        "ubo_tracing": {"$ref": "#/definitions/model_config"},
+        "risk_explanation": {"$ref": "#/definitions/model_config"},
+        "conversational": {"$ref": "#/definitions/model_config"},
+        "rag": {"$ref": "#/definitions/model_config"}
+      },
+      "additionalProperties": {"$ref": "#/definitions/model_config"}
+    }
+  },
+  "definitions": {
+    "model_config": {
+      "type": "object",
+      "required": ["model_name", "rate_limit_rpm", "cost_alert_usd_per_day"],
+      "properties": {
+        "model_name": {
+          "type": "string",
+          "description": "Logical model alias mapped in llm-gateway"
+        },
+        "rate_limit_rpm": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum requests per minute"
+        },
+        "cost_alert_usd_per_day": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Alert threshold in USD per day"
+        }
+      }
+    }
+  }
+}

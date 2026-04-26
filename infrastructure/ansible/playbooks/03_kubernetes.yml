@@ -1,0 +1,50 @@
+---
+- name: Install kubeadm, kubelet, kubectl
+  hosts: masters:workers
+  tasks:
+    - name: Add Kubernetes apt key
+      apt_key:
+        url: https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key
+        state: present
+
+    - name: Add Kubernetes apt repository
+      apt_repository:
+        repo: "deb https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /"
+        state: present
+        filename: kubernetes
+
+    - name: Install kubernetes packages
+      apt:
+        name:
+          - "kubelet={{ kubernetes_version }}-1.1"
+          - "kubeadm={{ kubernetes_version }}-1.1"
+          - "kubectl={{ kubernetes_version }}-1.1"
+        state: present
+        update_cache: true
+
+    - name: Hold kubernetes packages
+      dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubelet
+        - kubeadm
+        - kubectl
+
+- name: Initialize Kubernetes master
+  hosts: masters[0]
+  roles:
+    - role: kubernetes
+      kubernetes_action: init
+
+- name: Join additional masters
+  hosts: masters[1:]
+  roles:
+    - role: kubernetes
+      kubernetes_action: join_master
+
+- name: Join workers
+  hosts: workers
+  roles:
+    - role: kubernetes
+      kubernetes_action: join_worker

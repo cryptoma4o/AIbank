@@ -1,0 +1,65 @@
+---
+- name: Deploy MinIO distributed cluster
+  hosts: storage
+  tasks:
+    - name: Create MinIO data directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: minio
+        group: minio
+        mode: '0755'
+      loop: "{{ minio_data_dirs }}"
+
+    - name: Create minio user
+      user:
+        name: minio
+        system: true
+        shell: /sbin/nologin
+
+    - name: Download MinIO binary
+      get_url:
+        url: "https://dl.min.io/server/minio/release/linux-amd64/archive/minio.{{ minio_version }}"
+        dest: /usr/local/bin/minio
+        mode: '0755'
+
+    - name: Configure MinIO environment
+      template:
+        src: minio.env.j2
+        dest: /etc/default/minio
+        owner: root
+        group: root
+        mode: '0640'
+      notify: restart minio
+
+    - name: Install MinIO systemd service
+      copy:
+        content: |
+          [Unit]
+          Description=MinIO Object Storage
+          After=network-online.target
+
+          [Service]
+          User=minio
+          Group=minio
+          EnvironmentFile=/etc/default/minio
+          ExecStart=/usr/local/bin/minio server $MINIO_VOLUMES --console-address :{{ minio_console_port }}
+          Restart=always
+          LimitNOFILE=65536
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/minio.service
+      notify:
+        - reload systemd
+        - restart minio
+
+  handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: true
+    - name: restart minio
+      service:
+        name: minio
+        state: restarted
+        enabled: true

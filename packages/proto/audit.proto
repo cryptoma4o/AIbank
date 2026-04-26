@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package aibank.v1;
+
+option go_package = "github.com/aibank/proto/v1;v1";
+
+// AuditEvent is an immutable record of a state-changing action.
+message AuditEvent {
+  // id is the ULID of this audit event.
+  string id = 1;
+  // tenant_id is the ULID of the tenant in whose context the event occurred.
+  string tenant_id = 2;
+  // event_type describes the action taken (e.g. "application.submitted").
+  string event_type = 3;
+  // actor_id is the identifier of the actor (user ID, service name, agent ID).
+  string actor_id = 4;
+  // actor_role is the role or type of the actor (e.g. "compliance_officer", "service").
+  string actor_role = 5;
+  // resource_type names the domain entity affected (e.g. "Application", "Document").
+  string resource_type = 6;
+  // resource_id is the ULID of the affected entity instance.
+  string resource_id = 7;
+  // created_at is the RFC 3339 timestamp when the event was recorded.
+  string created_at = 8;
+}
+
+// --- Request / Response messages ---
+
+message LogEventRequest {
+  // tenant_id is the ULID of the tenant context.
+  string tenant_id = 1;
+  // event_type describes the action (e.g. "document.verified").
+  string event_type = 2;
+  // actor_id is the identifier of the actor.
+  string actor_id = 3;
+  // actor_role is the role or type of the actor.
+  string actor_role = 4;
+  // resource_type names the domain entity affected.
+  string resource_type = 5;
+  // resource_id is the ULID of the affected entity instance.
+  string resource_id = 6;
+}
+
+message LogEventResponse {
+  // event is the persisted audit event including its generated id.
+  AuditEvent event = 1;
+}
+
+message ListEventsRequest {
+  // tenant_id restricts results to a specific tenant.
+  string tenant_id = 1;
+  // resource_type optionally restricts results to a specific entity type.
+  string resource_type = 2;
+  // resource_id optionally restricts results to a specific entity instance.
+  string resource_id = 3;
+  // page_size is the maximum number of items to return (0 = server default).
+  int32 page_size = 4;
+  // page_token is the continuation token from a previous ListEvents response.
+  string page_token = 5;
+}
+
+message ListEventsResponse {
+  repeated AuditEvent events = 1;
+  // next_page_token is empty when there are no further pages.
+  string next_page_token     = 2;
+}
+
+// AuditService provides an append-only, tamper-evident audit log.
+service AuditService {
+  // LogEvent appends a new audit event to the log.
+  // This RPC is write-only and is called by other microservices after
+  // state-changing operations.
+  rpc LogEvent(LogEventRequest) returns (LogEventResponse);
+
+  // ListEvents queries the audit log with optional filters and pagination.
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
+}

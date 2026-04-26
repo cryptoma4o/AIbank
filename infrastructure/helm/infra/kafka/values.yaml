@@ -1,0 +1,22 @@
+# Overrides for bitnami/kafka chart
+kraft:
+  enabled: true
+
+replicaCount: 3
+
+persistence:
+  size: 20Gi
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+
+metrics:
+  kafka:
+    enabled: true
+  serviceMonitor:
+    enabled: true

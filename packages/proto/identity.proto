@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package aibank.v1;
+
+option go_package = "github.com/aibank/proto/v1;v1";
+
+// TokenClaims holds the verified claims extracted from a JWT.
+message TokenClaims {
+  // sub is the subject identifier (typically the user ULID).
+  string sub = 1;
+  // tenant_id is the ULID of the tenant the token was issued for.
+  string tenant_id = 2;
+  // roles is the list of roles granted to the subject.
+  repeated string roles = 3;
+  // exp is the Unix timestamp at which the token expires.
+  int64 exp = 4;
+}
+
+// --- Request / Response messages ---
+
+message ValidateTokenRequest {
+  // token is the raw JWT string to validate.
+  string token = 1;
+}
+
+message ValidateTokenResponse {
+  // valid indicates whether the token passed all validation checks.
+  bool valid = 1;
+  // claims contains the verified token claims (populated only when valid = true).
+  TokenClaims claims = 2;
+  // error_message describes the validation failure (populated only when valid = false).
+  string error_message = 3;
+}
+
+message SendOTPRequest {
+  // phone is the E.164-formatted phone number to send the OTP to.
+  string phone = 1;
+  // tenant_id scopes the OTP request to a specific tenant.
+  string tenant_id = 2;
+}
+
+message SendOTPResponse {
+  // session_id is an opaque identifier for the OTP session, required for verification.
+  string session_id = 1;
+  // expires_at is the RFC 3339 timestamp at which the OTP expires.
+  string expires_at = 2;
+}
+
+message VerifyOTPRequest {
+  // session_id is the opaque session identifier returned by SendOTP.
+  string session_id = 1;
+  // phone is the E.164-formatted phone number the OTP was sent to.
+  string phone = 2;
+  // code is the one-time password entered by the user.
+  string code = 3;
+}
+
+message VerifyOTPResponse {
+  // jwt is the signed JWT issued upon successful OTP verification.
+  string jwt = 1;
+  // refresh_token is a long-lived token for refreshing the JWT.
+  string refresh_token = 2;
+  // claims contains the claims embedded in the issued JWT.
+  TokenClaims claims = 3;
+}
+
+// IdentityService handles authentication and token validation.
+service IdentityService {
+  // ValidateToken verifies a JWT and returns the embedded claims.
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+
+  // SendOTP dispatches a one-time password to the specified phone number.
+  rpc SendOTP(SendOTPRequest) returns (SendOTPResponse);
+
+  // VerifyOTP validates the supplied OTP code and issues a signed JWT on success.
+  rpc VerifyOTP(VerifyOTPRequest) returns (VerifyOTPResponse);
+}

@@ -1,0 +1,126 @@
+syntax = "proto3";
+
+package aibank.application.v1;
+
+import "common/v1/common.proto";
+
+option go_package = "github.com/aibank/platform/gen/go/application/v1;applicationv1";
+
+// ApplicantType identifies the legal form of the applicant.
+enum ApplicantType {
+  APPLICANT_TYPE_UNSPECIFIED = 0;
+  // IP — Individual Entrepreneur (Индивидуальный предприниматель).
+  APPLICANT_TYPE_IP = 1;
+  // LLC — Limited Liability Company (Общество с ограниченной ответственностью).
+  APPLICANT_TYPE_LLC = 2;
+  // JSC — Joint Stock Company (Акционерное общество).
+  APPLICANT_TYPE_JSC = 3;
+}
+
+// ApplicationStatus represents the full onboarding state machine.
+enum ApplicationStatus {
+  APPLICATION_STATUS_UNSPECIFIED = 0;
+  // DRAFT — application created but not yet submitted.
+  APPLICATION_STATUS_DRAFT = 1;
+  // SUBMITTED — applicant has submitted the application for review.
+  APPLICATION_STATUS_SUBMITTED = 2;
+  // DOCUMENTS_REQUESTED — bank has requested additional documents.
+  APPLICATION_STATUS_DOCUMENTS_REQUESTED = 3;
+  // UNDER_REVIEW — compliance team is reviewing the application.
+  APPLICATION_STATUS_UNDER_REVIEW = 4;
+  // AML_CHECK — application is undergoing AML/KYC verification.
+  APPLICATION_STATUS_AML_CHECK = 5;
+  // APPROVED — application has been approved by the bank.
+  APPLICATION_STATUS_APPROVED = 6;
+  // REJECTED — application has been rejected.
+  APPLICATION_STATUS_REJECTED = 7;
+  // CANCELLED — applicant cancelled the application.
+  APPLICATION_STATUS_CANCELLED = 8;
+}
+
+// Application is the root aggregate for an onboarding request.
+message Application {
+  // id is the ULID of the application.
+  string id = 1;
+  // tenant_id is the ULID of the bank tenant handling this application.
+  string tenant_id = 2;
+  // applicant_type is the legal entity type of the applicant.
+  ApplicantType applicant_type = 3;
+  // status is the current state in the onboarding state machine.
+  ApplicationStatus status = 4;
+  // created_at is the RFC 3339 timestamp when the application was created.
+  string created_at = 5;
+  // submitted_at is the RFC 3339 timestamp when the application was submitted (empty if not yet submitted).
+  string submitted_at = 6;
+  // decided_at is the RFC 3339 timestamp when a final decision was recorded (empty if pending).
+  string decided_at = 7;
+}
+
+// --- Request / Response messages ---
+
+message CreateApplicationRequest {
+  // tenant_id is the ULID of the bank tenant for which this application is being created.
+  string tenant_id = 1;
+  // applicant_type is the legal entity type of the applicant.
+  ApplicantType applicant_type = 2;
+}
+
+message CreateApplicationResponse {
+  Application application = 1;
+}
+
+message GetApplicationRequest {
+  // id is the ULID of the application to retrieve.
+  string id = 1;
+  // tenant_context scopes the request to a specific tenant.
+  aibank.common.v1.TenantContext tenant_context = 2;
+}
+
+message GetApplicationResponse {
+  Application application = 1;
+}
+
+message SubmitApplicationRequest {
+  // id is the ULID of the application to submit.
+  string id = 1;
+  // tenant_context scopes the request to a specific tenant.
+  aibank.common.v1.TenantContext tenant_context = 2;
+}
+
+message SubmitApplicationResponse {
+  Application application = 1;
+}
+
+message GetApplicationStatusRequest {
+  // id is the ULID of the application.
+  string id = 1;
+  // tenant_context scopes the request to a specific tenant.
+  aibank.common.v1.TenantContext tenant_context = 2;
+}
+
+message GetApplicationStatusResponse {
+  // id is the ULID of the application.
+  string id = 1;
+  // status is the current state in the onboarding state machine.
+  ApplicationStatus status = 2;
+  // submitted_at is the RFC 3339 timestamp of submission (empty if not submitted).
+  string submitted_at = 3;
+  // decided_at is the RFC 3339 timestamp of the final decision (empty if pending).
+  string decided_at = 4;
+}
+
+// ApplicationService orchestrates the digital onboarding workflow.
+service ApplicationService {
+  // CreateApplication initialises a new onboarding application in DRAFT status.
+  rpc CreateApplication(CreateApplicationRequest) returns (CreateApplicationResponse);
+
+  // GetApplication retrieves the full application record by its ULID.
+  rpc GetApplication(GetApplicationRequest) returns (GetApplicationResponse);
+
+  // SubmitApplication transitions the application from DRAFT to SUBMITTED,
+  // triggering downstream review workflows.
+  rpc SubmitApplication(SubmitApplicationRequest) returns (SubmitApplicationResponse);
+
+  // GetApplicationStatus returns a lightweight status snapshot without the full record.
+  rpc GetApplicationStatus(GetApplicationStatusRequest) returns (GetApplicationStatusResponse);
+}

@@ -1,0 +1,32 @@
+version: "1.0"
+rules:
+  - id: BLOCK_HIGH_RISK_OKVED
+    name: Block high-risk OKVED codes
+    enabled: true
+    priority: 1
+    conditions:
+      - field: okved
+        operator: in
+        value: ["64.19", "66.19", "47.91"]
+    action: block
+    weight: 0
+  - id: FLAG_LOW_SCORE
+    name: Flag applications with low risk score
+    enabled: true
+    priority: 10
+    conditions:
+      - field: risk_score
+        operator: lt
+        value: 50
+    action: flag
+    weight: 0
+  - id: SCORE_BOOST_ESTABLISHED
+    name: Boost score for established companies (>5 years)
+    enabled: true
+    priority: 20
+    conditions:
+      - field: company_age_years
+        operator: gt
+        value: 5
+    action: score
+    weight: 10

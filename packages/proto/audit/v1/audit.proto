@@ -1,0 +1,126 @@
+syntax = "proto3";
+
+package aibank.audit.v1;
+
+import "common/v1/common.proto";
+
+option go_package = "github.com/aibank/platform/gen/go/audit/v1;auditv1";
+
+// ActorType identifies who or what produced an audit event.
+enum ActorType {
+  ACTOR_TYPE_UNSPECIFIED = 0;
+  // USER — a human operator acting via the back-office UI.
+  ACTOR_TYPE_USER = 1;
+  // SERVICE — an internal microservice acting autonomously.
+  ACTOR_TYPE_SERVICE = 2;
+  // AI_AGENT — an AI agent acting on behalf of the platform.
+  ACTOR_TYPE_AI_AGENT = 3;
+  // SYSTEM — the platform itself (e.g. scheduled jobs, system initialisations).
+  ACTOR_TYPE_SYSTEM = 4;
+}
+
+// AuditEvent is an immutable record of a state-changing action.
+// The chain of events is integrity-protected via linked hashes.
+message AuditEvent {
+  // id is the ULID of this audit event.
+  string id = 1;
+  // tenant_id is the ULID of the tenant in whose context the event occurred.
+  string tenant_id = 2;
+  // entity_type names the domain entity affected (e.g. "Application", "Document").
+  string entity_type = 3;
+  // entity_id is the ULID of the affected entity instance.
+  string entity_id = 4;
+  // event_type describes the action taken (e.g. "application.submitted").
+  string event_type = 5;
+  // actor_id is the identifier of the actor (user ID, service name, agent ID).
+  string actor_id = 6;
+  // actor_type classifies what kind of actor produced the event.
+  ActorType actor_type = 7;
+  // payload is the JSON-serialised event detail (e.g. changed fields, decision reason).
+  bytes payload = 8;
+  // previous_hash is the SHA-256 hash of the immediately preceding event
+  // in the chain for this entity, enabling tamper detection.
+  string previous_hash = 9;
+  // created_at is the RFC 3339 timestamp when the event was recorded.
+  string created_at = 10;
+}
+
+// --- Request / Response messages ---
+
+message RecordEventRequest {
+  // tenant_id is the ULID of the tenant context.
+  string tenant_id = 1;
+  // entity_type names the domain entity affected.
+  string entity_type = 2;
+  // entity_id is the ULID of the affected entity instance.
+  string entity_id = 3;
+  // event_type describes the action (e.g. "document.verified").
+  string event_type = 4;
+  // actor_id is the identifier of the actor.
+  string actor_id = 5;
+  // actor_type classifies the actor.
+  ActorType actor_type = 6;
+  // payload is the JSON-serialised event detail.
+  bytes payload = 7;
+}
+
+message RecordEventResponse {
+  // event is the persisted audit event including its generated id and hash.
+  AuditEvent event = 1;
+}
+
+message ListEventsRequest {
+  // tenant_context scopes the request to a specific tenant.
+  aibank.common.v1.TenantContext tenant_context = 1;
+  // entity_type optionally restricts results to a specific entity type.
+  string entity_type = 2;
+  // entity_id optionally restricts results to a specific entity instance.
+  string entity_id = 3;
+  // actor_id optionally restricts results to events by a specific actor.
+  string actor_id = 4;
+  // event_type optionally restricts results to a specific event type.
+  string event_type = 5;
+  // from_time is an RFC 3339 timestamp lower bound (inclusive).
+  string from_time = 6;
+  // to_time is an RFC 3339 timestamp upper bound (inclusive).
+  string to_time = 7;
+  // pagination controls which page of results is returned.
+  aibank.common.v1.Pagination pagination = 8;
+}
+
+message ListEventsResponse {
+  repeated AuditEvent events = 1;
+  aibank.common.v1.PagedResponse paged_response = 2;
+}
+
+message GetEventChainRequest {
+  // tenant_context scopes the request to a specific tenant.
+  aibank.common.v1.TenantContext tenant_context = 1;
+  // entity_type names the domain entity whose chain is requested.
+  string entity_type = 2;
+  // entity_id is the ULID of the entity whose chain is requested.
+  string entity_id = 3;
+}
+
+message GetEventChainResponse {
+  // events is the ordered list of audit events forming the integrity chain
+  // for the requested entity (oldest first).
+  repeated AuditEvent events = 1;
+  // chain_valid indicates whether all previous_hash links are consistent.
+  bool chain_valid = 2;
+}
+
+// AuditService provides an append-only, tamper-evident audit log.
+service AuditService {
+  // RecordEvent appends a new audit event to the log. This RPC is write-only
+  // and is called by other microservices after state-changing operations.
+  rpc RecordEvent(RecordEventRequest) returns (RecordEventResponse);
+
+  // ListEvents queries the audit log with optional filters and pagination.
+  // Used by back-office tools and compliance reporting.
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
+
+  // GetEventChain retrieves the full ordered event history for a single entity
+  // and verifies the integrity of the hash chain.
+  rpc GetEventChain(GetEventChainRequest) returns (GetEventChainResponse);
+}

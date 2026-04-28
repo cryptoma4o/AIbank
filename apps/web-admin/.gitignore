@@ -1,0 +1,29 @@
+# Зависимости
+node_modules
+.pnp
+.pnp.js
+
+# Сборка Next.js
+.next
+out
+build
+
+# Туллинг
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+
+# Логи
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Локальные переменные окружения
+.env.local
+.env*.local
+
+# Playwright артефакты
+/test-results/
+/playwright-report/
+/playwright/.cache/
+/blob-report/

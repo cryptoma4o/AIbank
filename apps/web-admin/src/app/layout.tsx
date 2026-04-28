@@ -1,22 +1,27 @@
 import type { Metadata } from "next";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { TopBar } from "@/components/layout/TopBar";
+
 import "./globals.css";
+import { ApolloProviderClient } from "@/components/ApolloProviderClient";
+import { AppHeader } from "@/components/AppHeader";
 
 export const metadata: Metadata = {
-  title: "AIbank Admin",
-  description: "Панель управления платформой онбординга",
+  title: "AIbank · Админ-панель банка",
+  description:
+    "Управление заявками, риск-оценкой, аудитом и конфигурацией тенанта",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="ru">
-      <body className="flex h-screen bg-gray-50 text-gray-900 antialiased">
-        <Sidebar />
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <TopBar />
-          <main className="flex-1 overflow-y-auto p-6">{children}</main>
-        </div>
+      <body className="min-h-screen bg-surface text-gray-900 antialiased">
+        <ApolloProviderClient>
+          <AppHeader />
+          <main className="mx-auto max-w-7xl px-6 py-6">{children}</main>
+        </ApolloProviderClient>
       </body>
     </html>
   );

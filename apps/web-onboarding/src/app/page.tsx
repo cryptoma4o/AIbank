@@ -1,2 +1,7 @@
 import { redirect } from "next/navigation";
-export default function Home() { redirect("/apply"); }
+
+// Корневой роут: пока нет server-side checking JWT (skeleton), отправляем
+// в /login.  AuthGuard на /applications сам разберётся с валидной сессией.
+export default function HomePage() {
+  redirect("/login");
+}

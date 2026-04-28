@@ -7,14 +7,54 @@
 
 ## [Unreleased]
 
-### Added — Reliability (2026-04-28)
-- **Outbox DLQ для poison messages** (`packages/outbox`): ранее relay бесконечно ретраил неуспешные Publish, теперь после `MaxAttempts=5` (configurable) строка перемещается в `*_outbox_dead_letter`. Колонки `attempts/last_error/last_attempt_at` записываются на каждой неудаче. Миграция 003 для billing-service (add-only).
-- **Конфигурация** через `outbox.NewWithOptions(db, table, topic, Options{DeadLetterTable, MaxAttempts})` — обратносовместимо с `outbox.New()`.
-- **Runbook** `docs/runbooks/outbox-dlq-recovery.md` — inventory, классификация причин (transient / schema mismatch / poisoned / topic-removed), bulk replay через INSERT-back, selective discard с audit-trail.
+### Added — Pre-integration foundations (2026-04-28)
 
-### Added — Documentation
-- **Audit-bundle для банковского ИБ-аудита** (`docs/audit-bundle.md`) — собран из существующих docs (security-architecture, compliance-map, ADR, runbooks) для отправки CISO банка перед пилотом. Включает one-pager, deep-dive doc list, ADR-таблицу с релевантностью для ИБ, pilot-readiness gap, ИБ-чек-листы для локальной проверки.
-- Начальная архитектурная документация: product vision, technical structure, AI agents, domain model, compliance map, security architecture, tenant configuration
+Ниже перечислено всё, что подготовлено к пилоту до получения внешних ресурсов
+(ФНС-договор, GPU, КриптоПро/VipNet лицензии, партнёр-банк). Реальный production
+rollout — после внешних ресурсов и DevOps review (см. [docs/devops-review-package.md](docs/devops-review-package.md)).
+
+#### Reliability
+- **Outbox DLQ для poison messages** (`packages/outbox`): после `MaxAttempts=5` (configurable) строка перемещается в `*_outbox_dead_letter`. Колонки `attempts/last_error/last_attempt_at`. Миграция 003 для billing-service (add-only). Конфигурация через `outbox.NewWithOptions(...)`.
+- **Outbox cleanup published rows**: `Outbox.CleanupPublished(ctx, retention, batchSize)` — iterative DELETE с `SKIP LOCKED`, не блокирует relay. CLI `tools/outbox-cleanup` + Helm `CronJob` template (default OFF).
+- **Runbook** [`docs/runbooks/outbox-dlq-recovery.md`](docs/runbooks/outbox-dlq-recovery.md) — inventory, классификация (transient / schema mismatch / poisoned / topic-removed), bulk replay через INSERT-back, selective discard.
+
+#### AI / RAG
+- **`ai/llm-gateway` env-overrides**: `VLLM_GEMMA_URL` / `VLLM_QWEN_URL` / `VLLM_TPRO_URL` + generic `VLLM_BACKEND_URL_<NAME>` — переключение на live vLLM без правки YAML. Mock-backend защищён.
+- **`ai/eval-harness/baselines/`**: формат и placeholder `mock-2026-04-28.json` для регрессии-метрик (per ADR-0011, threshold 5 п.п.).
+- **`ai/rag-service` pluggable Reranker**: `LexicalReranker` (default), `BGEReranker` (HTTP к TEI/vLLM с `BAAI/bge-reranker-v2-m3`), `NoOpReranker`. Конфигурация через `RAG_RERANKER` ENV, fallback на lexical при отсутствии URL. 12 unit-тестов.
+
+#### Security / Audit
+- **Audit криптоподпись (Ed25519 production-grade)**: `signature/signature_algorithm/signer_key_id` колонки в `audit.events` (миграция 002), `EventSigner` interface в handler, Ed25519 signer с auto-renewal-friendly keypair management. `audit-verifier --pubkey` / `--pubkey-file` для verification. End-to-end e2e test через testcontainers (build-tag `e2e`) — записывает 10 событий с подписью, проверяет верификатором, имитирует tampering и ловит mismatch.
+- **`packages/signature/ed25519`**: 64-byte signature, KeyID = hex SHA-256(PublicKey), `FromSeed/FromBase64Seed/FromEnv/Generate`. 11 unit-тестов.
+- **`packages/signature/gost2012`** STUB: подготовка к реальному КриптоПро. Algorithm `gost-2012-256-stub` явно отличается от целевого. KeyID с префиксом `STUB-` для grep'а в SOC. SHA-256 inside (не криптостойко). 16 тестов.
+- **`packages/signature` provider abstraction**: `SignatureProvider` interface (Sign/Verify/ListCertificates), `SignedPayload` (DER-encoded signature + Streebog hash + cert chain + timestamp), `MockSignatureProvider` для тестов document-service / identity-service.
+- **`packages/pii-encryption`** (новый): field-level encryption через Vault Transit для PII (паспорт, СНИЛС, ИНН физлица, bank-account, phone). `EncryptHash` для search-friendly equals lookups (HMAC-SHA256). `MockPIIEncryptor` для тестов. 20 unit + integration тестов через httptest mock Vault.
+
+#### KYC интеграции
+- **`services/ext-egrul` LiveProvider**: реальный HTTP-клиент к СМЭВ-3 endpoint, retry 100/200/400 ms, circuit breaker (5 fails → 30s open + half-open), audit через `slog`. Sentinel ошибки `ErrNotFound`, `ErrCircuitOpen`, `ErrUpstream`.
+- **`services/ext-egrul` XML→LegalEntity mapper** (`internal/provider/xml_mapper.go`): нормализация ОПФ-кодов, статусов («Действующее»→`active`), дат (DD.MM.YYYY → ISO), рублей в копейки. 6 test groups (юрлицо/ИП/status/kopecks/errors/founder type inference).
+- **`tools/mock-smev`** (новый Go-модуль): mock SMEV3-server для contract-tests, маршруты `/by-inn/{inn}` / `/by-ogrn/{ogrn}`, INN `9999999999` → 404 для теста `ErrNotFound`. 8 тестов.
+
+#### ABS интеграции
+- **`services/abs-adapter-cft` contract tests** под build-tag `contract`: 12 golden fixtures (canonical ↔ ЦФТ-формат) для 4 команд (open_account_llc, get_balance, close_account, reject_unknown). 11 тестов: roundtrip, deterministic ID, request/response translation. Translation-helpers временно в тест-пакете — переедут в `internal/handler/cft_translator.go` при ADR-0006 § 5 Phase 2.
+
+#### Frontend
+- **`apps/web-onboarding` document upload UX**: drag-and-drop модальное окно (`DocumentUploadModal.tsx`), HTML5 drag events без `react-dropzone` (без новых deps), per-file статус (queued/uploading%/done/error), retry на error, MIME/size валидация client-side. `lib/document-upload.ts` через XHR (для upload-progress callback). 2 e2e теста (Playwright).
+
+#### Infrastructure
+- **`packages/secrets/approle.go`**: AppRole login flow с auto-renewal (renewer goroutine, default 70% lease lifetime, fallback re-login на просрочке). 3 теста через fake Vault HTTP.
+- **`infrastructure/helm/charts/vault/`** (новый skeleton): 3-узловой Raft HA, опциональный auto-unseal через cloud KMS (Yandex/AWS/GCP) или Shamir, encrypted PVC, PodDisruptionBudget, NetworkPolicy. README с bootstrap procedure. См. ADR-0013.
+- **`infrastructure/helm/charts/istio-mesh/`** (новый skeleton): AIbank-policies для установленного Istio control plane — `PeerAuthentication STRICT`, `AuthorizationPolicy` default-deny + per-service allow, NetworkPolicy как defence-in-depth. README с install procedure. См. ADR-0014.
+
+#### Documentation
+- **`docs/adr/0013-vault-ha-topology.md`** (Proposed): Vault Raft HA + auto-unseal + AppRole, 4 open questions для DevOps decisions.
+- **`docs/adr/0014-mtls-istio.md`** (Proposed): Istio mTLS + AuthorizationPolicy + workload identity (SPIFFE), 5 open questions.
+- **`docs/devops-review-package.md`** — единый artefact для DevOps review (ссылки на ADR, self-validation команды, 7 решений с чек-боксами, structure встречи, action items template на 10 issues).
+- **`docs/audit-bundle.md`** — для отправки CISO банка-партнёра. One-pager, deep-dive doc list, ADR-таблица для ИБ, pilot-readiness gap, ИБ-чек-листы.
+- **Runbook `outbox-dlq-recovery.md`** (см. выше).
+- **Optimization sessии (Цикл 0)**: CLAUDE.md сжат с 244 → 73 строк (-60% токенов), вынесена harness-документация в `.claude/AGENTS.md`. Создан `docs/agents-rules.md` (правила работы агентов), 3 skill в `.claude/skills/aibank-{add-agent,add-service,domain-change}`. Makefile-таргеты `context-light`, `agent-pr-check`, `changed-services` + скрипты в `scripts/`. 5 memory pattern-файлов для эволюции системы.
+
+### Added — Documentation (initial)
 - Начальная архитектурная документация: product vision, technical structure, AI agents, domain model, compliance map, security architecture, tenant configuration
 - Шаблон ADR (`docs/adr/0000-template.md`)
 - Структура монорепозитория

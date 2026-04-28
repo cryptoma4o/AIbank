@@ -1,15 +1,14 @@
-"""Hybrid retriever: dense (Embedder) + lexical-overlap re-rank.
+"""Hybrid retriever: dense (Embedder) + reranker для last-mile scoring.
 
-В MVP «sparse» — это упрощённое пересечение токенов между запросом и
-сниппетом (BM25-style placeholder). Когда в Phase-1 добавится bge-m3
-плюс настоящий BM25 (через Qdrant 1.10+ sparse vectors или OpenSearch),
-заменяем эту функцию `_lexical_score` — интерфейс retriever-а не меняется.
+Reranker — pluggable через service.reranker.Reranker. По умолчанию
+LexicalReranker (Jaccard-style overlap) для Pre-MVP / CI. После подключения
+GPU + bge-reranker-v2-m3 переключение через ENV ``RAG_RERANKER=bge`` без
+изменений retriever-кода.
 """
 from __future__ import annotations
 
 import logging
-import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from models.schemas import (
@@ -24,6 +23,7 @@ from service.qdrant_client import (
     VectorStore,
     collection_name,
 )
+from service.reranker import LexicalReranker, Reranker
 
 log = logging.getLogger(__name__)
 
@@ -33,28 +33,15 @@ DENSE_WEIGHT = 0.7
 LEXICAL_WEIGHT = 0.3
 
 
-_TOKEN_RE = re.compile(r"[\wа-яёА-ЯЁ]+", re.UNICODE)
-
-
-def _tokenize(text: str) -> set[str]:
-    return {m.group(0).lower() for m in _TOKEN_RE.finditer(text)}
-
-
-def _lexical_score(query: str, text: str) -> float:
-    """Jaccard-style overlap. 0..1."""
-    q = _tokenize(query)
-    t = _tokenize(text)
-    if not q or not t:
-        return 0.0
-    inter = q & t
-    return len(inter) / len(q)
-
-
 def _snippet(text: str, max_len: int = SNIPPET_MAX) -> str:
     text = text.strip()
     if len(text) <= max_len:
         return text
     return text[: max_len - 1].rstrip() + "…"
+
+
+def _default_reranker() -> Reranker:
+    return LexicalReranker()
 
 
 @dataclass
@@ -63,6 +50,7 @@ class Retriever:
     embedder: Embedder
     dense_weight: float = DENSE_WEIGHT
     lexical_weight: float = LEXICAL_WEIGHT
+    reranker: Reranker = field(default_factory=_default_reranker)
 
     async def index(
         self, tenant_id: str, documents: list[IndexDocument]
@@ -107,10 +95,21 @@ class Retriever:
         if not matches:
             return []
 
+        # Last-mile re-rank через pluggable Reranker. На сетевые ошибки
+        # (например, BGE недоступен) — graceful degradation на dense-only.
+        texts = [str(m.payload.get("text", "")) for m in matches]
+        try:
+            rerank_scores = await self.reranker.rerank(query, texts)
+        except Exception as exc:  # pragma: no cover — defensive только
+            log.warning(
+                "reranker '%s' упал, degrade на dense-only: %s",
+                getattr(self.reranker, "name", type(self.reranker).__name__),
+                exc,
+            )
+            rerank_scores = [0.0] * len(matches)
+
         rescored: list[tuple[float, Match]] = []
-        for m in matches:
-            text = str(m.payload.get("text", ""))
-            lex = _lexical_score(query, text)
+        for m, lex in zip(matches, rerank_scores):
             blended = self.dense_weight * m.score + self.lexical_weight * lex
             rescored.append((blended, m))
         rescored.sort(key=lambda x: x[0], reverse=True)

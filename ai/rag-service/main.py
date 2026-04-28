@@ -30,6 +30,7 @@ from service.embedder import (
     build_embedder,
 )
 from service.qdrant_client import VectorStore, build_default_store
+from service.reranker import Reranker, build_reranker
 from service.retriever import Retriever
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -52,40 +53,46 @@ def _embedder_kind(embedder: Embedder) -> str:
     return type(embedder).__name__.lower()
 
 
-def _build_components() -> tuple[Retriever, VectorStore, Embedder]:
+def _build_components() -> tuple[Retriever, VectorStore, Embedder, Reranker]:
     """Create retriever and dependencies. Test code monkeypatches `app.state.retriever`.
 
-    Embedder выбирается через `build_embedder()` (env `RAG_EMBEDDER`,
-    "mock" по умолчанию). Production использует `tei` — TEI-сидекар с
-    BAAI/bge-m3, см. `configs/sample-prod.yaml` и ADR-0008.
+    Embedder через ``build_embedder()`` (env ``RAG_EMBEDDER``, "mock" default).
+    Production — ``tei`` с BAAI/bge-m3 (ADR-0008).
+
+    Reranker через ``build_reranker()`` (env ``RAG_RERANKER``, "lexical" default).
+    После получения GPU — ``bge`` с BAAI/bge-reranker-v2-m3.
     """
     embedder: Embedder = build_embedder()
     store: VectorStore = build_default_store()
-    retriever = Retriever(store=store, embedder=embedder)
-    return retriever, store, embedder
+    reranker: Reranker = build_reranker()
+    retriever = Retriever(store=store, embedder=embedder, reranker=reranker)
+    return retriever, store, embedder, reranker
 
 
 @app.on_event("startup")
 async def _startup() -> None:
-    retriever, store, embedder = _build_components()
+    retriever, store, embedder, reranker = _build_components()
     app.state.retriever = retriever
     app.state.store = store
     app.state.embedder = embedder
+    app.state.reranker = reranker
     log.info(
-        "rag-service готов (backend=%s, embedder=%s, embed_dim=%d)",
+        "rag-service готов (backend=%s, embedder=%s, embed_dim=%d, reranker=%s)",
         store.backend_name,
         _embedder_kind(embedder),
         embedder.dim,
+        reranker.name,
     )
 
 
 def _get_retriever(request: Request) -> Retriever:
     retriever = getattr(request.app.state, "retriever", None)
     if retriever is None:
-        retriever, store, embedder = _build_components()
+        retriever, store, embedder, reranker = _build_components()
         request.app.state.retriever = retriever
         request.app.state.store = store
         request.app.state.embedder = embedder
+        request.app.state.reranker = reranker
     return retriever
 
 
@@ -96,12 +103,14 @@ async def healthz(request: Request) -> dict:
     _get_retriever(request)
     store = request.app.state.store
     embedder = request.app.state.embedder
+    reranker = getattr(request.app.state, "reranker", None)
     return {
         "status": "ok",
         "service": "rag-service",
         "backend": store.backend_name,
         "embedder": _embedder_kind(embedder),
         "dim": embedder.dim,
+        "reranker": reranker.name if reranker else "unknown",
     }
 
 

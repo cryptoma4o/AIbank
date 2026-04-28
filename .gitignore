@@ -3,9 +3,12 @@
 .swarm/
 .omc/
 
-# Claude-flow config (keep .claude-flow/config.yaml, exclude data)
+# Claude-flow config (keep root .claude-flow/config.yaml, exclude data)
 .claude-flow/*.db
 .claude-flow/*.log
+
+# Nested .claude-flow/ inside services/packages/ai/apps — local agent state, never commit
+**/.claude-flow/
 
 # Node
 node_modules/

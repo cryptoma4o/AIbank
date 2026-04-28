@@ -38,20 +38,16 @@ White-label платформа цифрового онбординга юрид�
 - **Self-hosted LLM**: модели в инфраструктуре (своей или банка), не за периметром.
 - **Доменная модель — контракт**: изменения только через ADR + согласование архитектора.
 
-### Технологический стек
+### Технологический стек (краткая сводка)
 
 | Слой | Технология |
 |------|-----------|
-| Core services | Go 1.22+ (chi, gRPC, sqlc, temporal-go-sdk) |
-| ML/AI services | Python 3.12 (FastAPI, vLLM, LangGraph) |
-| Frontend | TypeScript 5+, Next.js 14, Tailwind, shadcn/ui |
-| Legacy ABS adapters | Java 21 (SOAP/MQ) |
-| DB | PostgreSQL 16, Redis 7, Kafka (KRaft), MinIO, Qdrant, OpenSearch |
-| Orchestration | Temporal (self-hosted, PostgreSQL backend) |
-| Infrastructure | Kubernetes 1.30+, Istio (mTLS), Helm, Vault, Keycloak |
-| LLM inference | vLLM, SGLang; модели: Gemma 4, Qwen 3.5, T-pro/Vikhr |
-| Observability | VictoriaMetrics + Grafana + Loki + Tempo (LGTM) |
-| CI/CD | GitLab CI, trunk-based, ArgoCD для конфигов |
+| Backend services | Go 1.22+ |
+| AI / ML | Python 3.12 (FastAPI, vLLM, LangGraph) |
+| Frontend | TypeScript 5, Next.js 14 |
+| Infrastructure | Kubernetes, Helm, Vault, Keycloak; PostgreSQL/Kafka/Redis/MinIO/Qdrant |
+
+Полная таблица версий, инструменты orchestration / observability / CI: см. `docs/technical-structure.md` § 3.
 
 ### Навигация по задаче
 

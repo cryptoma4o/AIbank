@@ -1,0 +1,33 @@
+{
+  "scenario": "ip-manual-review",
+  "description": "ИП с неполным комплектом — нет ОГРНИП-выписки → manual review",
+  "expected_decision": "manual_review",
+  "expected_risk_category": "medium",
+  "applicant": {
+    "type": "individual_entrepreneur",
+    "legal_form": "IP",
+    "full_name": "ИП Петров Пётр Петрович",
+    "inn": "770700000012",
+    "ogrn": "304770000000001",
+    "registered_at": "2018-09-01",
+    "address": "456789, Московская обл., г. Демоград, ул. Тестовая, 5",
+    "okved": "47.11"
+  },
+  "person": {
+    "full_name": "Петров Пётр Петрович",
+    "passport": {
+      "series": "4502",
+      "number": "654321",
+      "issued_by": "УВД г. Демограда",
+      "issued_at": "2019-04-10"
+    },
+    "snils": "22222222222",
+    "personal_inn": "770700000012"
+  },
+  "documents": [
+    {"type": "passport", "filename": "passport-petrov.pdf", "size": 198432}
+  ],
+  "missing_documents": ["ogrn"],
+  "products": ["current_account_rub"],
+  "manual_review_reason": "Отсутствует выписка из ЕГРИП (ОГРНИП не подтверждён через документ)"
+}

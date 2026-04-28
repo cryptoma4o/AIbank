@@ -1,0 +1,57 @@
+{
+  "scenario": "ao-rejected",
+  "description": "АО с попаданием в синтетический 115-ФЗ перечень → declined",
+  "expected_decision": "declined",
+  "expected_risk_category": "high",
+  "applicant": {
+    "type": "legal_entity",
+    "legal_form": "AO",
+    "full_name": "Акционерное общество \"Подозрительный Капитал\"",
+    "short_name": "АО \"Подозрительный Капитал\"",
+    "inn": "9909000777",
+    "ogrn": "1037739999777",
+    "kpp": "990901001",
+    "registered_at": "2005-11-30",
+    "address": "999999, г. Тестовый, ул. Конспиративная, 13",
+    "okved": "64.99",
+    "charter_capital_kopecks": 1000000000
+  },
+  "ceo": {
+    "full_name": "Сидоров Сидор Сидорович",
+    "position": "Председатель правления",
+    "passport": {
+      "series": "4503",
+      "number": "999999",
+      "issued_by": "ОВД Тестового района",
+      "issued_at": "2010-01-01"
+    },
+    "snils": "33333333333"
+  },
+  "ubo": [
+    {
+      "full_name": "Сидоров Сидор Сидорович",
+      "share_percent": "60.00",
+      "is_russian_resident": true,
+      "via": "direct"
+    },
+    {
+      "full_name": "Иностранная Подставная LTD",
+      "ogrn_foreign": "GB00012345",
+      "share_percent": "40.00",
+      "is_russian_resident": false,
+      "via": "indirect_chain",
+      "note": "Оффшор без раскрытия конечного бенефициара — automatic high risk"
+    }
+  ],
+  "documents": [
+    {"type": "charter", "filename": "ustav-ao.pdf", "size": 2097152},
+    {"type": "ogrn", "filename": "ogrn-record-ao.pdf", "size": 156672}
+  ],
+  "products": ["current_account_rub"],
+  "decline_reason": "Совпадение с 115-ФЗ (синт.); неполная цепочка УБО (foreign offshore без disclosure)",
+  "rosfinmon_match": {
+    "matched": true,
+    "list_type": "115-ФЗ-synthetic",
+    "fuzzy_score": 0.92
+  }
+}

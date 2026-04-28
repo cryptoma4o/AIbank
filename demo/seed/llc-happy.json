@@ -1,0 +1,44 @@
+{
+  "scenario": "llc-happy-path",
+  "description": "ООО с полным комплектом документов — low risk → auto-approve",
+  "expected_decision": "auto_approved",
+  "expected_risk_category": "low",
+  "applicant": {
+    "type": "legal_entity",
+    "legal_form": "LLC",
+    "full_name": "Общество с ограниченной ответственностью \"Чистая Прибыль\"",
+    "short_name": "ООО \"Чистая Прибыль\"",
+    "inn": "7707083893",
+    "ogrn": "1027700132195",
+    "kpp": "770701001",
+    "registered_at": "2010-03-15",
+    "address": "123022, г. Москва, ул. Демонстрационная, 1",
+    "okved": "62.01",
+    "charter_capital_kopecks": 1000000050
+  },
+  "ceo": {
+    "full_name": "Иванов Иван Иванович",
+    "position": "Генеральный директор",
+    "passport": {
+      "series": "4500",
+      "number": "123456",
+      "issued_by": "ОВД Демо-района",
+      "issued_at": "2015-06-20"
+    },
+    "snils": "11111111111"
+  },
+  "ubo": [
+    {
+      "full_name": "Иванов Иван Иванович",
+      "share_percent": "100.00",
+      "is_russian_resident": true,
+      "via": "direct"
+    }
+  ],
+  "documents": [
+    {"type": "passport", "filename": "passport-ivanov.pdf", "size": 245760},
+    {"type": "charter", "filename": "ustav-llc.pdf", "size": 1048576},
+    {"type": "ogrn", "filename": "ogrn-record.pdf", "size": 102400}
+  ],
+  "products": ["current_account_rub"]
+}

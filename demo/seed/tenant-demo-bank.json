@@ -1,0 +1,30 @@
+{
+  "id": "demo",
+  "name": "АО \"Демонстрационный банк\"",
+  "domain": "demo.aibank.local",
+  "status": "active",
+  "config": {
+    "branding": {
+      "primary_color": "#0066cc",
+      "logo_url": "https://demo.aibank.local/logo.svg"
+    },
+    "kyc": {
+      "providers": {
+        "egrul": {"enabled": true, "live": false},
+        "rosfinmon": {"enabled": true, "live": false},
+        "fssp": {"enabled": true, "live": false},
+        "spark": {"enabled": false, "live": false}
+      }
+    },
+    "risk": {
+      "auto_approve_threshold": 0.30,
+      "manual_review_threshold": 0.70,
+      "auto_decline_threshold": 0.90
+    },
+    "abs": {
+      "provider": "cft",
+      "version": "v1",
+      "endpoint": "http://abs-adapter-cft:9001"
+    }
+  }
+}

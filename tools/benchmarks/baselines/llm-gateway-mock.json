@@ -1,0 +1,10 @@
+{
+  "service": "llm-gateway",
+  "mode": "mock",
+  "p95_ms": 500,
+  "p99_ms": 1000,
+  "rps_min": 50,
+  "source": "ai/llm-gateway/routers/completions.py (роутинг + usage tracking + headers)",
+  "rationale": "Mock-режим: gateway не зовёт внешний LLM, latency = роутинг + сериализация + usage record. p95<500ms даёт понимание чистого overhead. Реальный режим (vLLM/OpenAI) покажет другие цифры — отдельный baseline.",
+  "kind": "target"
+}

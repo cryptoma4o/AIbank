@@ -1,0 +1,9 @@
+{
+  "service": "bff-onboarding",
+  "p95_ms": 200,
+  "p99_ms": 500,
+  "rps_min": 100,
+  "source": "services/bff-onboarding/graph/schema.graphqls (composite query: fan-out в tenant/identity/document/orchestrator/risk)",
+  "rationale": "GraphQL — agg по downstream-сервисам, latency = max(upstream) + gateway overhead. Application query тянет 4-5 сервисов параллельно — p95<200ms требует grpc + connection pooling. p99<500ms допускает редкие cold starts.",
+  "kind": "target"
+}

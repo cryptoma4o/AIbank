@@ -1,0 +1,9 @@
+{
+  "service": "tenant-service",
+  "p95_ms": 100,
+  "p99_ms": 250,
+  "rps_min": 200,
+  "source": "docs/product-vision.md § 6 (capacity 5-50K заявок/год → ~600 RPM peak; CRUD должен иметь 10x запас)",
+  "rationale": "Tenant metadata — горячий read-path, hit cache в большинстве случаев. p95<100ms — стандартный SLA для метаданных. Это TARGET, ещё не measured baseline.",
+  "kind": "target"
+}

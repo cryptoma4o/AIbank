@@ -1,0 +1,5 @@
+# Run output — большой и не нужен в репо. Артефакты CI кладёт в S3/GCS.
+results/
+
+# Seed state — генерируется sеed.sh, не commit-им.
+.seed-state.json

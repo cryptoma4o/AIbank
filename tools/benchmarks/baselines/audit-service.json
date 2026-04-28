@@ -1,0 +1,9 @@
+{
+  "service": "audit-service",
+  "p95_ms": 50,
+  "p99_ms": 200,
+  "rps_min": 1000,
+  "source": "docs/product-vision.md § 6 (50K заявок/год × ~50 событий = 2.5M/год; peak 100+ RPS, 10x запас → 1000 RPS)",
+  "rationale": "Append-only INSERT с hash-цепочкой — должен быть < 50ms на p95 (PG INSERT с одним index lookup на LatestHash). Tail из-за GC/connection pool exhaustion → p99 < 200ms.",
+  "kind": "target"
+}

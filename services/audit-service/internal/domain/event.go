@@ -27,10 +27,25 @@ type AuditEvent struct {
 	PreviousHash string          `json:"previous_hash"`
 	Hash         string          `json:"hash"`
 	CreatedAt    time.Time       `json:"created_at"`
+
+	// Криптографическая подпись (опционально, добавляется ПОСЛЕ ComputeHash).
+	// Подпись считается над hex-decoded value поля Hash. Это обеспечивает:
+	//   * non-repudiation поверх существующего hash chain;
+	//   * backwards compat — existing rows и legacy producers могут оставлять
+	//     эти поля пустыми, hash chain продолжает работать.
+	// Алгоритмы: "ed25519" (Pre-MVP), "gost-2012-256", "gost-2012-512".
+	Signature           []byte `json:"signature,omitempty"`
+	SignatureAlgorithm  string `json:"signature_algorithm,omitempty"`
+	SignerKeyID         string `json:"signer_key_id,omitempty"`
 }
 
 // ComputeHash computes SHA-256 over the immutable fields of the event.
 // previousHash links events into a tamper-evident chain.
+//
+// IMPORTANT: signature/signer fields исключены из payload хеширования.
+// Они добавляются ПОСЛЕ ComputeHash и не влияют на hash chain — это
+// аналог TSA-таймстампа в RFC 3161 (signature применяется к финальному
+// digest'у, а не входит в него).
 func (e *AuditEvent) ComputeHash(previousHash string) string {
 	e.PreviousHash = previousHash
 	data, _ := json.Marshal(struct {
@@ -52,4 +67,18 @@ func (e *AuditEvent) ComputeHash(previousHash string) string {
 	})
 	sum := sha256.Sum256(data)
 	return hex.EncodeToString(sum[:])
+}
+
+// HasSignature возвращает true, если событие подписано (все три поля заполнены).
+// Используется в verifier для решения — проверять подпись или нет.
+func (e *AuditEvent) HasSignature() bool {
+	return len(e.Signature) > 0 && e.SignatureAlgorithm != "" && e.SignerKeyID != ""
+}
+
+// SignedDigest возвращает hex-decoded bytes поля Hash — это то значение,
+// над которым делается криптоподпись. Используется и при подписании
+// (внешним signer'ом, например packages/signature.SignatureProvider), и
+// при верификации.
+func (e *AuditEvent) SignedDigest() ([]byte, error) {
+	return hex.DecodeString(e.Hash)
 }

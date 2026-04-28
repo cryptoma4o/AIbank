@@ -156,3 +156,73 @@ func (v *Verifier) LatestHash(ctx context.Context, tenantID string) (string, err
 	}
 	return last, nil
 }
+
+// SignatureVerifyFunc — callback для проверки криптоподписи одного события.
+//
+// Реализации (типичные):
+//   - ed25519.Verify(publicKeyForKeyID(ev.SignerKeyID), digest, ev.Signature)
+//   - packages/signature.SignatureProvider.Verify (для ГОСТ через КриптоПро)
+//
+// Возвращает nil если подпись валидна, error — иначе. Verifier'у достаточно
+// факта валидности; детали (expired cert, chain broken) — внутренний концерн
+// callback'а и его места в audit-bundle.
+type SignatureVerifyFunc func(ctx context.Context, ev *Event) error
+
+// SignatureVerificationResult — итог проверки подписей в цепочке.
+type SignatureVerificationResult struct {
+	TenantID      string `json:"tenant_id"`
+	EventCount    int    `json:"event_count"`
+	SignedCount   int    `json:"signed_count"`   // сколько событий имеют (signature, alg, keyID)
+	UnsignedCount int    `json:"unsigned_count"` // EventCount - SignedCount
+	Valid         bool   `json:"valid"`
+	// FirstInvalid — первое событие с невалидной подписью (nil если все ОК).
+	FirstInvalid *Event `json:"first_invalid,omitempty"`
+	// InvalidReason — текст ошибки от SignatureVerifyFunc.
+	InvalidReason string `json:"invalid_reason,omitempty"`
+}
+
+// VerifySignatures проходит события тенанта и для каждого с HasSignature()=true
+// вызывает verifyFn. Возвращает первую невалидную подпись или Valid=true если
+// все подписанные события прошли проверку (включая случай SignedCount=0).
+//
+// Backwards compat: события без signature пропускаются (не считаются невалидными).
+// Это позволяет внедрять signing инкрементально — старые события без подписи
+// продолжают работать на одном hash chain.
+//
+// Этот метод НЕ дублирует VerifyChain — hash chain и подпись это два
+// независимых аудита, и оба вызываются при полной проверке (см. CLI).
+func (v *Verifier) VerifySignatures(ctx context.Context, tenantID string, verifyFn SignatureVerifyFunc) (SignatureVerificationResult, error) {
+	if err := ValidateTenantID(tenantID); err != nil {
+		return SignatureVerificationResult{}, err
+	}
+	if verifyFn == nil {
+		return SignatureVerificationResult{}, errors.New("verifyFn is required")
+	}
+
+	res := SignatureVerificationResult{TenantID: tenantID, Valid: true}
+
+	for ev, err := range v.store.ListEvents(ctx, tenantID, nil, nil) {
+		if err != nil {
+			return SignatureVerificationResult{}, fmt.Errorf("list events: %w", err)
+		}
+		if cerr := ctx.Err(); cerr != nil {
+			return SignatureVerificationResult{}, cerr
+		}
+
+		res.EventCount++
+		if !ev.HasSignature() {
+			res.UnsignedCount++
+			continue
+		}
+		res.SignedCount++
+
+		if err := verifyFn(ctx, &ev); err != nil {
+			cp := ev
+			res.Valid = false
+			res.FirstInvalid = &cp
+			res.InvalidReason = err.Error()
+			return res, nil
+		}
+	}
+	return res, nil
+}

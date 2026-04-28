@@ -48,12 +48,21 @@ type Event struct {
 	PreviousHash string          `json:"previous_hash"`
 	Hash         string          `json:"hash"`
 	CreatedAt    time.Time       `json:"created_at"`
+
+	// Опциональная криптоподпись поверх Hash (подпись применяется к
+	// hex-decoded Hash). Backwards compat: nil/empty → событие подписано
+	// только hash chain'ом.
+	Signature          []byte `json:"signature,omitempty"`
+	SignatureAlgorithm string `json:"signature_algorithm,omitempty"`
+	SignerKeyID        string `json:"signer_key_id,omitempty"`
 }
 
 // ComputeHash повторяет логику audit-service domain.AuditEvent.ComputeHash
 // БУКВАЛЬНО — те же поля, тот же порядок JSON-сериализации, тот же
 // SHA-256 → hex. Любая модификация ломает совместимость; читать вместе
 // с docs/runbooks/audit-log-integrity.md.
+//
+// Signature-поля исключены из хеширования (см. domain.AuditEvent.ComputeHash).
 func (e *Event) ComputeHash(previousHash string) string {
 	data, _ := json.Marshal(struct {
 		ID           string          `json:"id"`
@@ -74,4 +83,14 @@ func (e *Event) ComputeHash(previousHash string) string {
 	})
 	sum := sha256.Sum256(data)
 	return hex.EncodeToString(sum[:])
+}
+
+// HasSignature — true если все три signature-поля заполнены (атомарность).
+func (e *Event) HasSignature() bool {
+	return len(e.Signature) > 0 && e.SignatureAlgorithm != "" && e.SignerKeyID != ""
+}
+
+// SignedDigest — hex-decoded байты Hash, над которыми считается подпись.
+func (e *Event) SignedDigest() ([]byte, error) {
+	return hex.DecodeString(e.Hash)
 }

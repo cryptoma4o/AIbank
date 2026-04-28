@@ -1,0 +1,19 @@
+apiVersion: v2
+name: vault
+description: |
+  HashiCorp Vault HA в Raft-mode для AIbank — 3 узла + auto-unseal +
+  AppRole auth. Skeleton-chart с разумными defaults; production-tuning
+  (KMS provider, ingress, mTLS) — см. ADR-0013 для DevOps decisions.
+type: application
+version: 0.1.0
+appVersion: "1.17"
+sources:
+  - https://github.com/hashicorp/vault
+keywords:
+  - vault
+  - secrets
+  - ha
+  - aibank
+maintainers:
+  - name: AIbank Platform
+    email: platform@example.com

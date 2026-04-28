@@ -1,0 +1,33 @@
+# Headless service для StatefulSet (DNS A-records на каждый pod) —
+# нужен для retry_join в Raft.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "vault.fullname" . }}-internal
+  labels: {{- include "vault.labels" . | nindent 4 }}
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true  # init-bootstrap должен быть discoverable
+  selector: {{- include "vault.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: api
+      port: {{ .Values.service.port }}
+      targetPort: api
+    - name: cluster
+      port: {{ .Values.service.internalPort }}
+      targetPort: cluster
+
+---
+# Обычный service для клиентов (Vault Agent, sidecars).
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "vault.fullname" . }}
+  labels: {{- include "vault.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector: {{- include "vault.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: api
+      port: {{ .Values.service.port }}
+      targetPort: api

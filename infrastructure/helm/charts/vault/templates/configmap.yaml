@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "vault.fullname" . }}
+  labels: {{- include "vault.labels" . | nindent 4 }}
+data:
+  vault.hcl: |
+    ui = false
+
+    listener "tcp" {
+      address = "[::]:8200"
+      cluster_address = "[::]:{{ .Values.service.internalPort }}"
+      {{- if .Values.tls.enabled }}
+      tls_cert_file = "/vault/tls/tls.crt"
+      tls_key_file  = "/vault/tls/tls.key"
+      tls_disable   = 0
+      {{- else }}
+      tls_disable = 1   # FIXME: production требует tls.enabled=true (см. ADR-0013)
+      {{- end }}
+    }
+
+    storage "raft" {
+      path    = "/vault/data"
+      node_id = "{{ "{{ env \"VAULT_K8S_POD_NAME\" }}" }}"
+
+      {{- range $i, $_ := until (int .Values.replicaCount) }}
+      retry_join {
+        leader_api_addr = "http://{{ include "vault.fullname" $ }}-{{ $i }}.{{ include "vault.fullname" $ }}-internal:8200"
+      }
+      {{- end }}
+    }
+
+    {{- if eq .Values.autoUnseal.provider "yandexKMS" }}
+    seal "yandexcloudkms" {
+      kms_key_id = "{{ .Values.autoUnseal.yandexKMS.keyId }}"
+    }
+    {{- else if eq .Values.autoUnseal.provider "gcpKMS" }}
+    seal "gcpckms" {
+      project     = "{{ .Values.autoUnseal.gcpKMS.project }}"
+      region      = "{{ .Values.autoUnseal.gcpKMS.region }}"
+      key_ring    = "{{ .Values.autoUnseal.gcpKMS.keyRing }}"
+      crypto_key  = "{{ .Values.autoUnseal.gcpKMS.cryptoKey }}"
+    }
+    {{- else if eq .Values.autoUnseal.provider "awsKMS" }}
+    seal "awskms" {
+      region     = "{{ .Values.autoUnseal.awsKMS.region }}"
+      kms_key_id = "{{ .Values.autoUnseal.awsKMS.keyId }}"
+    }
+    {{- end }}
+    # Если provider=shamir или hsm — block "seal" отсутствует и Vault
+    # ожидает manual unseal через `vault operator unseal` после рестарта
+    # (для on-prem банков может быть приемлемо при keyholder'ах per
+    # security-architecture § 6.2).
+
+    api_addr     = "{{ "{{ env \"VAULT_API_ADDR\" }}" }}"
+    cluster_addr = "{{ "{{ env \"VAULT_CLUSTER_ADDR\" }}" }}"
+
+    disable_mlock = false

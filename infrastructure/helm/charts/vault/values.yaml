@@ -1,0 +1,106 @@
+# Default values для AIbank Vault HA chart.
+#
+# ВАЖНО: production-deploy требует override через values-prod.yaml где
+# задаются (см. ADR-0013):
+#   - autoUnseal.provider (yandexKMS | hsm | shamir)
+#   - persistence.storageClass (cluster-specific)
+#   - tls.enabled=true с реальными сертификатами
+#   - ingress.enabled при внешнем доступе
+
+replicaCount: 3
+
+image:
+  repository: hashicorp/vault
+  tag: "1.17"
+  pullPolicy: IfNotPresent
+
+# Vault HA Raft storage. На каждом узле — encrypted PVC.
+persistence:
+  enabled: true
+  storageClass: ""  # default cluster storage class
+  size: 10Gi
+  # encryption: настраивается на уровне CSI driver (cluster-level) или
+  # через Vault seal "transit" (alternative). См. ADR-0013 open question.
+
+# Auto-unseal: один из вариантов. Pre-MVP — Shamir (manual unseal на crash).
+# Production: yandexKMS для SaaS, HSM (КриптоПро) для on-prem банков.
+autoUnseal:
+  provider: shamir  # shamir | yandexKMS | gcpKMS | awsKMS | hsm
+
+  # yandexKMS:
+  #   keyId: "abjxxx..."
+  #   serviceAccountKeyFile: /vault/userconfig/yandex-kms-sa.json
+
+  # hsm:
+  #   slot: 0
+  #   pin: ""  # из Secret
+
+# AppRole auth — рекомендация для всех сервисов AIbank (ADR-0013 § 3).
+# Пилот включает auth-method и роли через Vault Agent / Terraform после
+# первого unseal. Этот flag для documentation purposes.
+approle:
+  enabled: true
+
+# Listener: TLS должен быть включён в production.
+tls:
+  enabled: false  # FIXME: true в production-values
+  # certSecret: vault-tls
+  # caCertSecret: vault-ca
+
+service:
+  type: ClusterIP
+  port: 8200
+  internalPort: 8201  # Raft cluster port
+
+# PodDisruptionBudget — при rolling update теряем не больше 1 узла.
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Resources: типичные значения для 3-node HA. Корректировать под нагрузку.
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+# Anti-affinity: pods на разных nodes для DR.
+affinity:
+  enabled: true
+
+# Network policy: только intra-cluster доступ + audit-service для logging.
+networkPolicy:
+  enabled: true
+  allowedNamespaces:
+    - aibank-services
+
+# Snapshots — Raft snapshots для backup. Cron + S3-upload в отдельном CronJob,
+# здесь только включение интерфейса.
+snapshots:
+  enabled: false
+  schedule: "0 */6 * * *"  # каждые 6 часов
+  # destination: s3://aibank-vault-backups/
+
+ingress:
+  enabled: false
+  # className: nginx
+  # host: vault.aibank.example.com
+  # tls: true
+
+# Probes: liveness/readiness через /v1/sys/health.
+probes:
+  liveness:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readiness:
+    initialDelaySeconds: 10
+    periodSeconds: 5
+
+serviceAccount:
+  create: true
+  name: ""
+
+annotations: {}
+labels: {}

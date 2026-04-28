@@ -1,0 +1,63 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "vault.fullname" . }}
+  labels: {{- include "vault.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels: {{- include "vault.selectorLabels" . | nindent 6 }}
+{{- end }}
+
+{{- if .Values.serviceAccount.create }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "vault.serviceAccountName" . }}
+  labels: {{- include "vault.labels" . | nindent 4 }}
+{{- end }}
+
+{{- if .Values.networkPolicy.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "vault.fullname" . }}
+  labels: {{- include "vault.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: {{- include "vault.selectorLabels" . | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # Inter-Vault Raft cluster traffic.
+    - from:
+        - podSelector:
+            matchLabels: {{- include "vault.selectorLabels" . | nindent 14 }}
+      ports:
+        - port: 8200
+        - port: {{ .Values.service.internalPort }}
+    # AIbank services consume Vault через k8s service.
+    - from:
+        {{- range .Values.networkPolicy.allowedNamespaces }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . }}
+        {{- end }}
+      ports:
+        - port: 8200
+  egress:
+    # DNS + intra-cluster Raft.
+    - to:
+        - podSelector:
+            matchLabels: {{- include "vault.selectorLabels" . | nindent 14 }}
+      ports:
+        - port: 8200
+        - port: {{ .Values.service.internalPort }}
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+{{- end }}

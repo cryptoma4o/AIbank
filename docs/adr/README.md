@@ -46,17 +46,17 @@
 | Номер | Название | Статус | Дата |
 |---|---|---|---|
 | [0001](0001-use-temporal-for-orchestration.md) | Использование Temporal для оркестрации | Accepted | 2026-04-26 |
-| 0002 | Schema-per-tenant в PostgreSQL | Proposed | TBD |
-| 0003 | GraphQL для BFF | Proposed | TBD |
-| 0004 | Nx для управления монорепо | Proposed | TBD |
-| 0005 | Стратегия миграций БД между тенантами | Proposed | TBD |
-| 0006 | Версионирование ABS-адаптеров | Proposed | TBD |
-| 0007 | Промпт-менеджмент: in-code vs external | Proposed | TBD |
-| 0008 | Vector DB: Qdrant vs pgvector | Proposed | TBD |
-| 0009 | Стратегия on-prem обновлений | Proposed | TBD |
-| 0010 | Биллинг-модель и audit log | Proposed | TBD |
-| 0011 | Стратегия выбора и роутинга LLM | Proposed | TBD |
-| 0012 | Eval-corpus governance | Proposed | TBD |
+| [0002](0002-schema-per-tenant-postgres.md) | Schema-per-tenant в PostgreSQL | Accepted | 2026-04-26 |
+| [0003](0003-graphql-for-bff.md) | GraphQL для BFF | Accepted | 2026-04-26 |
+| [0004](0004-nx-for-monorepo.md) | Nx для управления монорепо | Accepted | 2026-04-26 |
+| [0005](0005-db-migrations-strategy.md) | Стратегия миграций БД между тенантами | Accepted | 2026-04-26 |
+| [0006](0006-abs-adapter-versioning.md) | Версионирование ABS-адаптеров | Accepted | 2026-04-26 |
+| [0007](0007-prompt-management.md) | Промпт-менеджмент: in-code vs external | Accepted | 2026-04-26 |
+| [0008](0008-vector-db-qdrant-vs-pgvector.md) | Vector DB: Qdrant vs pgvector | Accepted | 2026-04-26 |
+| [0009](0009-on-prem-update-strategy.md) | Стратегия on-prem обновлений | Accepted | 2026-04-26 |
+| [0010](0010-billing-and-audit-log.md) | Биллинг-модель и audit log | Accepted | 2026-04-26 |
+| [0011](0011-llm-routing-strategy.md) | Стратегия выбора и роутинга LLM | Accepted | 2026-04-26 |
+| [0012](0012-eval-corpus-governance.md) | Eval-corpus governance | Accepted | 2026-04-26 |
 
 ---
 

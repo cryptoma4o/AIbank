@@ -1,57 +1,128 @@
 # tenant-config-schema
 
-JSON Schema definitions and CLI validator for AIbank tenant configuration files.
+JSON Schema definitions and a CLI validator for AIbank tenant
+configuration files. Every YAML/JSON file under
+`configs/tenants/<id>/` is routed to a schema in `schemas/` and
+validated before deployment (CI gate per ADR-0009).
 
-## Schemas
+---
 
-| Schema file | Validates |
-|---|---|
-| `schemas/tenant.schema.json` | `configs/tenants/<id>/tenant.yaml` |
-| `schemas/risk-policy.schema.json` | `configs/tenants/<id>/risk-policy/thresholds.yaml` |
-| `schemas/sla.schema.json` | `configs/tenants/<id>/sla.yaml` |
-| `schemas/ai-models.schema.json` | `configs/tenants/<id>/ai/models.yaml` |
+## Layout
+
+```
+packages/tenant-config-schema/
+├── schemas/
+│   ├── tenant.json         # tenant.yaml
+│   ├── branding.json       # branding/theme.json + branding/content.yaml
+│   ├── workflow.json       # workflows/{ip,llc,jsc}.yaml
+│   ├── risk-policy.json    # risk-policy/{rules,thresholds,blocked-okveds}.yaml
+│   ├── integrations.json   # integrations/{abs,external}.yaml
+│   ├── ai.json             # ai/{models,prompts}.yaml
+│   └── sla.json            # sla.yaml
+├── validate.py             # CLI entry point
+├── tests/
+│   └── test_validate.py    # pytest suite
+├── pyproject.toml
+├── Makefile
+└── README.md
+```
+
+All schemas are JSON Schema **Draft 7** (`$schema:
+http://json-schema.org/draft-07/schema#`) — the most widely supported
+draft across language ecosystems and the variant used by `jsonschema>=4`.
+
+---
+
+## File-to-schema routing
+
+`validate.py` picks the schema based on the file's path **inside the
+tenant directory**:
+
+| Path inside tenant dir              | Schema                |
+|-------------------------------------|-----------------------|
+| `tenant.yaml`                       | `tenant.json`         |
+| `sla.yaml`                          | `sla.json`            |
+| `branding/theme.json`               | `branding.json`       |
+| `branding/content.yaml`             | `branding.json`       |
+| `workflows/*.yaml`                  | `workflow.json`       |
+| `risk-policy/rules.yaml`            | `risk-policy.json`    |
+| `risk-policy/thresholds.yaml`       | `risk-policy.json`    |
+| `risk-policy/blocked-okveds.yaml`   | `risk-policy.json`    |
+| `integrations/abs.yaml`             | `integrations.json`   |
+| `integrations/external.yaml`        | `integrations.json`   |
+| `ai/models.yaml`                    | `ai.json`             |
+| `ai/prompts.yaml`                   | `ai.json`             |
+| anything else                       | skipped (not routed)  |
+
+For schemas that cover multiple files (`branding`, `risk-policy`,
+`integrations`, `ai`), the schema uses `oneOf` over a set of named
+variants in `definitions/`. The variant is selected by the top-level
+key present in the document.
+
+---
 
 ## Installation
 
 ```bash
-pip install -e .
+python3.13 -m venv .venv
+.venv/bin/pip install -e .
 ```
 
-Or install dependencies directly:
+Or for testing:
 
 ```bash
-pip install jsonschema pyyaml
+.venv/bin/pip install -e '.[test]'
 ```
 
-## Validating a config file
+---
+
+## Usage
 
 ```bash
-python validate.py --schema schemas/tenant.schema.json --file configs/tenants/alfa-bank/tenant.yaml
-python validate.py --schema schemas/sla.schema.json --file configs/tenants/alfa-bank/sla.yaml
-python validate.py --schema schemas/risk-policy.schema.json --file configs/tenants/alfa-bank/risk-policy/thresholds.yaml
-python validate.py --schema schemas/ai-models.schema.json --file configs/tenants/alfa-bank/ai/models.yaml
+# Validate one tenant directory
+python validate.py configs/tenants/_template
+python validate.py configs/tenants/bank-alpha -v
+
+# Or via the installed entry point
+aibank-validate-tenant configs/tenants/_template
 ```
 
-Exit code 0 = valid, exit code 1 = validation error.
+Exit codes:
+* `0` — every routed file validates
+* `1` — first validation failure (path + JSON pointer + message printed)
+* `2` — usage error or missing schema
 
-## Schema constraints
+---
 
-### tenant.schema.json
-- `tenant.id` must match `^[a-z0-9-]{3,50}$` (DNS-safe)
-- `tenant.bik` must be exactly 9 digits
-- `tenant.inn` must be exactly 10 digits (legal entity)
-- `tenant.deployment.mode` must be one of: `saas`, `on_prem`, `hybrid`
-- `tenant.status` defaults to `trial`
+## Make targets
 
-### risk-policy.schema.json
-- `low_max`, `medium_max` range: 0–1000
-- `auto_approve_max` range: 0–500
-- Business constraint: `auto_approve_max <= low_max <= medium_max` (enforced in application logic)
+```bash
+make validate        # _template + bank-alpha
+make validate-all    # every directory under configs/tenants/
+make lint            # Draft-07 self-check on each schema in schemas/
+make test            # pytest tests/
+```
 
-### sla.schema.json
-- Required entity types: `ip` (sole trader), `llc` (ООО), `jsc` (АО)
-- Each type requires `auto_processing_minutes` and `total_minutes`
+`make validate-all` is the CI gate per ADR-0009.
 
-### ai-models.schema.json
-- Required roles: `document_parsing`, `reconciliation`, `ubo_tracing`, `risk_explanation`, `conversational`, `rag`
-- Each role requires `model_name` (alias in llm-gateway), `rate_limit_rpm`, `cost_alert_usd_per_day`
+---
+
+## Adding a new tenant
+
+1. `cp -r configs/tenants/_template configs/tenants/<your-tenant>`
+2. Fill in real values in `tenant.yaml`, `sla.yaml`, etc.
+3. Replace placeholder Vault references with real ones; never inline
+   secrets — `integrations.json` enforces `vault://` prefixes for
+   credential fields.
+4. Run `python packages/tenant-config-schema/validate.py
+   configs/tenants/<your-tenant>` and fix every error.
+5. Open a PR; CI runs `make validate-all`.
+
+---
+
+## Adding a new config file type
+
+1. Add a new JSON Schema (or extend an existing one) under `schemas/`.
+2. Add a routing rule to `ROUTING_RULES` at the top of `validate.py`.
+3. Add a fixture and assertion to `tests/test_validate.py`.
+4. Update the routing table in this README.

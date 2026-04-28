@@ -1,0 +1,34 @@
+# pyproject.toml for the aibank-proto Python distribution.
+#
+# Generated *.py / *_pb2.py / *_pb2_grpc.py / *.pyi files land under
+# aibank_proto/ when `buf generate` runs. This pyproject is committed (not
+# generated) so that downstream Python services and AI agents can install the
+# package straight from a path / git ref without waiting on codegen.
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aibank-proto"
+version = "0.1.0"
+description = "Generated AIbank platform gRPC clients and message types (Python)."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+authors = [
+    { name = "AIbank Platform Team" },
+]
+dependencies = [
+    "grpcio>=1.60",
+    "grpcio-tools>=1.60",
+    "protobuf>=4.25",
+]
+
+[project.urls]
+Homepage = "https://github.com/aibank/platform"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["aibank_proto*"]
+namespaces = true

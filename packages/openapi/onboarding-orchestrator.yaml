@@ -1,0 +1,458 @@
+openapi: 3.0.3
+info:
+  title: AIbank onboarding-orchestrator
+  version: "1.0.0"
+  description: |
+    HTTP facade over the Temporal-backed onboarding workflow (ADR-0001).
+
+    Creating an application kicks off `OnboardingWorkflow`, which lives
+    inside Temporal. The state machine, including all 15 ApplicationState
+    values, is canonical in `services/onboarding-orchestrator/internal/domain`
+    and `docs/domain-model.md` § 2.2.
+servers:
+  - url: http://onboarding-orchestrator:8085
+
+tags:
+  - name: applications
+  - name: signals
+  - name: ops
+
+paths:
+  /health:
+    get:
+      tags: [ops]
+      summary: Liveness probe
+      operationId: health
+      responses:
+        "200": { description: Alive. }
+
+  /ready:
+    get:
+      tags: [ops]
+      summary: Readiness probe
+      operationId: ready
+      responses:
+        "200": { description: Ready. }
+        "503": { description: Not ready. }
+
+  /v1/applications:
+    post:
+      tags: [applications]
+      summary: Create an application and start the workflow
+      operationId: createApplication
+      description: |
+        Persists the `Application` row in `state=draft` and starts a
+        Temporal workflow with id `app-<application_id>`. Risk thresholds
+        are passed to the workflow; the workflow itself is deterministic
+        (no `time.Now`/`uuid.New`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApplicationRequest'
+            examples:
+              llc:
+                value:
+                  tenant_id: bank_alpha
+                  applicant_id: app_01J9YQH7
+                  legal_entity_type: LLC
+                  channel: web
+                  product_codes: [current_account, corporate_card]
+                  risk_thresholds:
+                    auto_approve_below: 0.30
+                    decline_above: 0.85
+      responses:
+        "201":
+          description: Workflow started; ids returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateApplicationResponse'
+        "400":
+          description: Validation failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: DB or Temporal error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/applications/{id}:
+    get:
+      tags: [applications]
+      summary: Get application by id (tenant-scoped)
+      operationId: getApplication
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+        - $ref: '#/components/parameters/TenantQuery'
+      responses:
+        "200":
+          description: Application found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+        "400":
+          description: Invalid tenant_id or id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Not found in this tenant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/applications/{id}/signals/documents-uploaded:
+    post:
+      tags: [signals]
+      summary: Send the documents_uploaded signal
+      operationId: signalDocumentsUploaded
+      description: |
+        Forwards a Temporal signal to the workflow. The workflow id is
+        derived from the application row, so no Temporal id leaks here.
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentsUploadedSignal'
+            examples:
+              two:
+                value:
+                  tenant_id: bank_alpha
+                  documents:
+                    - id: doc_8f2a
+                      type: passport
+                      storage_uri: "s3://aibank-docs/.../passport.pdf"
+                    - id: doc_7e1b
+                      type: charter
+                      storage_uri: "s3://aibank-docs/.../charter.pdf"
+      responses:
+        "202":
+          description: Signal accepted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: accepted
+        "400":
+          description: Validation failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Application not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Temporal signal failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/applications/{id}/signals/human-decision:
+    post:
+      tags: [signals]
+      summary: Send the human_decision signal
+      operationId: signalHumanDecision
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HumanDecisionSignal'
+            examples:
+              approve:
+                value:
+                  tenant_id: bank_alpha
+                  decision: approved
+                  reviewer: "compliance@bank-alpha.example"
+              edd:
+                value:
+                  tenant_id: bank_alpha
+                  decision: approved_with_edd
+                  reason: "additional KYC required"
+                  reviewer: "compliance@bank-alpha.example"
+      responses:
+        "202":
+          description: Signal accepted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: accepted
+        "400":
+          description: Validation failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Application not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Temporal signal failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  parameters:
+    ApplicationId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      example: app_01J9YQH7
+    TenantQuery:
+      name: tenant_id
+      in: query
+      required: true
+      schema:
+        type: string
+      example: bank_alpha
+
+  schemas:
+    Channel:
+      type: string
+      description: Channel through which the application originated.
+      enum: [web, mobile, courier, branch]
+
+    LegalEntityType:
+      type: string
+      description: |
+        Legal form of the applicant. MVP supports IP, LLC, JSC, NPF —
+        a subset of `domain-model.md` § 2.4.
+      enum: [IP, LLC, JSC, NPF]
+
+    ApplicationState:
+      type: string
+      description: |
+        15-state finite machine. Terminal: account_opened, declined,
+        abandoned. See `internal/domain/state.go` for valid transitions.
+      enum:
+        - draft
+        - identifying
+        - collecting_documents
+        - validating
+        - waiting_for_client
+        - risk_assessing
+        - auto_approved
+        - manual_review
+        - approved
+        - approved_with_edd
+        - requires_more_info
+        - opening_account
+        - account_opened
+        - declined
+        - abandoned
+
+    RiskThresholds:
+      type: object
+      description: |
+        `score < auto_approve_below` → auto_approved; `score >=
+        decline_above` → declined; otherwise manual_review.
+      required: [auto_approve_below, decline_above]
+      properties:
+        auto_approve_below:
+          type: number
+          format: double
+          example: 0.30
+        decline_above:
+          type: number
+          format: double
+          example: 0.85
+
+    Application:
+      type: object
+      required: [id, tenant_id, applicant_id, legal_entity_type, channel, state, product_codes, workflow_id]
+      properties:
+        id:
+          type: string
+          example: app_01J9YQH7
+        tenant_id:
+          type: string
+          example: bank_alpha
+        applicant_id:
+          type: string
+        legal_entity_id:
+          type: string
+        legal_entity_type:
+          $ref: '#/components/schemas/LegalEntityType'
+        channel:
+          $ref: '#/components/schemas/Channel'
+        state:
+          $ref: '#/components/schemas/ApplicationState'
+        product_codes:
+          type: array
+          items:
+            type: string
+          example: [current_account, corporate_card]
+        workflow_id:
+          type: string
+          example: "app-app_01J9YQH7"
+        risk_assessment_id:
+          type: string
+        decision_id:
+          type: string
+        account_ids:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        archived_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    ApplicationInput:
+      type: object
+      description: |
+        Payload that is also accepted by the underlying Temporal workflow
+        (`workflow.ApplicationInput`). Documented here so external
+        callers can craft conforming bodies without reading Go code.
+      required: [application_id, tenant_id, applicant_id, legal_entity_type, channel, product_codes, risk_thresholds]
+      properties:
+        application_id:
+          type: string
+        tenant_id:
+          type: string
+        applicant_id:
+          type: string
+        legal_entity_id:
+          type: string
+        legal_entity_type:
+          $ref: '#/components/schemas/LegalEntityType'
+        channel:
+          $ref: '#/components/schemas/Channel'
+        product_codes:
+          type: array
+          items:
+            type: string
+        risk_thresholds:
+          $ref: '#/components/schemas/RiskThresholds'
+        max_document_wait_days:
+          type: integer
+          example: 14
+
+    CreateApplicationRequest:
+      type: object
+      required: [tenant_id, applicant_id, legal_entity_type, channel, product_codes, risk_thresholds]
+      properties:
+        tenant_id:
+          type: string
+        applicant_id:
+          type: string
+        legal_entity_type:
+          $ref: '#/components/schemas/LegalEntityType'
+        channel:
+          $ref: '#/components/schemas/Channel'
+        product_codes:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        risk_thresholds:
+          $ref: '#/components/schemas/RiskThresholds'
+
+    CreateApplicationResponse:
+      type: object
+      required: [application_id, workflow_id]
+      properties:
+        application_id:
+          type: string
+          example: app_01J9YQH7
+        workflow_id:
+          type: string
+          example: "app-app_01J9YQH7"
+
+    DocumentReference:
+      type: object
+      required: [id, type, storage_uri]
+      properties:
+        id:
+          type: string
+          example: doc_8f2a
+        type:
+          type: string
+          example: passport
+        storage_uri:
+          type: string
+          example: "s3://aibank-docs/.../passport.pdf"
+
+    DocumentsUploadedSignal:
+      type: object
+      required: [tenant_id, documents]
+      properties:
+        tenant_id:
+          type: string
+        documents:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DocumentReference'
+
+    HumanDecisionSignal:
+      type: object
+      required: [tenant_id, decision, reviewer]
+      properties:
+        tenant_id:
+          type: string
+        decision:
+          type: string
+          enum: [approved, declined, approved_with_edd]
+        reason:
+          type: string
+        reviewer:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              example: validation_failed
+            message:
+              type: string
+              example: "tenant_id is invalid (regex ^[a-z][a-z0-9_]{1,31}$)"

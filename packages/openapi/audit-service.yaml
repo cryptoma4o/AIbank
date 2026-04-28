@@ -1,0 +1,276 @@
+openapi: 3.0.3
+info:
+  title: AIbank audit-service
+  version: "1.0.0"
+  description: |
+    Append-only audit log for the AIbank platform.
+
+    Every event is linked into a per-tenant SHA-256 hash chain
+    (`previous_hash` → `hash`); database triggers prevent UPDATE/DELETE.
+    See `services/audit-service/internal/domain/event.go` and ADR-0010.
+
+    The contract is consumed by `packages/audit-sdk/` (Go + Python).
+    Spec and SDK must change together.
+servers:
+  - url: http://audit-service:8081
+    description: Cluster-internal address (default in compose & helm).
+
+tags:
+  - name: events
+    description: Append-only audit-event API.
+  - name: ops
+    description: Health and readiness probes.
+
+paths:
+  /health:
+    get:
+      tags: [ops]
+      summary: Liveness probe
+      operationId: health
+      responses:
+        "200":
+          description: Process is alive.
+          content:
+            text/plain:
+              example: ""
+
+  /ready:
+    get:
+      tags: [ops]
+      summary: Readiness probe
+      operationId: ready
+      description: Returns 200 only when the underlying database is reachable.
+      responses:
+        "200":
+          description: DB is reachable.
+        "503":
+          description: DB unavailable; the pod should not receive traffic.
+
+  /v1/events:
+    post:
+      tags: [events]
+      summary: Append a new audit event
+      operationId: recordEvent
+      description: |
+        Computes `previous_hash` from the latest event for the tenant,
+        then `hash = sha256(immutable_fields)` and appends. Body is hard
+        capped at 256 KiB to keep audit rows compact.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordEventRequest'
+            examples:
+              applicationCreated:
+                summary: User-triggered creation event
+                value:
+                  tenant_id: bank_alpha
+                  entity_type: application
+                  entity_id: app_01J9YQH7
+                  event_type: application.created
+                  actor_id: user_42
+                  actor_type: user
+                  payload:
+                    channel: web
+                    product_codes: [current_account]
+      responses:
+        "201":
+          description: Event appended; response includes hash chain fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEvent'
+        "400":
+          description: Invalid body or validation failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingTenant:
+                  value:
+                    error:
+                      code: validation_failed
+                      message: tenant_id is required
+        "500":
+          description: Failed to compute hash or append to the log.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags: [events]
+      summary: List events with filters
+      operationId: listEvents
+      parameters:
+        - name: tenant_id
+          in: query
+          required: true
+          schema:
+            type: string
+            example: bank_alpha
+          description: Tenant whose events to read. Required.
+        - name: entity_type
+          in: query
+          required: false
+          schema:
+            type: string
+            example: application
+        - name: entity_id
+          in: query
+          required: false
+          schema:
+            type: string
+            example: app_01J9YQH7
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+      responses:
+        "200":
+          description: Events ordered newest-first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEventList'
+        "400":
+          description: Missing or invalid query parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    ActorType:
+      type: string
+      description: |
+        Who triggered the event. `user` is a real human identified by
+        identity-service; `system` is internal automation; `ai_agent` is
+        any of the agents under `ai/`.
+      enum: [user, system, ai_agent]
+
+    RecordEventRequest:
+      type: object
+      required: [tenant_id, entity_type, entity_id, event_type, actor_id, actor_type]
+      properties:
+        tenant_id:
+          type: string
+          description: Tenant slug (`^[a-z][a-z0-9_]{1,31}$`).
+          example: bank_alpha
+        entity_type:
+          type: string
+          example: application
+        entity_id:
+          type: string
+          example: app_01J9YQH7
+        event_type:
+          type: string
+          description: Dotted slug describing what happened.
+          example: application.created
+        actor_id:
+          type: string
+          example: user_42
+        actor_type:
+          $ref: '#/components/schemas/ActorType'
+        payload:
+          type: object
+          description: |
+            Free-form JSON describing the event. Hash chain integrity
+            depends on its byte content — callers must not mutate after
+            sending.
+          additionalProperties: true
+          example:
+            channel: web
+            product_codes: [current_account]
+
+    AuditEvent:
+      type: object
+      description: |
+        Server-side representation of an appended event. `previous_hash`
+        and `hash` form the per-tenant chain.
+      required:
+        - id
+        - tenant_id
+        - entity_type
+        - entity_id
+        - event_type
+        - actor_id
+        - actor_type
+        - hash
+        - created_at
+      properties:
+        id:
+          type: string
+          example: evt_8f2a8b6e-1dcf-4c01-9b3c-7a3d5e9f2c11
+        tenant_id:
+          type: string
+          example: bank_alpha
+        entity_type:
+          type: string
+          example: application
+        entity_id:
+          type: string
+          example: app_01J9YQH7
+        event_type:
+          type: string
+          example: application.created
+        actor_id:
+          type: string
+          example: user_42
+        actor_type:
+          $ref: '#/components/schemas/ActorType'
+        payload:
+          type: object
+          additionalProperties: true
+        previous_hash:
+          type: string
+          description: Hash of the immediately previous event for the same tenant. Empty for the first one.
+          example: "5b8c…"
+        hash:
+          type: string
+          description: SHA-256 over the canonical JSON of immutable fields.
+          example: "f01a…"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-04-26T10:15:30.123Z"
+
+    AuditEventList:
+      type: object
+      required: [items, count]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+        count:
+          type: integer
+          description: Length of `items`. Mirrors what audit-service writes.
+          example: 2
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              example: validation_failed
+            message:
+              type: string
+              example: tenant_id is required

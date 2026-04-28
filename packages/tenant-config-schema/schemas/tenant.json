@@ -1,0 +1,123 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://aibank.io/schemas/tenant-config/v1.0.0/tenant.json",
+  "title": "TenantConfig",
+  "description": "Top-level tenant configuration. Validated against configs/tenants/<id>/tenant.yaml.",
+  "type": "object",
+  "required": ["schema_version", "tenant"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$",
+      "description": "Schema version, e.g. 1.0"
+    },
+    "tenant": {
+      "type": "object",
+      "required": ["id", "name", "bik", "inn", "deployment", "features"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "DNS-safe tenant identifier (kebab-case). May be either kebab-case (alfa-bank) or a typed ULID (tnt_…).",
+          "anyOf": [
+            { "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+            { "pattern": "^tnt_[0-9A-Z]{26}$" },
+            { "pattern": "^\\{[a-z0-9-]+\\}$" }
+          ],
+          "minLength": 3,
+          "maxLength": 64
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Display name of the bank, e.g. 'Альфа-Банк'"
+        },
+        "legal_name": {
+          "type": "string",
+          "description": "Full legal name from EGRUL. Optional during trial."
+        },
+        "bik": {
+          "type": "string",
+          "pattern": "^[0-9]{9}$",
+          "description": "Bank Identification Code — exactly 9 digits"
+        },
+        "inn": {
+          "type": "string",
+          "pattern": "^[0-9]{10}$",
+          "description": "Tax Identification Number for legal entities — exactly 10 digits"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["trial", "active", "suspended", "archived", "terminated"],
+          "default": "trial"
+        },
+        "contract": {
+          "type": "object",
+          "required": ["contract_id", "start_date", "pricing_tier"],
+          "additionalProperties": false,
+          "properties": {
+            "contract_id": { "type": "string" },
+            "start_date": { "type": "string", "format": "date" },
+            "end_date": { "type": "string", "format": "date" },
+            "pricing_tier": {
+              "type": "string",
+              "enum": ["trial", "standard", "premium", "enterprise"]
+            }
+          }
+        },
+        "deployment": {
+          "type": "object",
+          "required": ["mode"],
+          "additionalProperties": false,
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": ["saas", "on_prem", "hybrid"]
+            },
+            "region": { "type": "string" },
+            "data_residency": {
+              "type": "array",
+              "items": { "type": "string", "pattern": "^[A-Z]{2}$" }
+            }
+          }
+        },
+        "features": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "disabled": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "contacts": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "technical_lead": { "$ref": "#/definitions/contact" },
+            "compliance_officer": { "$ref": "#/definitions/contact" },
+            "business_owner": { "$ref": "#/definitions/contact" }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "contact": {
+      "type": "object",
+      "required": ["name", "email"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" }
+      }
+    }
+  }
+}

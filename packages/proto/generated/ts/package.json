@@ -1,0 +1,24 @@
+{
+  "name": "@aibank/proto",
+  "version": "0.1.0",
+  "description": "Generated AIbank platform gRPC clients and message types (TypeScript).",
+  "private": false,
+  "license": "UNLICENSED",
+  "main": "index.ts",
+  "types": "index.ts",
+  "files": [
+    "**/*.ts",
+    "!**/*.test.ts"
+  ],
+  "dependencies": {
+    "@grpc/grpc-js": "^1.10.0",
+    "long": "^5.2.3",
+    "protobufjs": "^7.2.6"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}

@@ -1,0 +1,3 @@
+# Generated proto artifacts are committed for downstream non-codegen
+# consumers, mirroring the policy used by packages/domain-model/generated/.
+# This file intentionally left empty.

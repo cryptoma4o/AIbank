@@ -1,0 +1,38 @@
+-- +goose Up
+-- Шаблон outbox-таблицы для transactional outbox pattern (ADR-0010 § 2).
+-- Перед применением замените {{SCHEMA}} и {{TABLE}}, например:
+--   {{SCHEMA}} -> platform
+--   {{TABLE}}  -> billing_outbox
+--
+-- Семантика:
+--   * id — bigserial, ORDER BY id даёт детерминированный FIFO для relay'я.
+--   * aggregate_type / aggregate_id — id агрегата (используется как Kafka key
+--     для партиционирования по агрегату).
+--   * event_type — каноничное имя события (см. domain.EventType*).
+--   * payload — сериализованный JSON, готовый к публикации в Kafka.
+--   * published_at IS NULL — индикатор «not yet relayed».
+--
+-- Индекс idx_unpublished — partial-index по unpublished-строкам, чтобы relay
+-- не сканировал миллионы published-строк (ретеншн published-rows можно решить
+-- отдельным cleanup job'ом, см. README).
+
+CREATE SCHEMA IF NOT EXISTS {{SCHEMA}};
+
+CREATE TABLE IF NOT EXISTS {{SCHEMA}}.{{TABLE}} (
+    id              BIGSERIAL PRIMARY KEY,
+    aggregate_type  TEXT        NOT NULL,
+    aggregate_id    TEXT        NOT NULL,
+    event_type      TEXT        NOT NULL,
+    payload         JSONB       NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    published_at    TIMESTAMPTZ
+);
+
+-- Partial index: relay полностью игнорирует published-строки.
+CREATE INDEX IF NOT EXISTS idx_{{TABLE}}_unpublished
+    ON {{SCHEMA}}.{{TABLE}} (id)
+    WHERE published_at IS NULL;
+
+-- +goose Down
+DROP INDEX IF EXISTS {{SCHEMA}}.idx_{{TABLE}}_unpublished;
+DROP TABLE IF EXISTS {{SCHEMA}}.{{TABLE}};

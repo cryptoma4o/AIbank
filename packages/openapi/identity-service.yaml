@@ -1,0 +1,371 @@
+openapi: 3.0.3
+info:
+  title: AIbank identity-service
+  version: "1.0.0"
+  description: |
+    Authentication and identity for both back-office users (bank
+    operators, compliance officers, admins) and platform admins, plus
+    pre-auth applicant registration used at the very start of onboarding.
+
+    JWT issuance + verification, password login, and refresh-token
+    rotation. Applicants are kept in tenant-scoped storage and do not
+    have a `platform.users` row.
+servers:
+  - url: http://identity-service:8082
+
+tags:
+  - name: auth
+  - name: applicants
+  - name: ops
+
+paths:
+  /health:
+    get:
+      tags: [ops]
+      summary: Liveness probe
+      operationId: health
+      responses:
+        "200":
+          description: Alive.
+
+  /ready:
+    get:
+      tags: [ops]
+      summary: Readiness probe
+      operationId: ready
+      responses:
+        "200":
+          description: Ready.
+        "503":
+          description: Not ready.
+
+  /v1/auth/login:
+    post:
+      tags: [auth]
+      summary: Email/password login
+      operationId: login
+      description: |
+        Bank users must pass `tenant_id`; platform admins must omit it.
+        Failure modes are deliberately lumped into `invalid_credentials`
+        so we do not reveal which factor mismatched.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              bankUser:
+                value:
+                  email: "ops@bank-alpha.example"
+                  password: "********"
+                  tenant_id: bank_alpha
+              platformAdmin:
+                value:
+                  email: "admin@aibank.example"
+                  password: "********"
+      responses:
+        "200":
+          description: Tokens issued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPair'
+        "400":
+          description: Validation failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Invalid credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "403":
+          description: User exists but is not active.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/auth/refresh:
+    post:
+      tags: [auth]
+      summary: Refresh access token
+      operationId: refresh
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        "200":
+          description: New access token (refresh token unchanged).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+        "400":
+          description: Missing refresh_token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Token invalid or wrong type.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/me:
+    get:
+      tags: [auth]
+      summary: Current user
+      operationId: me
+      description: |
+        Returns the `users` row identified by the access token's subject.
+        Applicant tokens always 404 — they have no `platform.users` row.
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: User found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        "401":
+          description: Missing or invalid token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: No user row for this subject.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/applicants:
+    post:
+      tags: [applicants]
+      summary: Register an applicant (public, idempotent)
+      operationId: createApplicant
+      description: |
+        Public endpoint used at the start of onboarding, before ESIA.
+        Idempotent on `(tenant_id, inn)`: a second call with the same
+        pair returns the existing record with `200 OK` instead of `201`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterApplicantRequest'
+            examples:
+              ip:
+                value:
+                  tenant_id: bank_alpha
+                  inn: "770170941832"
+                  phone: "+79991234567"
+                  full_name: "Иванов Иван Иванович"
+      responses:
+        "200":
+          description: Applicant already existed; existing record is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Applicant'
+        "201":
+          description: Applicant created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Applicant'
+        "400":
+          description: Validation failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Role:
+      type: string
+      enum:
+        - platform.admin
+        - bank.operator
+        - bank.compliance_officer
+        - bank.admin
+
+    TokenType:
+      type: string
+      enum: [access, refresh]
+
+    User:
+      type: object
+      required: [id, email, role, is_active]
+      properties:
+        id:
+          type: string
+          example: usr_01J9YQH7
+        tenant_id:
+          type: string
+          nullable: true
+          description: nil for platform-level users.
+          example: bank_alpha
+        email:
+          type: string
+          format: email
+          example: "ops@bank-alpha.example"
+        role:
+          $ref: '#/components/schemas/Role'
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Applicant:
+      type: object
+      required: [id, tenant_id, inn, phone, full_name, esia_verified]
+      properties:
+        id:
+          type: string
+          example: app_01J9YQH7
+        tenant_id:
+          type: string
+          example: bank_alpha
+        inn:
+          type: string
+          minLength: 12
+          maxLength: 12
+          example: "770170941832"
+        phone:
+          type: string
+          example: "+79991234567"
+        full_name:
+          type: string
+          example: "Иванов Иван Иванович"
+        esia_verified:
+          type: boolean
+        esia_subject:
+          type: string
+          description: ESIA subject id; populated only after verification.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    JWTClaims:
+      type: object
+      description: Payload of access/refresh JWTs (informational; not a request shape).
+      properties:
+        sub:
+          type: string
+        tenant_id:
+          type: string
+        role:
+          type: string
+        type:
+          $ref: '#/components/schemas/TokenType'
+        iat:
+          type: integer
+        exp:
+          type: integer
+
+    TokenPair:
+      type: object
+      required: [access_token, refresh_token, expires_in]
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_in:
+          type: integer
+          format: int64
+          description: Seconds until access_token expires.
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        tenant_id:
+          type: string
+          description: Required for bank users; must be omitted for platform.admin.
+
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+
+    RefreshResponse:
+      type: object
+      required: [access_token, expires_in]
+      properties:
+        access_token:
+          type: string
+        expires_in:
+          type: integer
+          format: int64
+
+    RegisterApplicantRequest:
+      type: object
+      required: [tenant_id, inn, phone, full_name]
+      properties:
+        tenant_id:
+          type: string
+        inn:
+          type: string
+          minLength: 12
+          maxLength: 12
+        phone:
+          type: string
+        full_name:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              example: invalid_credentials
+            message:
+              type: string
+              example: invalid email or password

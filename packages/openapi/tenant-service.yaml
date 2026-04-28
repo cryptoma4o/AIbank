@@ -1,0 +1,334 @@
+openapi: 3.0.3
+info:
+  title: AIbank tenant-service
+  version: "1.0.0"
+  description: |
+    Tenant lifecycle and configuration for the platform's multi-tenant
+    Postgres deployment (ADR-0002 — schema per tenant).
+
+    `POST /v1/tenants` provisions metadata in `platform.tenants` and an
+    isolated `tnt_<id>` schema; DDL migration of that schema is the
+    responsibility of `db-migrator` (ADR-0005).
+servers:
+  - url: http://tenant-service:8080
+
+tags:
+  - name: tenants
+  - name: ops
+
+paths:
+  /health:
+    get:
+      tags: [ops]
+      summary: Liveness probe
+      operationId: health
+      responses:
+        "200":
+          description: Service is alive.
+
+  /ready:
+    get:
+      tags: [ops]
+      summary: Readiness probe
+      operationId: ready
+      responses:
+        "200":
+          description: Dependencies (DB) are reachable.
+        "503":
+          description: Not ready.
+
+  /v1/tenants:
+    get:
+      tags: [tenants]
+      summary: List tenants
+      operationId: listTenants
+      responses:
+        "200":
+          description: All tenants known to the platform.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantList'
+              examples:
+                two:
+                  value:
+                    items:
+                      - id: bank_alpha
+                        name: "Bank Alpha"
+                        bik: "044525225"
+                        inn: "7707083893"
+                        status: trial
+                        deployment_mode: saas
+                        created_at: "2026-04-01T09:00:00Z"
+                        updated_at: "2026-04-01T09:00:00Z"
+                    count: 1
+        "500":
+          description: Internal error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags: [tenants]
+      summary: Create a tenant
+      operationId: createTenant
+      description: |
+        Inserts the tenant row and provisions the per-tenant schema. The
+        operation is best-effort transactional: if schema provisioning
+        fails after the row is written, the response is `500
+        provision_failed` and ops must rerun the provisioner.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTenantRequest'
+            examples:
+              alpha:
+                value:
+                  id: bank_alpha
+                  name: "Bank Alpha"
+                  bik: "044525225"
+                  inn: "7707083893"
+                  deployment_mode: saas
+      responses:
+        "201":
+          description: Tenant created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        "400":
+          description: Validation failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Failed to create or provision.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/tenants/{id}:
+    get:
+      tags: [tenants]
+      summary: Get a tenant by id
+      operationId: getTenant
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        "200":
+          description: Tenant found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        "404":
+          description: Tenant not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/tenants/{id}/config:
+    get:
+      tags: [tenants]
+      summary: Get tenant configuration
+      operationId: getTenantConfig
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        "200":
+          description: Config found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantConfig'
+        "404":
+          description: Config not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [tenants]
+      summary: Replace tenant configuration
+      operationId: updateTenantConfig
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateConfigRequest'
+            examples:
+              minimal:
+                value:
+                  raw_config: "ZmVhdHVyZXM6IFsidWJvIl0K"
+                  schema_version: "1.0"
+      responses:
+        "200":
+          description: Config saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantConfig'
+        "400":
+          description: Validation failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Tenant not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Save failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  parameters:
+    TenantId:
+      name: id
+      in: path
+      required: true
+      description: Tenant slug (`^[a-z][a-z0-9_]{1,31}$`).
+      schema:
+        type: string
+      example: bank_alpha
+
+  schemas:
+    DeploymentMode:
+      type: string
+      enum: [saas, on_prem, hybrid]
+      description: |
+        - `saas` — managed in our cloud (default).
+        - `on_prem` — installed on the bank's infra (ADR-0009).
+        - `hybrid` — split between SaaS control plane and on-prem data plane.
+
+    TenantStatus:
+      type: string
+      enum: [trial, active, suspended, terminated]
+
+    Tenant:
+      type: object
+      required: [id, name, bik, inn, status, deployment_mode]
+      properties:
+        id:
+          type: string
+          example: bank_alpha
+        name:
+          type: string
+          example: "Bank Alpha"
+        bik:
+          type: string
+          minLength: 9
+          maxLength: 9
+          example: "044525225"
+        inn:
+          type: string
+          minLength: 10
+          maxLength: 10
+          example: "7707083893"
+        status:
+          $ref: '#/components/schemas/TenantStatus'
+        deployment_mode:
+          $ref: '#/components/schemas/DeploymentMode'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TenantList:
+      type: object
+      required: [items, count]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tenant'
+        count:
+          type: integer
+
+    CreateTenantRequest:
+      type: object
+      required: [id, name, bik, inn, deployment_mode]
+      properties:
+        id:
+          type: string
+          example: bank_alpha
+        name:
+          type: string
+          example: "Bank Alpha"
+        bik:
+          type: string
+          minLength: 9
+          maxLength: 9
+          example: "044525225"
+        inn:
+          type: string
+          minLength: 10
+          maxLength: 10
+          example: "7707083893"
+        deployment_mode:
+          $ref: '#/components/schemas/DeploymentMode'
+
+    TenantConfig:
+      type: object
+      required: [tenant_id, raw_config, schema_version]
+      properties:
+        tenant_id:
+          type: string
+          example: bank_alpha
+        raw_config:
+          type: string
+          format: byte
+          description: Base64-encoded YAML/JSON config blob; schema is governed by `tenant-config-schema`.
+        schema_version:
+          type: string
+          example: "1.0"
+        updated_at:
+          type: string
+          format: date-time
+
+    UpdateConfigRequest:
+      type: object
+      required: [raw_config, schema_version]
+      properties:
+        raw_config:
+          type: string
+          format: byte
+        schema_version:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              example: validation_failed
+            message:
+              type: string
+              example: bik must be 9 chars

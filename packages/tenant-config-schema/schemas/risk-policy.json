@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://aibank.io/schemas/tenant-config/v1.0.0/risk-policy.json",
+  "title": "RiskPolicy",
+  "description": "Risk-policy bundle. Validates rules.yaml, thresholds.yaml, and blocked-okveds.yaml. The matching variant is selected by which top-level key is present.",
+  "oneOf": [
+    { "$ref": "#/definitions/rules" },
+    { "$ref": "#/definitions/thresholds" },
+    { "$ref": "#/definitions/blocked_okveds" }
+  ],
+  "definitions": {
+    "rules": {
+      "type": "object",
+      "required": ["schema_version", "rules"],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+$" },
+        "rules": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/rule" }
+        },
+        "actions": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "priority_order": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "required": ["id", "description", "severity", "action"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "description": "UPPER_SNAKE_CASE rule identifier"
+        },
+        "description": { "type": "string", "minLength": 1 },
+        "severity": {
+          "type": "string",
+          "enum": ["info", "low", "medium", "high", "critical"]
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "auto_approve",
+            "manual_review",
+            "auto_reject",
+            "escalate",
+            "set_high_risk",
+            "set_medium_risk",
+            "decline_recommended"
+          ]
+        },
+        "condition": { "type": "string" },
+        "immutable": { "type": "boolean", "default": false },
+        "block_auto_approval": { "type": "boolean" },
+        "require_edd": { "type": "boolean" }
+      }
+    },
+    "thresholds": {
+      "type": "object",
+      "required": ["schema_version", "thresholds"],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+$" },
+        "thresholds": {
+          "type": "object",
+          "required": ["low_max", "medium_max"],
+          "additionalProperties": false,
+          "properties": {
+            "low_max": { "type": "integer", "minimum": 0, "maximum": 1000 },
+            "medium_max": { "type": "integer", "minimum": 0, "maximum": 1000 },
+            "auto_approve_max": { "type": "integer", "minimum": 0, "maximum": 1000 },
+            "auto_reject_min": { "type": "integer", "minimum": 0, "maximum": 1000 }
+          }
+        }
+      }
+    },
+    "blocked_okveds": {
+      "type": "object",
+      "required": ["schema_version", "blocked_okveds"],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+$" },
+        "blocked_okveds": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "type": "string", "pattern": "^[0-9]{2}(\\.[0-9]{1,2})?(\\.[0-9]{1,2})?$" },
+              {
+                "type": "object",
+                "required": ["code"],
+                "additionalProperties": false,
+                "properties": {
+                  "code": { "type": "string", "pattern": "^[0-9]{2}(\\.[0-9]{1,2})?(\\.[0-9]{1,2})?$" },
+                  "name": { "type": "string" },
+                  "reason": { "type": "string" },
+                  "require_documents": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

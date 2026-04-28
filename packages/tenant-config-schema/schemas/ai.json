@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://aibank.io/schemas/tenant-config/v1.0.0/ai.json",
+  "title": "AIConfig",
+  "description": "AI bundle: models.yaml (per-role model overrides per ADR-0011) and prompts.yaml (custom prompt overlays).",
+  "oneOf": [
+    { "$ref": "#/definitions/models" },
+    { "$ref": "#/definitions/prompts" }
+  ],
+  "definitions": {
+    "model_config": {
+      "type": "object",
+      "required": ["model_name", "rate_limit_rpm", "cost_alert_usd_per_day"],
+      "additionalProperties": false,
+      "properties": {
+        "model_name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Logical model alias resolved by llm-gateway"
+        },
+        "fallback": { "type": "string" },
+        "rate_limit_rpm": { "type": "integer", "minimum": 1, "maximum": 100000 },
+        "cost_alert_usd_per_day": { "type": "number", "minimum": 0 },
+        "timeout_seconds": { "type": "integer", "minimum": 1, "maximum": 600 }
+      }
+    },
+    "models": {
+      "type": "object",
+      "required": ["schema_version", "models"],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+$" },
+        "models": {
+          "type": "object",
+          "required": [
+            "document_parsing",
+            "reconciliation",
+            "ubo_tracing",
+            "risk_explanation",
+            "conversational",
+            "rag"
+          ],
+          "additionalProperties": { "$ref": "#/definitions/model_config" },
+          "properties": {
+            "document_parsing": { "$ref": "#/definitions/model_config" },
+            "reconciliation": { "$ref": "#/definitions/model_config" },
+            "ubo_tracing": { "$ref": "#/definitions/model_config" },
+            "risk_explanation": { "$ref": "#/definitions/model_config" },
+            "conversational": { "$ref": "#/definitions/model_config" },
+            "rag": { "$ref": "#/definitions/model_config" }
+          }
+        },
+        "guardrails": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "pii_filter": { "type": "string", "enum": ["always_on", "off"] },
+            "output_safety_check": { "type": "string", "enum": ["always_on", "off"] },
+            "audit_logging": { "type": "string", "enum": ["always_on", "off"] }
+          }
+        }
+      }
+    },
+    "prompts": {
+      "type": "object",
+      "required": ["schema_version", "prompts"],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+$" },
+        "prompts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["template"],
+            "additionalProperties": false,
+            "properties": {
+              "template": { "type": "string", "minLength": 1 },
+              "version": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

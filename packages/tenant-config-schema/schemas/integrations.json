@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://aibank.io/schemas/tenant-config/v1.0.0/integrations.json",
+  "title": "IntegrationsConfig",
+  "description": "Integrations bundle: abs.yaml (core banking system) and external.yaml (EGRUL, SPARK, BKI, ...). Credentials must reference Vault, never inline secrets.",
+  "oneOf": [
+    { "$ref": "#/definitions/abs" },
+    { "$ref": "#/definitions/external" }
+  ],
+  "definitions": {
+    "vault_ref": {
+      "type": "string",
+      "pattern": "^vault://",
+      "description": "Vault reference URI, e.g. vault://kv/tenants/<id>/abs/api_key"
+    },
+    "vault_or_value": {
+      "type": "string",
+      "description": "Either a vault:// reference or a placeholder; never an inline secret"
+    },
+    "abs": {
+      "type": "object",
+      "required": ["schema_version", "abs"],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+$" },
+        "abs": {
+          "type": "object",
+          "required": ["type"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["cft", "diasoft", "rs_bank", "rs-bank", "csabs", "mock"]
+            },
+            "version": { "type": "string" },
+            "endpoint": { "$ref": "#/definitions/vault_or_value" },
+            "api_key": { "$ref": "#/definitions/vault_ref" },
+            "auth_method": {
+              "type": "string",
+              "enum": ["mtls", "api_key", "oauth2", "none"]
+            },
+            "cert_ref": { "$ref": "#/definitions/vault_ref" },
+            "timeout_seconds": { "type": "integer", "minimum": 1, "maximum": 300 },
+            "retry_attempts": { "type": "integer", "minimum": 0, "maximum": 10 }
+          }
+        }
+      }
+    },
+    "external": {
+      "type": "object",
+      "required": ["schema_version", "external"],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+$" },
+        "external": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enabled": { "type": "boolean" },
+              "endpoint": { "$ref": "#/definitions/vault_or_value" },
+              "api_key": { "$ref": "#/definitions/vault_ref" },
+              "cache_ttl_hours": { "type": "integer", "minimum": 0, "maximum": 720 },
+              "timeout_seconds": { "type": "integer", "minimum": 1, "maximum": 300 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,165 +1,366 @@
-openapi: "3.0.3"
+openapi: 3.0.3
 info:
   title: AIbank risk-engine
   version: "1.0.0"
-  description: >
-    Rule-based risk scoring service. Accepts a set of key-value facts for an
-    application, evaluates them against the tenant's configured rule set, and
-    returns a numeric score, categorical risk level, and underwriting recommendation.
+  description: |
+    Computes risk assessments for applications. Each call runs the
+    pipeline (rule engine + screening + scoring) and persists a
+    `RiskAssessment` row in the tenant schema.
+
+    Replaces the earlier placeholder `/v1/score` spec; the actual
+    handler routes are `POST /v1/assessments`, `GET /v1/assessments`,
+    `GET /v1/assessments/{id}` (see `internal/handler/assessment.go`).
+servers:
+  - url: http://risk-engine:8086
+
+tags:
+  - name: assessments
+  - name: ops
 
 paths:
-  /v1/score:
+  /health:
+    get:
+      tags: [ops]
+      summary: Liveness probe
+      operationId: health
+      responses:
+        "200": { description: Alive. }
+
+  /ready:
+    get:
+      tags: [ops]
+      summary: Readiness probe
+      operationId: ready
+      responses:
+        "200": { description: Ready. }
+        "503": { description: Not ready. }
+
+  /v1/assessments:
     post:
-      summary: Score an application
-      description: >
-        Runs the tenant's rule engine against the supplied facts and returns a
-        risk assessment. If any blocking rule is triggered the `blocked` flag is
-        set to true and the recommendation will be `reject`.
-      operationId: scoreApplication
-      parameters:
-        - name: X-Tenant-ID
-          in: header
-          required: true
-          description: ULID of the tenant whose rule set should be applied.
-          schema:
-            type: string
-          example: "01J6Z8KQNVH3M1PQRSTUVWXYZ"
+      tags: [assessments]
+      summary: Run a risk assessment for an application
+      operationId: createAssessment
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - application_id
-                - facts
-              properties:
-                application_id:
-                  type: string
-                  description: ULID of the application being scored.
-                  example: "01J6Z8KQNVH3M1PQRSTUVWXYZ"
-                facts:
-                  type: object
-                  description: >
-                    Key-value map of facts evaluated by the rule engine.
-                    Keys are rule-defined identifiers (e.g. "inn", "company_age_days",
-                    "founders_count"); values are always strings and are coerced
-                    to the appropriate type by each rule.
-                  additionalProperties: true
-                  example:
+              $ref: '#/components/schemas/CreateAssessmentRequest'
+            examples:
+              standard:
+                value:
+                  tenant_id: bank_alpha
+                  application_id: app_01J9YQH7
+                  input_data:
                     inn: "7707083893"
-                    company_age_days: "12410"
-                    founders_count: "3"
+                    company_age_days: 12410
                     okved_primary: "64.19"
-                    region_code: "77"
       responses:
-        "200":
-          description: Risk assessment computed successfully.
+        "201":
+          description: Assessment persisted.
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  application_id:
-                    type: string
-                    description: ULID of the scored application.
-                    example: "01J6Z8KQNVH3M1PQRSTUVWXYZ"
-                  score:
-                    type: integer
-                    minimum: 0
-                    maximum: 100
-                    description: Aggregate risk score; higher values indicate greater risk.
-                    example: 35
-                  risk_level:
-                    type: string
-                    enum:
-                      - low
-                      - medium
-                      - high
-                      - critical
-                    description: Categorical risk classification derived from the score.
-                    example: medium
-                  recommendation:
-                    type: string
-                    enum:
-                      - approve
-                      - manual_review
-                      - reject
-                    description: Underwriting recommendation produced by the rule engine.
-                    example: approve
-                  blocked:
-                    type: boolean
-                    description: >
-                      True if a blocking rule (e.g. sanctions list match) was triggered.
-                      When true the recommendation is always `reject`.
-                    example: false
-                  rules_triggered:
-                    type: array
-                    description: List of rules that fired during evaluation.
-                    items:
-                      type: object
-                      properties:
-                        rule_id:
-                          type: string
-                          description: Unique identifier of the triggered rule.
-                          example: "low_company_age"
-                        action:
-                          type: string
-                          description: >
-                            Action taken by the rule (e.g. "score", "block", "flag").
-                          example: "score"
-                        score_delta:
-                          type: integer
-                          description: >
-                            Points added to (positive) or subtracted from (negative)
-                            the aggregate score by this rule.
-                          example: 10
+                $ref: '#/components/schemas/RiskAssessment'
         "400":
-          description: Invalid request body or missing required fields.
+          description: Validation failure.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        "404":
-          description: Application not found.
+              examples:
+                missingTenant:
+                  value:
+                    error:
+                      code: validation_failed
+                      message: tenant_id is required
+        "500":
+          description: Pipeline error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags: [assessments]
+      summary: List assessments by application
+      operationId: listAssessments
+      parameters:
+        - $ref: '#/components/parameters/TenantQuery'
+        - name: application_id
+          in: query
+          required: true
+          schema:
+            type: string
+          example: app_01J9YQH7
+      responses:
+        "200":
+          description: Assessments ordered newest-first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskAssessmentList'
+        "400":
+          description: Missing tenant_id or application_id.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         "500":
-          description: Internal rule engine error.
+          description: Internal error.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /healthz:
+  /v1/assessments/{id}:
     get:
-      summary: Health check
-      description: Liveness probe for Kubernetes and load-balancer health checks.
-      operationId: healthCheck
+      tags: [assessments]
+      summary: Get an assessment by id
+      operationId: getAssessment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: ra_01J9YQH7
+        - $ref: '#/components/parameters/TenantQuery'
       responses:
         "200":
-          description: Service is healthy.
+          description: Assessment found.
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: ok
+                $ref: '#/components/schemas/RiskAssessment'
+        "400":
+          description: Missing tenant_id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Not found in this tenant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
+  parameters:
+    TenantQuery:
+      name: tenant_id
+      in: query
+      required: true
+      schema:
+        type: string
+      example: bank_alpha
+
   schemas:
+    RiskCategory:
+      type: string
+      enum: [LOW, MEDIUM, HIGH]
+      description: Bucketed score (`<0.3` → LOW, `<0.7` → MEDIUM, else HIGH).
+
+    Direction:
+      type: string
+      enum: [INCREASES_RISK, DECREASES_RISK]
+      description: SHAP-style direction marker on a `Factor`.
+
+    RuleSeverity:
+      type: string
+      enum: [WARNING, BLOCKING]
+
+    Recommendation:
+      type: string
+      enum: [AUTO_APPROVE, MANUAL_REVIEW, DECLINE_RECOMMENDED]
+
+    Factor:
+      type: object
+      required: [name, weight, direction]
+      properties:
+        name:
+          type: string
+          example: company_age_days
+        value:
+          description: Original input value (any JSON type).
+        weight:
+          type: number
+          format: double
+          example: 0.18
+        direction:
+          $ref: '#/components/schemas/Direction'
+
+    RuleTriggered:
+      type: object
+      required: [rule_id, severity, description]
+      properties:
+        rule_id:
+          type: string
+          example: low_company_age
+        severity:
+          $ref: '#/components/schemas/RuleSeverity'
+        description:
+          type: string
+
+    ScreeningMatch:
+      type: object
+      required: [list_name, matched_field, confidence]
+      properties:
+        list_name:
+          type: string
+          example: rosfinmon
+        matched_field:
+          type: string
+          example: full_name
+        confidence:
+          type: number
+          format: double
+
+    ScreeningResult:
+      type: object
+      required: [source, checked_at, has_matches, matches]
+      properties:
+        source:
+          type: string
+          example: rosfinmon
+        checked_at:
+          type: string
+          format: date-time
+        has_matches:
+          type: boolean
+        matches:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScreeningMatch'
+
+    ScreeningResults:
+      type: object
+      required: [rosfinmon, fssp]
+      properties:
+        rosfinmon:
+          $ref: '#/components/schemas/ScreeningResult'
+        fssp:
+          $ref: '#/components/schemas/ScreeningResult'
+
+    ModelInfo:
+      type: object
+      required: [name, version, computed_at]
+      properties:
+        name:
+          type: string
+          example: rules-v1
+        version:
+          type: string
+          example: "2026-04-01"
+        computed_at:
+          type: string
+          format: date-time
+
+    Explanation:
+      type: object
+      required: [text, generated_by]
+      properties:
+        text:
+          type: string
+        generated_by:
+          type: string
+          example: agent-risk-scoring
+
+    RiskAssessment:
+      type: object
+      required:
+        - id
+        - tenant_id
+        - application_id
+        - score
+        - category
+        - model
+        - factors
+        - rules_triggered
+        - screening_results
+        - explanation
+        - recommendation
+      properties:
+        id:
+          type: string
+          example: ra_01J9YQH7
+        tenant_id:
+          type: string
+          example: bank_alpha
+        application_id:
+          type: string
+          example: app_01J9YQH7
+        legal_entity_id:
+          type: string
+        score:
+          type: number
+          format: double
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.42
+        category:
+          $ref: '#/components/schemas/RiskCategory'
+        model:
+          $ref: '#/components/schemas/ModelInfo'
+        factors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Factor'
+        rules_triggered:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuleTriggered'
+        screening_results:
+          $ref: '#/components/schemas/ScreeningResults'
+        explanation:
+          $ref: '#/components/schemas/Explanation'
+        recommendation:
+          $ref: '#/components/schemas/Recommendation'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    RiskAssessmentList:
+      type: object
+      required: [items, count]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskAssessment'
+        count:
+          type: integer
+
+    CreateAssessmentRequest:
+      type: object
+      required: [tenant_id, application_id]
+      properties:
+        tenant_id:
+          type: string
+        application_id:
+          type: string
+        input_data:
+          type: object
+          additionalProperties: true
+          description: Free-form facts forwarded to the rule engine.
+        rules_pack_path:
+          type: string
+          description: Reserved for per-tenant rule overrides; ignored today.
+
     ErrorResponse:
       type: object
+      required: [error]
       properties:
         error:
-          type: string
-          description: Machine-readable error code.
-          example: "invalid_request"
-        message:
-          type: string
-          description: Human-readable error description.
-          example: "Field 'application_id' is required"
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              example: assess_failed
+            message:
+              type: string
+              example: rule engine unavailable

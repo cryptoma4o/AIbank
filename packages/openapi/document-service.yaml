@@ -1,0 +1,332 @@
+openapi: 3.0.3
+info:
+  title: AIbank document-service
+  version: "1.0.0"
+  description: |
+    Document storage and metadata for client-uploaded files (passports,
+    charters, protocols, etc.). File bytes go to the configured object
+    storage (s3/memory backends); metadata lives in the tenant schema.
+
+    Upload payload is hard-capped at 25 MiB; only `application/pdf`,
+    `image/png`, `image/jpeg`, `image/tiff` are accepted. SHA-256 is
+    computed during upload, in stream.
+servers:
+  - url: http://document-service:8083
+
+tags:
+  - name: documents
+  - name: ops
+
+paths:
+  /health:
+    get:
+      tags: [ops]
+      summary: Liveness probe
+      operationId: health
+      responses:
+        "200": { description: Alive. }
+
+  /ready:
+    get:
+      tags: [ops]
+      summary: Readiness probe
+      operationId: ready
+      responses:
+        "200": { description: Ready. }
+        "503": { description: Not ready. }
+
+  /v1/documents:
+    post:
+      tags: [documents]
+      summary: Upload a document
+      operationId: uploadDocument
+      description: |
+        Accepts `multipart/form-data` with form fields `tenant_id`,
+        `application_id`, `type`, and a `file` part. The handler streams
+        the file into object storage while computing SHA-256.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [tenant_id, application_id, type, file]
+              properties:
+                tenant_id:
+                  type: string
+                  example: bank_alpha
+                application_id:
+                  type: string
+                  example: app_01J9YQH7
+                type:
+                  $ref: '#/components/schemas/DocumentType'
+                file:
+                  type: string
+                  format: binary
+                  description: PDF, PNG, JPEG, or TIFF. Max 25 MiB.
+            encoding:
+              file:
+                contentType: application/pdf, image/png, image/jpeg, image/tiff
+      responses:
+        "201":
+          description: Document persisted; metadata returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        "400":
+          description: Missing field, invalid type, invalid filename, etc.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "413":
+          description: File exceeds the 25 MiB hard cap.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                tooLarge:
+                  value:
+                    error:
+                      code: file_too_large
+                      message: "file exceeds 26214400 bytes"
+        "415":
+          description: MIME type not in the whitelist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Storage or persistence failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags: [documents]
+      summary: List documents for an application
+      operationId: listDocuments
+      parameters:
+        - $ref: '#/components/parameters/TenantQuery'
+        - name: application_id
+          in: query
+          required: true
+          schema:
+            type: string
+          example: app_01J9YQH7
+      responses:
+        "200":
+          description: Documents found (possibly empty).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentList'
+        "400":
+          description: Missing/invalid tenant_id or application_id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/documents/{id}:
+    get:
+      tags: [documents]
+      summary: Get document metadata
+      operationId: getDocument
+      parameters:
+        - $ref: '#/components/parameters/DocumentId'
+        - $ref: '#/components/parameters/TenantQuery'
+      responses:
+        "200":
+          description: Document metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        "400":
+          description: Missing/invalid tenant_id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Document not found in this tenant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/documents/{id}/content:
+    get:
+      tags: [documents]
+      summary: Stream document content from storage
+      operationId: getDocumentContent
+      parameters:
+        - $ref: '#/components/parameters/DocumentId'
+        - $ref: '#/components/parameters/TenantQuery'
+      responses:
+        "200":
+          description: Raw file bytes.
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              example: 'attachment; filename="passport.pdf"'
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Document or backing file not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Storage error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  parameters:
+    TenantQuery:
+      name: tenant_id
+      in: query
+      required: true
+      description: Tenant slug.
+      schema:
+        type: string
+      example: bank_alpha
+    DocumentId:
+      name: id
+      in: path
+      required: true
+      description: Document id (`doc_<uuid>`).
+      schema:
+        type: string
+      example: doc_8f2a8b6e
+
+  schemas:
+    DocumentType:
+      type: string
+      description: Whitelist of accepted document classifications (MVP set).
+      enum:
+        - passport
+        - passport_foreign
+        - charter
+        - protocol
+        - extract
+        - agreement
+
+    DocumentState:
+      type: string
+      description: |
+        State machine after upload. document-service writes `uploaded`;
+        downstream agents transition to `parsed`/`validated`/`rejected`.
+      enum: [uploaded, parsed, validated, rejected]
+
+    SourceType:
+      type: string
+      enum: [client_upload, egrul, esia, generated]
+
+    Document:
+      type: object
+      required:
+        - id
+        - tenant_id
+        - application_id
+        - type
+        - state
+        - file_id
+        - filename
+        - mime_type
+        - size_bytes
+        - sha256
+        - storage_path
+        - source_type
+      properties:
+        id:
+          type: string
+          example: doc_8f2a8b6e
+        tenant_id:
+          type: string
+          example: bank_alpha
+        application_id:
+          type: string
+          example: app_01J9YQH7
+        type:
+          $ref: '#/components/schemas/DocumentType'
+        state:
+          $ref: '#/components/schemas/DocumentState'
+        file_id:
+          type: string
+          example: file_aa11bb22
+        filename:
+          type: string
+          example: passport.pdf
+        mime_type:
+          type: string
+          example: application/pdf
+        size_bytes:
+          type: integer
+          format: int64
+          example: 123456
+        sha256:
+          type: string
+          minLength: 64
+          maxLength: 64
+          example: "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+        storage_path:
+          type: string
+          example: "s3://aibank-docs/tenants/bank_alpha/applications/app_01J9YQH7/aa11bb22-passport.pdf"
+        source_type:
+          $ref: '#/components/schemas/SourceType'
+        source_actor_id:
+          type: string
+        parsed_data:
+          type: object
+          additionalProperties: true
+          description: Populated by document-intake-agent after OCR. Treated as opaque here.
+        uploaded_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    DocumentList:
+      type: object
+      required: [items, count]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Document'
+        count:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              example: invalid_type
+            message:
+              type: string
+              example: 'unsupported document type "passport_xx"'

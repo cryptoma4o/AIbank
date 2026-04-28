@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://aibank.io/schemas/tenant-config/v1.0.0/branding.json",
+  "title": "BrandingConfig",
+  "description": "Branding bundle: theme.json (colors, fonts, logos) and content.yaml (transactional message texts).",
+  "oneOf": [
+    { "$ref": "#/definitions/theme" },
+    { "$ref": "#/definitions/content" }
+  ],
+  "definitions": {
+    "theme": {
+      "type": "object",
+      "required": ["schema_version", "colors", "logos"],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+$" },
+        "colors": {
+          "type": "object",
+          "required": ["primary", "background", "text_primary"],
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$"
+          },
+          "properties": {
+            "primary": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+            "secondary": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+            "accent": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+            "background": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+            "text_primary": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+            "text_secondary": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" }
+          }
+        },
+        "typography": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "heading_font": { "type": "string" },
+            "body_font": { "type": "string" },
+            "fallback": { "type": "string" }
+          }
+        },
+        "logos": {
+          "type": "object",
+          "required": ["main"],
+          "additionalProperties": { "type": "string" },
+          "properties": {
+            "main": { "type": "string" },
+            "compact": { "type": "string" },
+            "favicon": { "type": "string" }
+          }
+        },
+        "domain": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "email": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "from_address": { "type": "string", "format": "email" },
+            "from_name": { "type": "string" }
+          }
+        }
+      }
+    },
+    "content": {
+      "type": "object",
+      "required": ["schema_version", "language"],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+$" },
+        "language": { "type": "string", "pattern": "^[a-z]{2}$" },
+        "emails": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["subject"],
+            "additionalProperties": false,
+            "properties": {
+              "subject": { "type": "string", "minLength": 1 },
+              "template": { "type": "string" },
+              "body": { "type": "string" }
+            }
+          }
+        },
+        "ui_strings": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "chat_responses": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "error_messages": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    }
+  }
+}

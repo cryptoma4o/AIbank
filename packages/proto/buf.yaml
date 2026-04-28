@@ -1,5 +1,47 @@
-version: v1
-name: buf.build/aibank/platform
+# buf.yaml — module configuration for canonical AIbank proto contracts.
+#
+# Per ADR-0006 (ABS-adapter versioning) the canonical packages/proto/ tree is
+# the single source of truth for all inter-service gRPC contracts. Codegen runs
+# both locally (developer Makefile) and in CI (bufbuild/buf-action).
+#
+# Buf workspace v2:
+#   - One module rooted at this directory (packages/proto/).
+#   - The 6 canonical .proto files (tenant, identity, document, onboarding,
+#     risk, audit) live at the root and use package "aibank.<context>" /
+#     "aibank.v1" depending on file (see go_package option in each .proto).
+#   - Nested */v1/ scaffolding directories are reserved for the next-major
+#     evolution (per ADR-0006 N-2 compatibility window) and are excluded from
+#     this module to avoid duplicate symbols during codegen.
+#
+# Breaking-change rules:
+#   - Mode FILE: a renamed .proto file is treated as a breaking change against
+#     the previous artifact. Compatible with `buf breaking --against` against a
+#     git ref (we use main; see Makefile).
+#   - Per ADR-0006 we keep N-2 versions on-prem; once a v2 file lives next to
+#     a v1 file, both are checked in isolation (FILE mode is per-file safe).
+#
+# Lint rules:
+#   - DEFAULT minus a few rules that fight Russian-banking vocabulary:
+#       * USE_FIELD_PRESENCE   — many fields are intentionally non-optional
+#                                bare scalars (RFC-3339 timestamp strings,
+#                                ULIDs); presence is enforced via business
+#                                validation, not proto.
+#       * ENUM_VALUE_PREFIX    — local Russian enum values (e.g. ИП, ООО)
+#                                often map to short identifiers (LLC, IP,
+#                                JSC) and the long PREFIX_VALUE form leaks
+#                                noise into generated code consumed by Go,
+#                                Python and Russian-language UIs.
+#       * FIELD_LOWER_SNAKE_CASE is kept (DEFAULT).
+#       * Service / RPC naming (DEFAULT) is kept.
+version: v2
+modules:
+  - path: .
+    excludes:
+      - common
+      - tenant
+      - application
+      - document
+      - audit
 deps:
   - buf.build/googleapis/googleapis
 breaking:
@@ -8,3 +50,6 @@ breaking:
 lint:
   use:
     - DEFAULT
+  except:
+    - USE_FIELD_PRESENCE
+    - ENUM_VALUE_PREFIX

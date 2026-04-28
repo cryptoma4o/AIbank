@@ -1,16 +1,27 @@
 [build-system]
 requires = ["setuptools>=68"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
-name = "tenant-config-schema"
-version = "0.1.0"
-description = "JSON Schema validation for AIbank tenant configuration files"
+name = "aibank-tenant-config-schema"
+version = "1.0.0"
+description = "JSON Schema definitions and validator CLI for AIbank tenant configuration files"
 requires-python = ">=3.10"
 dependencies = [
-    "jsonschema>=4.21",
-    "pyyaml>=6.0",
+    "jsonschema>=4",
+    "pyyaml>=6",
 ]
 
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
 [project.scripts]
-validate-tenant-config = "validate:main"
+aibank-validate-tenant = "validate:main"
+
+[tool.setuptools]
+py-modules = ["validate"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = []
+exclude = ["tests*", "schemas*"]

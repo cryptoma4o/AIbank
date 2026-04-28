@@ -1,8 +1,10 @@
 stages:
   - lint
+  - codegen
   - test
   - build
   - security
+  - e2e
   - deploy-staging
   - deploy-prod
 
@@ -69,6 +71,97 @@ lint:proto:
   rules:
     - changes:
         - "packages/proto/**/*.proto"
+
+openapi:lint:
+  stage: lint
+  image: node:20-alpine
+  script:
+    - npm install --global @stoplight/spectral-cli@6.11.1
+    - |
+      if [ ! -f packages/openapi/.spectral.yaml ]; then
+        cat > packages/openapi/.spectral.yaml <<'EOF'
+      extends: ["spectral:oas"]
+      rules:
+        oas3-shared-components: error
+        operation-tag-defined: error
+        operation-operationId: error
+        operation-description: warn
+        info-contact: off
+        info-description: warn
+        no-$ref-siblings: error
+      EOF
+      fi
+    - |
+      fail=0
+      for spec in packages/openapi/*.yaml packages/openapi/*.yml; do
+        [ -f "$spec" ] || continue
+        echo "→ spectral lint $spec"
+        spectral lint "$spec" --ruleset packages/openapi/.spectral.yaml --fail-severity=error || fail=1
+      done
+      exit $fail
+  rules:
+    - changes:
+        - "packages/openapi/**/*.yaml"
+        - "packages/openapi/**/*.yml"
+
+helm:lint:
+  stage: lint
+  image: alpine/helm:3.15.2
+  script:
+    - apk add --no-cache findutils
+    - |
+      fail=0
+      for chart in $(find infrastructure/helm -name Chart.yaml -mindepth 2 -maxdepth 5); do
+        chart_dir=$(dirname "$chart")
+        echo "─── helm lint $chart_dir ──────────────────────────"
+        if grep -qE '^dependencies:' "$chart" 2>/dev/null; then
+          (cd "$chart_dir" && helm dependency update . || helm dependency build . || true)
+        fi
+        helm lint "$chart_dir" --strict || fail=1
+        helm template release-name "$chart_dir" >/dev/null || fail=1
+      done
+      exit $fail
+  rules:
+    - changes:
+        - "infrastructure/helm/**"
+
+# ─── CODEGEN ───────────────────────────────────────────────────────────────────
+
+codegen:verify:
+  stage: codegen
+  image: python:3.13-slim
+  before_script:
+    - apt-get update -qq && apt-get install -qq -y git make
+    - pip install --quiet pydantic jinja2 datamodel-code-generator || true
+  script:
+    - cd packages/domain-model && make generate
+    - cd ../..
+    - |
+      if ! git diff --exit-code packages/domain-model/generated/; then
+        echo ""
+        echo "ERROR: Generated files differ from committed state."
+        echo "Run 'cd packages/domain-model && make generate' locally and commit the result."
+        exit 1
+      fi
+    - echo "domain-model codegen OK"
+    - |
+      if [ -f packages/proto/buf.gen.yaml ]; then
+        echo "→ checking proto codegen"
+        # buf is not pre-installed; install from release tarball
+        BUF_VERSION=1.34.0
+        curl -sSL "https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-Linux-x86_64" -o /usr/local/bin/buf
+        chmod +x /usr/local/bin/buf
+        (cd packages/proto && buf generate)
+        if ! git diff --exit-code packages/proto/generated/; then
+          echo "ERROR: proto codegen out of sync. Run 'cd packages/proto && buf generate'."
+          exit 1
+        fi
+      fi
+  rules:
+    - changes:
+        - "packages/domain-model/**"
+        - "packages/proto/**"
+        - "packages/openapi/**"
 
 # ─── TEST ──────────────────────────────────────────────────────────────────────
 
@@ -207,6 +300,43 @@ security:go-vuln:
   allow_failure: true
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
+
+# ─── E2E ───────────────────────────────────────────────────────────────────────
+# Runs scripts/smoke.sh against an ephemeral docker-compose stack.
+# Gates deployment to staging/prod (see ADR-0005 + smoke.sh contract).
+
+e2e:smoke:
+  stage: e2e
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+    COMPOSE_PROJECT_NAME: aibank-ci-${CI_PIPELINE_ID}
+  before_script:
+    - apk add --no-cache bash curl jq make docker-compose
+  script:
+    - echo "→ Building docker-compose stack"
+    - docker compose build --parallel
+    - echo "→ Starting stack"
+    - docker compose up -d
+    - echo "→ Applying platform migrations"
+    - make migrate-platform
+    - echo "→ Running smoke test"
+    - bash scripts/smoke.sh
+  after_script:
+    - echo "→ Tearing down stack (post-smoke)"
+    - docker compose down -v || true
+  artifacts:
+    when: always
+    paths:
+      - /tmp/aibank-smoke-state/
+    expire_in: 7 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+  allow_failure: false
+  timeout: 30m
 
 # ─── DEPLOY ────────────────────────────────────────────────────────────────────
 

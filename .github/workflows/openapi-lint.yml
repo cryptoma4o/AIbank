@@ -1,0 +1,76 @@
+name: OpenAPI Lint
+
+# Lints every OpenAPI spec in packages/openapi/ with Spectral.
+# Runs only when specs (or this workflow) change.
+#
+# Security note: no user-controlled inputs are interpolated into run: blocks.
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "packages/openapi/**"
+      - ".github/workflows/openapi-lint.yml"
+  push:
+    branches: [main]
+    paths:
+      - "packages/openapi/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: openapi-lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  spectral:
+    name: Spectral lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Spectral CLI
+        run: npm install --global @stoplight/spectral-cli@6.11.1
+
+      - name: Generate minimal ruleset (if not present)
+        run: |
+          if [ ! -f packages/openapi/.spectral.yaml ]; then
+            cat > packages/openapi/.spectral.yaml <<'EOF'
+          extends: ["spectral:oas"]
+          rules:
+            oas3-shared-components: error
+            operation-tag-defined: error
+            operation-operationId: error
+            operation-description: warn
+            info-contact: off
+            info-description: warn
+            no-$ref-siblings: error
+          EOF
+            echo "Generated ephemeral .spectral.yaml for this run only."
+          fi
+
+      - name: Lint all OpenAPI specs
+        run: |
+          set -e
+          shopt -s nullglob
+          specs=(packages/openapi/*.yaml packages/openapi/*.yml)
+          if [ ${#specs[@]} -eq 0 ]; then
+            echo "::warning::no OpenAPI specs found in packages/openapi/"
+            exit 0
+          fi
+          fail=0
+          for spec in "${specs[@]}"; do
+            echo "─── Linting $spec ──────────────────────────────"
+            spectral lint "$spec" \
+              --ruleset packages/openapi/.spectral.yaml \
+              --format stylish \
+              --fail-severity=error || fail=1
+          done
+          exit $fail

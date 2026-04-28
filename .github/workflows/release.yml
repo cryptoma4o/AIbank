@@ -1,0 +1,142 @@
+name: Release
+
+# Builds + pushes Docker images for every service/agent on `v*` tag push.
+# Generates an SBOM (CycloneDX JSON) per image via syft. See
+# docs/security-architecture.md § 7.1 for SBOM retention requirements.
+#
+# Security note: no user-controlled inputs are interpolated into run: blocks.
+# All ${{ }} interpolations reference repository_owner / actor / steps outputs,
+# none of which are user-controlled at runtime.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_OWNER: ${{ github.repository_owner }}
+
+jobs:
+  setup-matrix:
+    name: Discover release targets
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      images: ${{ steps.discover.outputs.images }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: discover
+        name: Build image matrix from Dockerfiles
+        run: |
+          set -euo pipefail
+          images=$(
+            find services ai tools -name Dockerfile -mindepth 2 -maxdepth 3 -type f 2>/dev/null \
+              | sort \
+              | jq -R --slurp --compact-output '
+                  split("\n")
+                  | map(select(length > 0))
+                  | map({
+                      context: (. | sub("/Dockerfile$"; "")),
+                      name:    (. | sub("/Dockerfile$"; "") | split("/") | .[-1])
+                    })
+                '
+          )
+          echo "Release matrix:"
+          echo "$images" | jq .
+          echo "images=$images" >> "$GITHUB_OUTPUT"
+
+  build-and-push:
+    name: ${{ matrix.image.name }}
+    needs: setup-matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJson(needs.setup-matrix.outputs.images) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/aibank-${{ matrix.image.name }}
+          tags: |
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-
+
+      - name: Build & push image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.image.context }}
+          file: ${{ matrix.image.context }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.image.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image.name }}
+          provenance: true
+
+      - name: Install syft
+        uses: anchore/sbom-action/download-syft@v0
+        with:
+          syft-version: v1.14.0
+
+      - name: Generate SBOM (CycloneDX JSON)
+        env:
+          IMAGE_REF: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/aibank-${{ matrix.image.name }}@${{ steps.build.outputs.digest }}
+          IMAGE_NAME: ${{ matrix.image.name }}
+        run: |
+          mkdir -p sbom
+          syft "$IMAGE_REF" \
+            --output cyclonedx-json="sbom/${IMAGE_NAME}.cdx.json" \
+            --output spdx-json="sbom/${IMAGE_NAME}.spdx.json"
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ matrix.image.name }}
+          path: sbom/${{ matrix.image.name }}.*
+          retention-days: 90
+
+  release-ok:
+    name: Release pipeline (aggregate)
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: always()
+    steps:
+      - name: Verify all images released
+        env:
+          RESULT: ${{ needs.build-and-push.result }}
+        run: |
+          if [ "$RESULT" != "success" ]; then
+            echo "::error::At least one image failed to release."
+            exit 1
+          fi
+          echo "All images built, pushed and SBOM-attested."

@@ -1,6 +1,0 @@
-apiVersion: v2
-name: risk-engine
-description: AIbank Risk Engine — CatBoost scoring + declarative YAML rules with SHAP explainability
-type: application
-version: 0.1.0
-appVersion: "0.1.0"

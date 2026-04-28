@@ -1,6 +1,0 @@
-apiVersion: v2
-name: notification-service
-description: AIbank Notification Service — Email/SMS/Push notifications with tenant-configured templates
-type: application
-version: 0.1.0
-appVersion: "0.1.0"

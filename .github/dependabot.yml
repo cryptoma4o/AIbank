@@ -1,0 +1,252 @@
+version: 2
+
+# Weekly dependency updates across the polyglot monorepo.
+# Each module gets its own update entry so PRs are scoped per-package and
+# stay reviewable.
+
+updates:
+  # ─── GitHub Actions ───────────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Moscow"
+    labels: ["dependencies", "ci"]
+    reviewers: ["devops"]
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(ci)"
+
+  # ─── Go modules: services/* (21 services) ────────────────────────────────
+  - package-ecosystem: "gomod"
+    directory: "/services/abs-adapter-cft"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    open-pull-requests-limit: 3
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/abs-adapter-diasoft"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/abs-adapter-rs-bank"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/abs-connector"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/api-gateway"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/audit-service"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/bff-admin"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/bff-onboarding"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/billing-service"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/client-service"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/document-service"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/ext-egrul"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/ext-fssp"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/ext-rosfinmon"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/ext-spark"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/identity-service"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/notification-service"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/onboarding-orchestrator"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/risk-engine"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/tenant-service"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services", "core"]
+    reviewers: ["ai-bank-architects"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/services/ubo-service"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "services"]
+    commit-message: { prefix: "chore(deps)" }
+
+  # ─── Go modules: tools/* ─────────────────────────────────────────────────
+  - package-ecosystem: "gomod"
+    directory: "/tools/db-migrator"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "tools"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/tools/mock-abs"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "tools"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/tools/tenant-cli"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "tools"]
+    commit-message: { prefix: "chore(deps)" }
+
+  # ─── Go modules: packages/* (shared) ─────────────────────────────────────
+  - package-ecosystem: "gomod"
+    directory: "/packages/audit-sdk"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "packages"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/packages/crypto-utils"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "packages", "security"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/packages/rule-engine"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "packages"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "gomod"
+    directory: "/packages/domain-model/go"
+    schedule: { interval: "weekly", day: "monday" }
+    labels: ["dependencies", "go", "packages", "domain"]
+    commit-message: { prefix: "chore(deps)" }
+
+  # ─── npm: frontend apps ──────────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/apps/web-onboarding"
+    schedule: { interval: "weekly", day: "tuesday" }
+    labels: ["dependencies", "npm", "frontend"]
+    open-pull-requests-limit: 5
+    commit-message: { prefix: "chore(deps)" }
+    groups:
+      next:
+        patterns: ["next", "react", "react-dom", "@next/*"]
+      typescript-tooling:
+        patterns: ["typescript", "@types/*", "eslint*", "@typescript-eslint/*"]
+
+  - package-ecosystem: "npm"
+    directory: "/apps/web-admin"
+    schedule: { interval: "weekly", day: "tuesday" }
+    labels: ["dependencies", "npm", "frontend"]
+    open-pull-requests-limit: 5
+    commit-message: { prefix: "chore(deps)" }
+    groups:
+      next:
+        patterns: ["next", "react", "react-dom", "@next/*"]
+      typescript-tooling:
+        patterns: ["typescript", "@types/*", "eslint*", "@typescript-eslint/*"]
+
+  # ─── pip: AI services ────────────────────────────────────────────────────
+  - package-ecosystem: "pip"
+    directory: "/ai/llm-gateway"
+    schedule: { interval: "weekly", day: "wednesday" }
+    labels: ["dependencies", "pip", "ai"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "pip"
+    directory: "/ai/rag-service"
+    schedule: { interval: "weekly", day: "wednesday" }
+    labels: ["dependencies", "pip", "ai"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "pip"
+    directory: "/ai/eval-harness"
+    schedule: { interval: "weekly", day: "wednesday" }
+    labels: ["dependencies", "pip", "ai"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "pip"
+    directory: "/ai/agent-conversational"
+    schedule: { interval: "weekly", day: "wednesday" }
+    labels: ["dependencies", "pip", "ai"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "pip"
+    directory: "/ai/agent-document-intake"
+    schedule: { interval: "weekly", day: "wednesday" }
+    labels: ["dependencies", "pip", "ai"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "pip"
+    directory: "/ai/agent-risk-scoring"
+    schedule: { interval: "weekly", day: "wednesday" }
+    labels: ["dependencies", "pip", "ai"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "pip"
+    directory: "/ai/agent-ubo-tracing"
+    schedule: { interval: "weekly", day: "wednesday" }
+    labels: ["dependencies", "pip", "ai"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "pip"
+    directory: "/ai/agent-reconciliation"
+    schedule: { interval: "weekly", day: "wednesday" }
+    labels: ["dependencies", "pip", "ai"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "pip"
+    directory: "/ai/agent-compliance-assistant"
+    schedule: { interval: "weekly", day: "wednesday" }
+    labels: ["dependencies", "pip", "ai"]
+    commit-message: { prefix: "chore(deps)" }
+
+  # ─── pip: shared Python packages ─────────────────────────────────────────
+  - package-ecosystem: "pip"
+    directory: "/packages/audit-sdk/python"
+    schedule: { interval: "weekly", day: "wednesday" }
+    labels: ["dependencies", "pip", "packages"]
+    commit-message: { prefix: "chore(deps)" }
+  - package-ecosystem: "pip"
+    directory: "/packages/tenant-config-schema"
+    schedule: { interval: "weekly", day: "wednesday" }
+    labels: ["dependencies", "pip", "packages"]
+    commit-message: { prefix: "chore(deps)" }

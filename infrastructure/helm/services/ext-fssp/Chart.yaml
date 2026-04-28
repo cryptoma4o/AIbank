@@ -1,6 +1,0 @@
-apiVersion: v2
-name: ext-fssp
-description: AIbank ext-fssp — ФССП enforcement proceedings database check
-type: application
-version: 0.1.0
-appVersion: "0.1.0"

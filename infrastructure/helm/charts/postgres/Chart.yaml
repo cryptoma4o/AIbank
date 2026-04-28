@@ -1,0 +1,27 @@
+apiVersion: v2
+name: postgres
+description: |
+  Lightweight wrapper / values-only chart for PostgreSQL.
+
+  In production we recommend either:
+    1. A managed Postgres offering (Yandex Cloud Managed PostgreSQL,
+       Selectel, AWS RDS) — DO NOT deploy this chart in that case;
+       only configure connection details via secrets.
+    2. The Bitnami `postgresql` chart (or its mirror) when in-cluster
+       Postgres is required, e.g. on-prem with no managed alternative.
+
+  This wrapper holds the recommended values.yaml for option (2). It
+  does NOT bundle templates of its own — it is consumed as a sub-chart.
+
+  See ADR-0009 § Part 4: PostgreSQL is part of `platform-data`,
+  shared between blue and green namespaces; never deploy two copies.
+type: application
+version: 0.1.0
+appVersion: "16"
+keywords:
+  - aibank
+  - postgresql
+  - database
+maintainers:
+  - name: AIbank Platform Team
+    email: platform@aibank.local

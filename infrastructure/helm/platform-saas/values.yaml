@@ -1,0 +1,354 @@
+# platform-saas — SaaS-mode defaults.
+#
+# Stateful infra (Postgres, Kafka, Redis, MinIO, Temporal) is assumed
+# to be MANAGED outside the cluster (Yandex Cloud / VK Cloud equivalent
+# of RDS, Managed Kafka, Managed Redis, Object Storage). Connection
+# details come from pre-created Secrets per tenant namespace.
+#
+# Per technical-structure.md § 10.1:
+#   - K8s namespace per tenant (tenant-{id})
+#   - Common platform services in `platform`
+#   - AI services in `ai` (GPU pool)
+# This values file deploys ONE platform-instance; multi-tenant isolation
+# is achieved by deploying multiple releases into different namespaces.
+
+# Global defaults — propagated through subchart values via global. block.
+global:
+  imageRegistry: registry.aibank.local
+  imageTag: "0.1.0"
+  imagePullPolicy: IfNotPresent
+  imagePullSecrets:
+    - name: aibank-registry-creds
+  # SaaS-wide Secret names (created out-of-band by tenant-service / ESO)
+  secrets:
+    postgres: aibank-postgres-credentials
+    redis: aibank-redis-credentials
+    kafka: aibank-kafka-credentials
+    minio: aibank-minio-credentials
+    jwt: aibank-jwt-keys
+
+# ─────────────────────────────────────────────────────────────────
+# Common subchart defaults
+# ─────────────────────────────────────────────────────────────────
+# These keys are NOT picked up automatically — they document the
+# baseline. Each alias below explicitly inherits.
+
+# Helper anchor (YAML anchor syntax) for common defaults.
+_common: &common
+  replicaCount: 2
+  image:
+    repository: ""              # filled per-service
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+  imagePullSecrets:
+    - name: aibank-registry-creds
+  resources:
+    limits:    { cpu: 500m, memory: 512Mi }
+    requests:  { cpu: 200m, memory: 256Mi }
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    fsGroup: 65532
+    seccompProfile: { type: RuntimeDefault }
+  networkPolicy:
+    enabled: true
+    # Allow same-namespace traffic + Istio egress.
+    ingressFrom:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: platform-mesh
+      - podSelector: {}
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    path: /metrics
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+# ─────────────────────────────────────────────────────────────────
+# BFF / API Gateway
+# ─────────────────────────────────────────────────────────────────
+api-gateway:
+  <<: *common
+  image:
+    repository: registry.aibank.local/api-gateway
+    tag: "0.1.0"
+  service:
+    port: 8000
+  replicaCount: 3
+  envFrom:
+    - secretRef:
+        name: aibank-jwt-keys
+
+bff-onboarding:
+  <<: *common
+  image:
+    repository: registry.aibank.local/bff-onboarding
+    tag: "0.1.0"
+  service:
+    port: 8094
+    targetPort: 8094
+  env:
+    - name: TENANT_SERVICE_URL
+      value: http://tenant-service:8080
+    - name: IDENTITY_SERVICE_URL
+      value: http://identity-service:8082
+    - name: DOCUMENT_SERVICE_URL
+      value: http://document-service:8083
+    - name: ORCHESTRATOR_URL
+      value: http://onboarding-orchestrator:8085
+    - name: RISK_ENGINE_URL
+      value: http://risk-engine:8086
+  envFrom:
+    - secretRef:
+        name: aibank-jwt-keys
+
+bff-admin:
+  <<: *common
+  image:
+    repository: registry.aibank.local/bff-admin
+    tag: "0.1.0"
+  service:
+    port: 8095
+  env:
+    - name: TENANT_URL
+      value: http://tenant-service:8080
+    - name: AUDIT_URL
+      value: http://audit-service:8081
+    - name: RISK_URL
+      value: http://risk-engine:8086
+    - name: CLIENT_URL
+      value: http://client-service:8089
+    - name: UBO_URL
+      value: http://ubo-service:8090
+
+# ─────────────────────────────────────────────────────────────────
+# Core domain services
+# ─────────────────────────────────────────────────────────────────
+tenant-service:
+  <<: *common
+  image:
+    repository: registry.aibank.local/tenant-service
+    tag: "0.1.0"
+  service:
+    port: 8080
+  envFrom:
+    - secretRef:
+        name: aibank-postgres-credentials
+
+identity-service:
+  <<: *common
+  image:
+    repository: registry.aibank.local/identity-service
+    tag: "0.1.0"
+  service:
+    port: 8082
+  envFrom:
+    - secretRef:
+        name: aibank-postgres-credentials
+    - secretRef:
+        name: aibank-jwt-keys
+
+audit-service:
+  <<: *common
+  image:
+    repository: registry.aibank.local/audit-service
+    tag: "0.1.0"
+  service:
+    port: 8081
+  # Audit cannot tolerate disruption — keep both replicas always.
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+  envFrom:
+    - secretRef:
+        name: aibank-postgres-credentials
+
+document-service:
+  <<: *common
+  image:
+    repository: registry.aibank.local/document-service
+    tag: "0.1.0"
+  service:
+    port: 8083
+  resources:
+    limits:    { cpu: 1, memory: 1Gi }
+    requests:  { cpu: 250m, memory: 512Mi }
+  envFrom:
+    - secretRef:
+        name: aibank-postgres-credentials
+    - secretRef:
+        name: aibank-minio-credentials
+
+onboarding-orchestrator:
+  <<: *common
+  image:
+    repository: registry.aibank.local/onboarding-orchestrator
+    tag: "0.1.0"
+  service:
+    port: 8085
+  env:
+    - name: TEMPORAL_HOST
+      value: temporal-frontend.platform-data.svc.cluster.local:7233
+    - name: TEMPORAL_NAMESPACE
+      value: default
+  envFrom:
+    - secretRef:
+        name: aibank-postgres-credentials
+
+risk-engine:
+  <<: *common
+  image:
+    repository: registry.aibank.local/risk-engine
+    tag: "0.1.0"
+  service:
+    port: 8086
+  resources:
+    limits:    { cpu: 1, memory: 1Gi }
+    requests:  { cpu: 250m, memory: 512Mi }
+  env:
+    - name: RULES_PATH
+      value: /etc/aibank/risk-rules/default.yaml
+  envFrom:
+    - secretRef:
+        name: aibank-postgres-credentials
+
+client-service:
+  <<: *common
+  image:
+    repository: registry.aibank.local/client-service
+    tag: "0.1.0"
+  service:
+    port: 8089
+  envFrom:
+    - secretRef:
+        name: aibank-postgres-credentials
+
+ubo-service:
+  <<: *common
+  image:
+    repository: registry.aibank.local/ubo-service
+    tag: "0.1.0"
+  service:
+    port: 8090
+  envFrom:
+    - secretRef:
+        name: aibank-postgres-credentials
+
+billing-service:
+  <<: *common
+  image:
+    repository: registry.aibank.local/billing-service
+    tag: "0.1.0"
+  service:
+    port: 8087
+  env:
+    - name: TENANT_SERVICE_URL
+      value: http://tenant-service:8080
+  envFrom:
+    - secretRef:
+        name: aibank-postgres-credentials
+
+notification-service:
+  <<: *common
+  image:
+    repository: registry.aibank.local/notification-service
+    tag: "0.1.0"
+  service:
+    port: 8110
+    targetPort: 8083
+
+# ─────────────────────────────────────────────────────────────────
+# ABS layer
+# ─────────────────────────────────────────────────────────────────
+abs-connector:
+  <<: *common
+  image:
+    repository: registry.aibank.local/abs-connector
+    tag: "0.1.0"
+  service:
+    port: 8088
+  env:
+    - name: DEDUP_STORE
+      value: redis
+    - name: REDIS_URL
+      value: redis://redis-master.platform-data.svc.cluster.local:6379
+    - name: ABS_ADAPTERS_CONFIG
+      value: /app/configs/adapters.yaml
+
+# ─────────────────────────────────────────────────────────────────
+# External integrations
+# ─────────────────────────────────────────────────────────────────
+ext-egrul:
+  <<: *common
+  image:
+    repository: registry.aibank.local/ext-egrul
+    tag: "0.1.0"
+  service:
+    port: 8090
+  env:
+    - name: REDIS_ADDR
+      value: redis-master.platform-data.svc.cluster.local:6379
+  replicaCount: 1
+
+ext-rosfinmon:
+  <<: *common
+  image:
+    repository: registry.aibank.local/ext-rosfinmon
+    tag: "0.1.0"
+  service:
+    port: 8091
+  replicaCount: 1
+
+ext-fssp:
+  <<: *common
+  image:
+    repository: registry.aibank.local/ext-fssp
+    tag: "0.1.0"
+  service:
+    port: 8092
+  replicaCount: 1
+
+# ─────────────────────────────────────────────────────────────────
+# AI layer (placed in `platform-ai` namespace at install time
+# via --namespace, not via the chart)
+# ─────────────────────────────────────────────────────────────────
+llm-gateway:
+  replicaCount: 2
+  image:
+    repository: registry.aibank.local/llm-gateway
+    tag: "0.1.0"
+  service:
+    port: 8100
+    targetPort: 8100
+  env:
+    - name: LLM_GATEWAY_FORCE_MOCK
+      value: "0"
+    - name: LOG_REQUESTS
+      value: "true"
+    - name: LOG_LEVEL
+      value: "INFO"
+  envFrom:
+    - secretRef:
+        name: aibank-llm-providers
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  networkPolicy:
+    enabled: true
+  serviceMonitor:
+    enabled: true
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  # In SaaS we usually point llm-gateway at vLLM in `platform-ai`
+  # namespace; gpu/modelCache stay OFF on the gateway pod itself.

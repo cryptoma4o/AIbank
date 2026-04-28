@@ -1,0 +1,24 @@
+{{- $svc := include "aibank-service.fullname" . -}}
+{{ $svc }} has been deployed.
+
+Cluster-internal endpoint:
+  http://{{ $svc }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+Useful commands:
+  kubectl -n {{ .Release.Namespace }} get pods  -l app.kubernetes.io/instance={{ .Release.Name }}
+  kubectl -n {{ .Release.Namespace }} logs      -l app.kubernetes.io/instance={{ .Release.Name }} -f --tail=100
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ $svc }} {{ .Values.service.port }}:{{ .Values.service.port }}
+
+Probes:
+  liveness:  {{ .Values.probes.liveness.httpGet.path }}
+  readiness: {{ .Values.probes.readiness.httpGet.path }}
+
+{{- if .Values.hpa.enabled }}
+
+Autoscaling enabled: {{ .Values.hpa.minReplicas }}–{{ .Values.hpa.maxReplicas }} replicas
+target CPU = {{ .Values.hpa.targetCPUUtilizationPercentage }}%.
+{{- end }}
+{{- if .Values.networkPolicy.enabled }}
+
+NetworkPolicy is ENABLED — only allowed sources can reach the service.
+{{- end }}

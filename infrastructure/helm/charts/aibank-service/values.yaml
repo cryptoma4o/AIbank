@@ -1,0 +1,194 @@
+# Default values for aibank-service.
+# This is a generic chart consumed by per-service umbrella values
+# (e.g. platform-saas/values.yaml). Each consuming service overrides
+# at minimum: nameOverride, image.repository, service.port, env.
+
+# -- Override the chart name (defaults to .Chart.Name).
+# When the chart is used as a sub-chart with `alias:` in Chart.yaml,
+# Helm sets .Release.Name and .Chart.Name based on the alias — this
+# override is here for explicit single-chart installs.
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  # -- Container image repository (e.g. registry.aibank.local/tenant-service)
+  repository: registry.aibank.local/aibank-service
+  # -- Image tag. In production we recommend pinning by digest via image.digest
+  tag: ""  # falls back to .Chart.AppVersion when empty
+  # -- Optional sha256 digest. When set, takes precedence over tag.
+  digest: ""
+  # -- Image pull policy
+  pullPolicy: IfNotPresent
+
+# -- imagePullSecrets references for private registries
+imagePullSecrets: []
+# - name: aibank-registry-creds
+
+# -- Number of pod replicas. Ignored when hpa.enabled=true.
+replicaCount: 2
+
+service:
+  # -- Service type: ClusterIP / NodePort / LoadBalancer / ExternalName
+  type: ClusterIP
+  # -- Service port exposed inside the cluster. REQUIRED — must be set
+  # by each consuming service (e.g. tenant-service uses 8080).
+  port: 8080
+  # -- Container target port. Defaults to service.port when empty.
+  targetPort: ""
+  # -- Optional named port (used by ServiceMonitor and probes)
+  portName: http
+  annotations: {}
+
+# Resource requests/limits.
+# Defaults are sane for light Go microservices; heavy services
+# (orchestrator, risk-engine) should override.
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+# -- Plain environment variables passed to the main container.
+# For secrets use envFrom with secretRef instead.
+env: []
+# - name: DATABASE_URL
+#   value: postgres://aibank:aibank@postgres:5432/aibank?sslmode=disable
+# - name: LOG_LEVEL
+#   value: info
+
+# -- envFrom blocks (configMapRef / secretRef). Preferred way to inject secrets.
+envFrom: []
+# - secretRef:
+#     name: tenant-service-secrets
+# - configMapRef:
+#     name: tenant-service-config
+
+# -- Inline ConfigMap data. When set, a ConfigMap is rendered and
+# automatically mounted via envFrom.
+configMap:
+  enabled: false
+  data: {}
+  # APP_LOG_LEVEL: info
+  # APP_FEATURE_X: "true"
+
+podAnnotations: {}
+# prometheus.io/scrape: "true"
+# prometheus.io/port: "8080"
+
+podLabels: {}
+
+# -- Pod-level securityContext. Defaults match distroless `nonroot`
+# images (UID 65532).
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+# -- Container-level securityContext.
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# Liveness / readiness probes. Paths can be overridden per service
+# (e.g. llm-gateway uses /healthz instead of /health).
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /health
+      port: ""  # falls back to service.portName
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /ready
+      port: ""
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+  startup:
+    enabled: false
+    httpGet:
+      path: /health
+      port: ""
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 30
+
+serviceAccount:
+  # -- Whether to create a dedicated ServiceAccount
+  create: true
+  # -- Custom name. Empty = derived from fullname.
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: true
+
+# -- Horizontal Pod Autoscaler (autoscaling/v2).
+hpa:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 75
+  targetMemoryUtilizationPercentage: 0  # 0 disables memory metric
+
+# -- NetworkPolicy. Off by default for dev; enabled in platform-saas
+# and platform-onprem overlays.
+networkPolicy:
+  enabled: false
+  # -- Pod selectors that are allowed to reach this service. By
+  # default, allow same namespace and istio-system (for Istio sidecar
+  # health/control-plane traffic).
+  ingressFrom: []
+  # - namespaceSelector:
+  #     matchLabels:
+  #       kubernetes.io/metadata.name: platform-mesh
+  # - podSelector:
+  #     matchLabels:
+  #       app.kubernetes.io/name: bff-onboarding
+
+# -- Prometheus Operator ServiceMonitor.
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  scrapeTimeout: 10s
+  path: /metrics
+  labels: {}
+  # release: prometheus
+
+# -- PodDisruptionBudget. Enabled in production overlays.
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# -- Optional volume mounts (e.g. config from PVC, CA bundles).
+volumes: []
+volumeMounts: []
+
+# -- Node placement.
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# -- Termination grace period in seconds.
+terminationGracePeriodSeconds: 30
+
+# -- Strategy for the Deployment (RollingUpdate / Recreate).
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 25%
+    maxUnavailable: 0

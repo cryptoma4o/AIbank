@@ -1,0 +1,24 @@
+apiVersion: v2
+name: llm-gateway
+description: |
+  Helm chart for the AIbank LLM Gateway (FastAPI / Python).
+
+  Routes prompt requests to backing LLM providers (OpenAI-compatible
+  upstreams, vLLM, llama.cpp). Optionally hosts a vLLM model cache
+  on a PVC and runs on GPU nodes when the platform-ai namespace is
+  used (per technical-structure.md § 10.1, § 10.2).
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.28.0-0"
+keywords:
+  - aibank
+  - llm
+  - ai
+  - python
+  - fastapi
+maintainers:
+  - name: AIbank AI Team
+    email: ai@aibank.local
+sources:
+  - https://github.com/aibank/aibank

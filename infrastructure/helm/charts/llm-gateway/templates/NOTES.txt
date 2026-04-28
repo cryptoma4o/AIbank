@@ -1,0 +1,23 @@
+{{- $svc := include "llm-gateway.fullname" . -}}
+LLM Gateway deployed.
+
+Cluster-internal endpoint:
+  http://{{ $svc }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+Health check:
+  curl http://{{ $svc }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/healthz
+
+{{- if eq (index .Values.env 0).value "1" }}
+
+Running in MOCK mode (LLM_GATEWAY_FORCE_MOCK=1).
+Override env in production to point at real upstreams.
+{{- end }}
+{{- if .Values.modelCache.enabled }}
+
+PVC: {{ $svc }}-models ({{ .Values.modelCache.size }})
+mounted at {{ .Values.modelCache.mountPath }}.
+{{- end }}
+{{- if .Values.gpu.enabled }}
+
+GPU: {{ .Values.gpu.count }} × nvidia.com/gpu requested.
+{{- end }}

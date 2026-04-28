@@ -1,0 +1,17 @@
+apiVersion: v2
+name: temporal
+description: |
+  Wrapper / values-only chart for Temporal Server. Backs
+  onboarding-orchestrator workflows (ADR-0001). One cluster per bank
+  serves both blue and green namespaces (ADR-0009 § Part 4).
+type: application
+version: 0.1.0
+appVersion: "1.24"
+keywords:
+  - aibank
+  - temporal
+  - workflow
+  - orchestration
+maintainers:
+  - name: AIbank Platform Team
+    email: platform@aibank.local

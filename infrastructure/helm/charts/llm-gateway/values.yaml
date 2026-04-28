@@ -1,0 +1,170 @@
+# Default values for the llm-gateway chart.
+# llm-gateway is a FastAPI service that:
+#   - Listens on port 8100 (matches docker-compose.yml).
+#   - Exposes /healthz (NOT /health) — used by both liveness and readiness.
+#   - In MVP runs in mock mode (LLM_GATEWAY_FORCE_MOCK=1).
+#   - In production it can fan out to vLLM (GPU) or external OpenAI-compatible
+#     endpoints depending on tenant config.
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: registry.aibank.local/llm-gateway
+  tag: ""           # empty = .Chart.AppVersion
+  digest: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 8100
+  targetPort: 8100
+  portName: http
+  annotations: {}
+
+# Python services typically need a bit more memory than Go.
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+# Default env. In MVP — mock mode. Production overrides via envFrom secrets.
+env:
+  - name: LLM_GATEWAY_FORCE_MOCK
+    value: "1"
+  - name: LOG_REQUESTS
+    value: "true"
+  - name: LOG_LEVEL
+    value: "INFO"
+
+envFrom: []
+# - secretRef:
+#     name: llm-gateway-providers   # OPENAI_API_KEY, VLLM_BASE_URL, etc.
+
+configMap:
+  enabled: false
+  data: {}
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  # FastAPI + uvicorn write nothing to root; keep RO root.
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /healthz       # llm-gateway uses /healthz (NOT /health)
+      port: http
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /healthz
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 3
+  startup:
+    enabled: true
+    httpGet:
+      path: /healthz
+      port: http
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 60   # cold-start of vLLM with model load can take minutes
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: true
+
+hpa:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 0
+
+networkPolicy:
+  enabled: false
+  ingressFrom: []
+
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  scrapeTimeout: 10s
+  path: /metrics
+  labels: {}
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# Optional persistent model cache for vLLM. OFF by default for MVP
+# (mock mode does not need it). When enabled, mounts at /models.
+modelCache:
+  enabled: false
+  size: 200Gi
+  storageClass: ""
+  mountPath: /models
+  accessMode: ReadWriteOnce
+
+# GPU support for vLLM. OFF by default — MVP runs CPU-only / mock.
+# Enable in platform-ai namespace overlay.
+gpu:
+  enabled: false
+  # nvidia.com/gpu count when scheduled to GPU node
+  count: 1
+  # Node selector / tolerations applied when gpu.enabled is true
+  # Example for cloud GPU node pools:
+  #   nodeSelector:
+  #     cloud.google.com/gke-accelerator: nvidia-tesla-a100
+  #   tolerations:
+  #     - key: nvidia.com/gpu
+  #       operator: Exists
+  #       effect: NoSchedule
+  nodeSelector: {}
+  tolerations: []
+
+volumes: []
+volumeMounts: []
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+terminationGracePeriodSeconds: 30
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 25%
+    maxUnavailable: 0

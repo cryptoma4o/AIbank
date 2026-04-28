@@ -1,0 +1,81 @@
+name: Codegen Drift
+
+# Catches "I forgot to run `make generate`" mistakes. Re-runs codegen on CI and
+# fails if the working tree differs from the committed state.
+#
+# Security note: no user-controlled inputs are interpolated into run: blocks.
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "packages/domain-model/**"
+      - "packages/proto/**"
+      - "packages/openapi/**"
+      - ".github/workflows/codegen-drift.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codegen-drift-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  domain-model:
+    name: domain-model codegen
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install codegen deps (best-effort)
+        working-directory: packages/domain-model
+        run: |
+          pip install --quiet pydantic jinja2 datamodel-code-generator || true
+
+      - name: make generate
+        working-directory: packages/domain-model
+        run: make generate
+
+      - name: Fail on uncommitted codegen changes
+        run: |
+          if ! git diff --exit-code packages/domain-model/generated/; then
+            echo ""
+            echo "::error::Generated files differ from committed state."
+            echo "::error::Run 'cd packages/domain-model && make generate' locally and commit the result."
+            exit 1
+          fi
+          echo "domain-model codegen is in sync."
+
+  proto:
+    name: proto codegen
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: hashFiles('packages/proto/buf.gen.yaml') != ''
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          version: "1.34.0"
+
+      - name: buf generate
+        working-directory: packages/proto
+        run: buf generate
+
+      - name: Fail on uncommitted proto codegen
+        run: |
+          if ! git diff --exit-code packages/proto/generated/; then
+            echo ""
+            echo "::error::Generated proto files differ from committed state."
+            echo "::error::Run 'cd packages/proto && buf generate' locally and commit the result."
+            exit 1
+          fi
+          echo "proto codegen is in sync."

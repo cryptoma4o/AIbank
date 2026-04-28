@@ -1,0 +1,78 @@
+# Recommended values for the upstream temporal chart
+# (https://github.com/temporalio/helm-charts).
+#
+#   helm repo add temporal https://go.temporal.io/helm-charts
+#   helm install temporal temporal/temporal \
+#     --namespace platform-data --create-namespace \
+#     -f charts/temporal/values.yaml
+
+server:
+  replicaCount: 3
+  config:
+    persistence:
+      defaultStore: default
+      visibilityStore: visibility
+      numHistoryShards: 512
+      datastores:
+        default:
+          sql:
+            driver: postgres12
+            host: postgres-postgresql.platform-data.svc.cluster.local
+            port: 5432
+            database: temporal
+            user: temporal
+            existingSecret: aibank-temporal-credentials
+        visibility:
+          sql:
+            driver: postgres12
+            host: postgres-postgresql.platform-data.svc.cluster.local
+            port: 5432
+            database: temporal_visibility
+            user: temporal
+            existingSecret: aibank-temporal-credentials
+  resources:
+    requests:
+      cpu: 250m
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+
+# Disable bundled Cassandra/MySQL/Postgres — we use the external one
+# from charts/postgres.
+cassandra:
+  enabled: false
+mysql:
+  enabled: false
+postgresql:
+  enabled: false
+elasticsearch:
+  enabled: false
+
+prometheus:
+  enabled: false
+grafana:
+  enabled: false
+
+# Web UI — exposed only via Istio in production.
+web:
+  enabled: true
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  service:
+    type: ClusterIP
+
+# Schema setup is a one-shot Job; required before first install.
+schema:
+  setup:
+    enabled: true
+    backoffLimit: 100
+  update:
+    enabled: true
+    backoffLimit: 100

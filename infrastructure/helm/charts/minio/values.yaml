@@ -1,0 +1,47 @@
+# Recommended values for the upstream Bitnami minio chart.
+# helm install minio oci://registry-1.docker.io/bitnamicharts/minio \
+#   -f charts/minio/values.yaml
+
+image:
+  registry: docker.io
+  repository: bitnami/minio
+  tag: "2024.2.26-debian-12-r0"
+
+mode: distributed
+statefulset:
+  replicaCount: 4
+  drivesPerNode: 1
+
+# Credentials come from a pre-created Secret. NEVER inline.
+auth:
+  existingSecret: aibank-minio-credentials
+  rootUser: minio                # name only; password from secret
+  forceNewKeys: false
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 1Gi
+  limits:
+    cpu: 1
+    memory: 2Gi
+
+persistence:
+  enabled: true
+  size: 200Gi
+  # storageClass: ""
+
+# Default buckets — created at first start. Per-tenant buckets are
+# created by tenant-service on tenant onboarding.
+defaultBuckets: "aibank-platform,aibank-audit-archive"
+
+metrics:
+  serviceMonitor:
+    enabled: false
+
+networkPolicy:
+  enabled: false
+
+tls:
+  enabled: false
+  # In production: enabled: true with existingSecret bearing the cert.

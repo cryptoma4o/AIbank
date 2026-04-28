@@ -1,0 +1,48 @@
+# Recommended values for the upstream Bitnami redis chart.
+# helm install redis oci://registry-1.docker.io/bitnamicharts/redis \
+#   -f charts/redis/values.yaml
+
+image:
+  registry: docker.io
+  repository: bitnami/redis
+  tag: "7.2.4-debian-12-r0"
+
+architecture: replication   # 1 master + 2 replicas; use standalone for dev
+
+auth:
+  enabled: true
+  existingSecret: aibank-redis-credentials
+  existingSecretPasswordKey: redis-password
+
+master:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  persistence:
+    enabled: true
+    size: 10Gi
+
+replica:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  persistence:
+    enabled: true
+    size: 10Gi
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+
+networkPolicy:
+  enabled: false

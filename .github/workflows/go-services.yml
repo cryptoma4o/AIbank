@@ -1,0 +1,112 @@
+name: Go Services CI
+
+# Build/vet/test every Go module in the monorepo as an independent matrix job.
+# Modules are auto-discovered from the filesystem (anything containing go.mod
+# under services/, tools/, packages/) so adding a new service just requires
+# `git add` — no workflow edit needed.
+#
+# Security note: this workflow does NOT use any user-controlled inputs
+# (issue/PR title/body, commit messages, head_ref) in run: blocks.
+# Only github.ref is referenced (in concurrency.group), which is safe.
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "services/**"
+      - "tools/**"
+      - "packages/**"
+      - ".github/workflows/go-services.yml"
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: go-services-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup-matrix:
+    name: Discover Go modules
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      modules: ${{ steps.discover.outputs.modules }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: discover
+        name: Find all go.mod files
+        run: |
+          set -euo pipefail
+          modules=$(
+            find services tools packages \
+              -name go.mod -mindepth 2 -maxdepth 4 -type f 2>/dev/null \
+              | sort \
+              | jq -R --slurp --compact-output '
+                  split("\n")
+                  | map(select(length > 0))
+                  | map({
+                      name: (. | sub("/go.mod$"; "") | gsub("/"; "-")),
+                      path: (. | sub("/go.mod$"; ""))
+                    })
+                '
+          )
+          echo "Discovered modules:"
+          echo "$modules" | jq .
+          echo "modules=$modules" >> "$GITHUB_OUTPUT"
+
+  build-test:
+    name: ${{ matrix.module.name }}
+    needs: setup-matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.setup-matrix.outputs.modules) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+          cache-dependency-path: ${{ matrix.module.path }}/go.sum
+
+      - name: go mod download
+        working-directory: ${{ matrix.module.path }}
+        run: go mod download
+
+      - name: go build ./...
+        working-directory: ${{ matrix.module.path }}
+        run: go build ./...
+
+      - name: go vet ./...
+        working-directory: ${{ matrix.module.path }}
+        run: go vet ./...
+
+      - name: go test ./...
+        working-directory: ${{ matrix.module.path }}
+        env:
+          GOFLAGS: "-count=1"
+        run: go test ./... -short -timeout 10m
+
+  go-services-ok:
+    name: Go services CI (aggregate)
+    runs-on: ubuntu-latest
+    needs: build-test
+    if: always()
+    steps:
+      - name: Verify all Go matrix jobs passed
+        env:
+          RESULT: ${{ needs.build-test.result }}
+        run: |
+          if [ "$RESULT" != "success" ]; then
+            echo "One or more Go services failed — see matrix above."
+            exit 1
+          fi
+          echo "All Go services built, vetted and tested OK."

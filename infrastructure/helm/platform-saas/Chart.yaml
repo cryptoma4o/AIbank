@@ -1,0 +1,103 @@
+apiVersion: v2
+name: platform-saas
+description: |
+  AIbank umbrella chart — SaaS deployment.
+
+  Bundles all 18+ stateless backend services as aliased dependencies on
+  the generic `aibank-service` chart, plus the dedicated `llm-gateway` chart.
+  In SaaS topology the stateful layer (Postgres, Kafka, Redis, MinIO,
+  Temporal) is provided by the cloud (managed services) and is NOT part
+  of this umbrella; configure connection details via Secrets in values.yaml.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.28.0-0"
+keywords:
+  - aibank
+  - saas
+  - umbrella
+maintainers:
+  - name: AIbank Platform Team
+    email: platform@aibank.local
+
+dependencies:
+  # ── BFF / API Gateway ──────────────────────────────────────────
+  - name: aibank-service
+    alias: api-gateway
+    version: "0.1.0"
+    repository: "file://../charts/aibank-service"
+  - name: aibank-service
+    alias: bff-onboarding
+    version: "0.1.0"
+    repository: "file://../charts/aibank-service"
+  - name: aibank-service
+    alias: bff-admin
+    version: "0.1.0"
+    repository: "file://../charts/aibank-service"
+
+  # ── Core domain services ───────────────────────────────────────
+  - name: aibank-service
+    alias: tenant-service
+    version: "0.1.0"
+    repository: "file://../charts/aibank-service"
+  - name: aibank-service
+    alias: identity-service
+    version: "0.1.0"
+    repository: "file://../charts/aibank-service"
+  - name: aibank-service
+    alias: audit-service
+    version: "0.1.0"
+    repository: "file://../charts/aibank-service"
+  - name: aibank-service
+    alias: document-service
+    version: "0.1.0"
+    repository: "file://../charts/aibank-service"
+  - name: aibank-service
+    alias: onboarding-orchestrator
+    version: "0.1.0"
+    repository: "file://../charts/aibank-service"
+  - name: aibank-service
+    alias: risk-engine
+    version: "0.1.0"
+    repository: "file://../charts/aibank-service"
+  - name: aibank-service
+    alias: client-service
+    version: "0.1.0"
+    repository: "file://../charts/aibank-service"
+  - name: aibank-service
+    alias: ubo-service
+    version: "0.1.0"
+    repository: "file://../charts/aibank-service"
+  - name: aibank-service
+    alias: billing-service
+    version: "0.1.0"
+    repository: "file://../charts/aibank-service"
+  - name: aibank-service
+    alias: notification-service
+    version: "0.1.0"
+    repository: "file://../charts/aibank-service"
+
+  # ── ABS layer ──────────────────────────────────────────────────
+  - name: aibank-service
+    alias: abs-connector
+    version: "0.1.0"
+    repository: "file://../charts/aibank-service"
+
+  # ── External integrations ──────────────────────────────────────
+  - name: aibank-service
+    alias: ext-egrul
+    version: "0.1.0"
+    repository: "file://../charts/aibank-service"
+  - name: aibank-service
+    alias: ext-rosfinmon
+    version: "0.1.0"
+    repository: "file://../charts/aibank-service"
+  - name: aibank-service
+    alias: ext-fssp
+    version: "0.1.0"
+    repository: "file://../charts/aibank-service"
+
+  # ── AI layer ───────────────────────────────────────────────────
+  - name: llm-gateway
+    version: "0.1.0"
+    repository: "file://../charts/llm-gateway"

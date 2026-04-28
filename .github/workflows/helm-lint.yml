@@ -1,0 +1,106 @@
+name: Helm Lint
+
+# Lints every Helm chart under infrastructure/helm/. Charts are auto-discovered
+# (any directory containing a Chart.yaml). Umbrella charts get
+# `helm dependency update` first.
+#
+# Security note: no user-controlled inputs are interpolated into run: blocks.
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "infrastructure/helm/**"
+      - ".github/workflows/helm-lint.yml"
+  push:
+    branches: [main]
+    paths:
+      - "infrastructure/helm/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: helm-lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup-matrix:
+    name: Discover Helm charts
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      charts: ${{ steps.discover.outputs.charts }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: discover
+        name: Find all Chart.yaml files
+        run: |
+          set -euo pipefail
+          charts=$(
+            find infrastructure/helm -name Chart.yaml -mindepth 2 -maxdepth 5 -type f 2>/dev/null \
+              | sort \
+              | jq -R --slurp --compact-output '
+                  split("\n")
+                  | map(select(length > 0))
+                  | map({
+                      name: (. | sub("/Chart.yaml$"; "") | gsub("/"; "-")),
+                      path: (. | sub("/Chart.yaml$"; ""))
+                    })
+                '
+          )
+          echo "Discovered charts:"
+          echo "$charts" | jq .
+          echo "charts=$charts" >> "$GITHUB_OUTPUT"
+
+  lint:
+    name: helm lint ${{ matrix.chart.name }}
+    needs: setup-matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        chart: ${{ fromJson(needs.setup-matrix.outputs.charts) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "v3.15.2"
+
+      - name: helm dependency update (umbrella charts)
+        working-directory: ${{ matrix.chart.path }}
+        run: |
+          if grep -qE '^dependencies:' Chart.yaml 2>/dev/null; then
+            echo "Chart declares dependencies — running helm dep update"
+            helm dependency update . || helm dependency build . || true
+          else
+            echo "No dependencies declared — skipping dep update"
+          fi
+
+      - name: helm lint
+        working-directory: ${{ matrix.chart.path }}
+        run: helm lint . --strict
+
+      - name: helm template (smoke render)
+        working-directory: ${{ matrix.chart.path }}
+        run: helm template release-name . > /dev/null
+
+  helm-lint-ok:
+    name: Helm lint (aggregate)
+    runs-on: ubuntu-latest
+    needs: lint
+    if: always()
+    steps:
+      - name: Verify all charts linted
+        env:
+          RESULT: ${{ needs.lint.result }}
+        run: |
+          if [ "$RESULT" != "success" ]; then
+            echo "One or more Helm charts failed lint."
+            exit 1
+          fi
+          echo "All Helm charts pass lint + template render."

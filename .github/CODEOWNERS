@@ -1,0 +1,66 @@
+# CODEOWNERS for AIbank
+#
+# Order matters — last matching rule wins. Architects override on critical
+# subtrees. Use teams (prefixed with @aibank/) once the GitHub org is set up;
+# placeholder team handles are kept here so PR review routing works once org
+# is provisioned.
+
+# ─── Default: backend team owns the repo ──────────────────────────────────
+*                                       @backend-team
+
+# ─── Documentation & ADRs (architects) ────────────────────────────────────
+/docs/                                  @ai-bank-architects
+/docs/adr/                              @ai-bank-architects
+/AGENTS.md                              @ai-bank-architects
+/CLAUDE.md                              @ai-bank-architects
+/CHANGELOG.md                           @ai-bank-architects @backend-team
+
+# ─── Shared packages (architects gate-keep contracts) ─────────────────────
+/packages/                              @ai-bank-architects @backend-team
+/packages/domain-model/                 @ai-bank-architects
+/packages/proto/                        @ai-bank-architects
+/packages/openapi/                      @ai-bank-architects
+/packages/audit-sdk/                    @ai-bank-architects @security-team
+/packages/crypto-utils/                 @ai-bank-architects @security-team
+/packages/tenant-config-schema/         @ai-bank-architects @backend-team
+/packages/rule-engine/                  @backend-team
+/packages/ui-kit/                       @frontend-team
+
+# ─── Go services (backend team) ───────────────────────────────────────────
+/services/                              @backend-team
+/services/tenant-service/               @ai-bank-architects @backend-team
+/services/identity-service/             @ai-bank-architects @security-team
+/services/audit-service/                @security-team @backend-team
+/services/risk-engine/                  @backend-team @ml-team
+
+# ─── AI services & agents (ML team) ───────────────────────────────────────
+/ai/                                    @ml-team
+/ai/llm-gateway/                        @ml-team @security-team
+/ai/eval-harness/                       @ml-team
+/ai/agent-compliance-assistant/         @ml-team @security-team
+
+# ─── Frontend apps ────────────────────────────────────────────────────────
+/apps/                                  @frontend-team
+/apps/web-onboarding/                   @frontend-team
+/apps/web-admin/                        @frontend-team
+
+# ─── Configs (tenant configs are bank-specific) ───────────────────────────
+/configs/                               @ai-bank-architects @backend-team
+/configs/tenants/_template/             @ai-bank-architects
+
+# ─── Infrastructure & CI/CD (DevOps) ──────────────────────────────────────
+/infrastructure/                        @devops
+/infrastructure/helm/                   @devops @backend-team
+/infrastructure/terraform/              @devops
+/infrastructure/ansible/                @devops
+/.github/                               @devops
+/.github/workflows/                     @devops @ai-bank-architects
+/.gitlab-ci.yml                         @devops @ai-bank-architects
+/.github/CODEOWNERS                     @ai-bank-architects @devops
+/Makefile                               @devops @backend-team
+/docker-compose.yml                     @devops @backend-team
+
+# ─── Security-sensitive files (always require security review) ────────────
+/.github/workflows/release.yml          @devops @security-team
+/docs/security-architecture.md          @security-team @ai-bank-architects
+/docs/compliance-map.md                 @security-team @ai-bank-architects

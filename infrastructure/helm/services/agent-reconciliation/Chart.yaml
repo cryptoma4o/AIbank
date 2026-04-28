@@ -1,6 +1,0 @@
-apiVersion: v2
-name: agent-reconciliation
-description: AIbank Agent Reconciliation — AI agent for data reconciliation between submitted docs and ЕГРЮЛ
-type: application
-version: 0.1.0
-appVersion: "0.1.0"

@@ -1,0 +1,98 @@
+name: Frontend CI
+
+# Build + lint Next.js apps (web-onboarding, web-admin) on every PR.
+# Each app runs in parallel; npm cache keyed off package-lock.json.
+#
+# Security note: no user-controlled inputs are interpolated into run: blocks.
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "apps/**"
+      - "packages/ui-kit/**"
+      - "packages/tenant-config-schema/typescript/**"
+      - ".github/workflows/frontend.yml"
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          - web-onboarding
+          - web-admin
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/${{ matrix.app }}/package-lock.json
+
+      - name: npm ci
+        working-directory: apps/${{ matrix.app }}
+        env:
+          APP_NAME: ${{ matrix.app }}
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "::warning::no package-lock.json in apps/${APP_NAME} — falling back to npm install"
+            npm install
+          fi
+
+      - name: Lint
+        working-directory: apps/${{ matrix.app }}
+        run: npm run lint --if-present
+
+      - name: Type-check
+        working-directory: apps/${{ matrix.app }}
+        run: |
+          if [ -f tsconfig.json ]; then
+            npx tsc --noEmit
+          fi
+
+      - name: Build
+        working-directory: apps/${{ matrix.app }}
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: npm run build
+
+      - name: Upload Next.js build artifact
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-build
+          path: apps/${{ matrix.app }}/.next
+          retention-days: 7
+
+  frontend-ok:
+    name: Frontend CI (aggregate)
+    runs-on: ubuntu-latest
+    needs: build
+    if: always()
+    steps:
+      - name: Verify both apps built
+        env:
+          RESULT: ${{ needs.build.result }}
+        run: |
+          if [ "$RESULT" != "success" ]; then
+            echo "One or more frontend apps failed."
+            exit 1
+          fi
+          echo "All frontend apps lint + build OK."

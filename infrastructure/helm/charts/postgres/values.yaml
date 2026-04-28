@@ -1,0 +1,65 @@
+# Recommended values for the upstream Bitnami postgresql chart.
+# Apply with:
+#   helm install pg oci://registry-1.docker.io/bitnamicharts/postgresql \
+#     -f charts/postgres/values.yaml
+#
+# Matches docker-compose.yml: postgres:16-alpine, user/db = aibank.
+
+# Image — pin to the same major as compose. In production use a
+# digest-pinned image and a private mirror.
+image:
+  registry: docker.io
+  repository: bitnami/postgresql
+  tag: "16.2.0-debian-12-r0"
+
+architecture: standalone   # use 'replication' in production with sync-replica
+
+auth:
+  username: aibank
+  database: aibank
+  # Password MUST come from a pre-created Secret. NEVER inline in values.
+  existingSecret: aibank-postgres-credentials
+  secretKeys:
+    adminPasswordKey: postgres-password
+    userPasswordKey: aibank-password
+    replicationPasswordKey: replication-password
+
+primary:
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+  persistence:
+    enabled: true
+    size: 50Gi
+    # storageClass: fast-ssd       # set per environment
+  podSecurityContext:
+    enabled: true
+    fsGroup: 1001
+  containerSecurityContext:
+    enabled: true
+    runAsNonRoot: true
+    runAsUser: 1001
+  pgHbaConfiguration: |
+    # Allow only intra-cluster traffic. Adjust for your CNI ranges.
+    host all all 10.0.0.0/8 scram-sha-256
+    host all all 172.16.0.0/12 scram-sha-256
+    host all all 192.168.0.0/16 scram-sha-256
+  extendedConfiguration: |
+    max_connections = 200
+    shared_buffers = 1GB
+    work_mem = 32MB
+    log_min_duration_statement = 1000
+    log_connections = on
+    log_disconnections = on
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: false       # turn on when kube-prometheus-stack is present
+
+networkPolicy:
+  enabled: false         # enable in SaaS / on-prem overlays

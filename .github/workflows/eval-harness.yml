@@ -1,0 +1,73 @@
+name: AI Eval Harness
+
+# Runs the eval harness pytest suite + smoke-checks all 6 corpus generators.
+# Triggered only when ai/** changes to keep CI cheap.
+#
+# Security note: no user-controlled inputs are interpolated into run: blocks.
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "ai/**"
+      - ".github/workflows/eval-harness.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eval-harness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    name: eval-harness pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      LLM_GATEWAY_FORCE_MOCK: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+          cache-dependency-path: ai/eval-harness/pyproject.toml
+
+      - name: Install harness (editable + dev)
+        working-directory: ai/eval-harness
+        run: |
+          pip install -e ".[dev]" 2>/dev/null \
+            || pip install -e . 2>/dev/null \
+            || pip install pytest pytest-asyncio httpx pydantic rich click
+
+      - name: Run pytest
+        working-directory: ai/eval-harness
+        run: python -m pytest tests/ -v --tb=short
+
+      - name: Smoke-run all 6 corpus generators
+        working-directory: ai/eval-harness
+        run: |
+          set -e
+          generators=(
+            ru-banking-chat
+            docs-parsing
+            ubo-graphs
+            reconciliation
+            adversarial
+            rag-quality
+          )
+          for gen in "${generators[@]}"; do
+            echo "─── Generating corpus: $gen ─────────────────────────"
+            if [ -d "datasets/$gen" ]; then
+              python -m harness.cli generate "$gen" --count 2 \
+                > "/tmp/eval-${gen}.json" 2>&1 \
+                || (echo "::error::corpus generator '$gen' failed" && exit 1)
+              echo "  → produced /tmp/eval-${gen}.json ($(wc -c < /tmp/eval-${gen}.json) bytes)"
+            else
+              echo "::warning::dataset directory datasets/$gen missing — skipping"
+            fi
+          done
+          echo "All 6 corpus generators produced output."

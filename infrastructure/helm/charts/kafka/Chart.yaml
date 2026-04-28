@@ -1,0 +1,18 @@
+apiVersion: v2
+name: kafka
+description: |
+  Wrapper / values-only chart for Apache Kafka in KRaft mode.
+  Per docker-compose.yml: apache/kafka:3.7.0 with KRaft (no Zookeeper).
+  Lives in platform-data namespace; shared by blue/green namespaces
+  per ADR-0009. Topic-namespacing per tenant via configs/tenants/*.
+type: application
+version: 0.1.0
+appVersion: "3.7.0"
+keywords:
+  - aibank
+  - kafka
+  - kraft
+  - event-bus
+maintainers:
+  - name: AIbank Platform Team
+    email: platform@aibank.local

@@ -1,0 +1,17 @@
+apiVersion: v2
+name: redis
+description: |
+  Wrapper / values-only chart for Redis.
+  Used by abs-connector (dedup), ext-egrul (cache), and various
+  rate-limiting layers. Single shared instance per cluster, lives in
+  platform-data namespace (ADR-0009).
+type: application
+version: 0.1.0
+appVersion: "7"
+keywords:
+  - aibank
+  - redis
+  - cache
+maintainers:
+  - name: AIbank Platform Team
+    email: platform@aibank.local

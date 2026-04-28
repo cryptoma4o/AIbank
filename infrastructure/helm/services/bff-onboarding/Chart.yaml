@@ -1,6 +1,0 @@
-apiVersion: v2
-name: bff-onboarding
-description: AIbank BFF Onboarding — GraphQL BFF for web-onboarding — aggregates core service data
-type: application
-version: 0.1.0
-appVersion: "0.1.0"

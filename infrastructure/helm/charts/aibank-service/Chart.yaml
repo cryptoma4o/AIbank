@@ -1,0 +1,24 @@
+apiVersion: v2
+name: aibank-service
+description: |
+  Generic reusable Helm chart for AIbank backend services.
+  Suitable for any stateless Go (or similar) microservice in the platform —
+  tenant-service, audit-service, identity-service, document-service,
+  onboarding-orchestrator, risk-engine, billing-service, abs-connector,
+  client-service, ubo-service, bff-onboarding, bff-admin, api-gateway,
+  notification-service, ext-egrul, ext-rosfinmon, ext-fssp, abs-adapter-*.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.28.0-0"
+keywords:
+  - aibank
+  - microservice
+  - golang
+  - onboarding
+  - banking
+maintainers:
+  - name: AIbank Platform Team
+    email: platform@aibank.local
+sources:
+  - https://github.com/aibank/aibank

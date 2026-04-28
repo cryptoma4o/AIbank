@@ -1,0 +1,13 @@
+{
+  "idempotency_key": "golden-open-account-llc-001",
+  "tenant_id": "bank-alpha",
+  "command": "OpenAccount",
+  "payload": {
+    "client_id": "cft_client_llc_demo",
+    "account_type": "current_rub",
+    "legal_form": "LLC",
+    "inn": "7707083893",
+    "kpp": "770701001",
+    "full_name": "ООО Ромашка"
+  }
+}

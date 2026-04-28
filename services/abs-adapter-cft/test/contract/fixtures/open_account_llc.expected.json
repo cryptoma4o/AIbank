@@ -1,0 +1,9 @@
+{
+  "idempotency_key": "golden-open-account-llc-001",
+  "success": true,
+  "data": {
+    "account_number": "40702810560242034877",
+    "bik": "044525225"
+  },
+  "adapter_used": "abs-adapter-cft"
+}

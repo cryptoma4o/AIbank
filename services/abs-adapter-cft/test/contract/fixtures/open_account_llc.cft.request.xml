@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CFTRequest>
+  <Header>
+    <IdempotencyKey>golden-open-account-llc-001</IdempotencyKey>
+    <TenantID>bank-alpha</TenantID>
+    <Operation>ACCOUNT_OPEN</Operation>
+  </Header>
+  <Body>
+    <Account>
+      <Type>RUB_CURRENT</Type>
+      <BIK>044525225</BIK>
+      <ClientRef>cft_client_llc_demo</ClientRef>
+    </Account>
+    <Client>
+      <LegalForm>LLC</LegalForm>
+      <FullName>ООО Ромашка</FullName>
+      <INN>7707083893</INN>
+      <KPP>770701001</KPP>
+    </Client>
+  </Body>
+</CFTRequest>

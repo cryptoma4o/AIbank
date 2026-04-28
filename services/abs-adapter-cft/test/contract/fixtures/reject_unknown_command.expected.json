@@ -1,0 +1,6 @@
+{
+  "idempotency_key": "golden-unknown-001",
+  "success": false,
+  "error": "unknown command: FrobnicateAccount",
+  "adapter_used": "abs-adapter-cft"
+}

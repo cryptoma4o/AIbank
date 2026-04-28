@@ -1,0 +1,8 @@
+{
+  "idempotency_key": "golden-close-account-001",
+  "success": true,
+  "data": {
+    "status": "closed"
+  },
+  "adapter_used": "abs-adapter-cft"
+}

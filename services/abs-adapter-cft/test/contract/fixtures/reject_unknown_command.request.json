@@ -1,0 +1,6 @@
+{
+  "idempotency_key": "golden-unknown-001",
+  "tenant_id": "bank-alpha",
+  "command": "FrobnicateAccount",
+  "payload": {}
+}

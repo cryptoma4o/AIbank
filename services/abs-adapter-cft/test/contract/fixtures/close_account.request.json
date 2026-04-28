@@ -1,0 +1,9 @@
+{
+  "idempotency_key": "golden-close-account-001",
+  "tenant_id": "bank-alpha",
+  "command": "CloseAccount",
+  "payload": {
+    "account_number": "40702810560242034877",
+    "reason": "client_request"
+  }
+}

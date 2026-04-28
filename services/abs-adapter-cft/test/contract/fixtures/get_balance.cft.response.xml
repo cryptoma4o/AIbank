@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CFTResponse>
+  <Header>
+    <IdempotencyKey>golden-get-balance-001</IdempotencyKey>
+    <Operation>ACCOUNT_INFO</Operation>
+    <Status>OK</Status>
+  </Header>
+  <Body>
+    <Account>
+      <AccountNumber>40702810560242034877</AccountNumber>
+      <BalanceKopecks>0</BalanceKopecks>
+      <State>ACTIVE</State>
+    </Account>
+  </Body>
+</CFTResponse>

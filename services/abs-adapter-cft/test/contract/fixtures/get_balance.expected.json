@@ -1,0 +1,9 @@
+{
+  "idempotency_key": "golden-get-balance-001",
+  "success": true,
+  "data": {
+    "balance_kopecks": 0,
+    "status": "active"
+  },
+  "adapter_used": "abs-adapter-cft"
+}

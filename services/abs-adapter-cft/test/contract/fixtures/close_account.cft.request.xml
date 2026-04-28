@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CFTRequest>
+  <Header>
+    <IdempotencyKey>golden-close-account-001</IdempotencyKey>
+    <TenantID>bank-alpha</TenantID>
+    <Operation>ACCOUNT_CLOSE</Operation>
+  </Header>
+  <Body>
+    <Account>
+      <AccountNumber>40702810560242034877</AccountNumber>
+      <CloseReason>client_request</CloseReason>
+    </Account>
+  </Body>
+</CFTRequest>

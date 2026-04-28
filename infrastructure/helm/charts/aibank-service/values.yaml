@@ -192,3 +192,35 @@ strategy:
   rollingUpdate:
     maxSurge: 25%
     maxUnavailable: 0
+
+# -- Optional CronJob that periodically purges already-published rows from
+# the service's outbox-table. Only relevant for services using
+# packages/outbox (billing-service, audit-service, etc.). Off by default
+# so adding the template doesn't break helm install for services that
+# don't use outbox.
+#
+# Real binary: tools/outbox-cleanup (build context = monorepo root).
+# See infrastructure/helm/charts/aibank-service/templates/cleanup-cronjob.yaml
+# for the production-deploy checklist.
+outboxCleanup:
+  enabled: false
+  # Cron schedule. Default 3 AM UTC daily — низкий traffic, не пересекается
+  # с рутинными deploy-окнами.
+  schedule: "0 3 * * *"
+  # Полное имя outbox-таблицы. ОБЯЗАТЕЛЕН когда enabled=true.
+  table: ""
+  # Сколько дней держать published-строки.
+  retentionDays: 7
+  # Размер batch'а DELETE на одну итерацию.
+  batchSize: 1000
+  image:
+    repository: registry.aibank.local/outbox-cleanup
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+  # Секрет с DATABASE_URL для cleanup-job'а. Обычно тот же, что у
+  # основного сервиса (можно переиспользовать <service>-secrets).
+  databaseUrlSecret:
+    name: ""
+    key: DATABASE_URL
+  # Опциональный override resources. Если пусто — наследует .Values.resources.
+  resources: {}

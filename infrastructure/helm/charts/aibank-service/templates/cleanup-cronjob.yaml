@@ -1,0 +1,105 @@
+{{/*
+  cleanup-cronjob.yaml — опциональный CronJob, запускающий tools/outbox-cleanup
+  для любого сервиса, использующего transactional outbox pattern (ADR-0010 § 2).
+
+  По умолчанию ВЫКЛЮЧЕН — чтобы добавление этого темплейта в общий chart
+  не сломало helm install для сервисов, не использующих outbox (api-gateway,
+  bff-*, ext-*). Активируется per-service через values:
+
+    outboxCleanup:
+      enabled: true
+      schedule: "0 3 * * *"            # 3 AM UTC daily
+      table: platform.billing_outbox   # полное имя outbox-таблицы
+      retentionDays: 7
+      batchSize: 1000
+      image:
+        repository: registry.aibank.local/outbox-cleanup
+        tag: "0.1.0"
+      databaseUrlSecret:
+        name: billing-service-secrets
+        key: DATABASE_URL
+
+  Реальный binary — tools/outbox-cleanup (build из корня монорепо, см. его README.md).
+
+  Production-deploy чеклист:
+    1. Собрать и запушить образ outbox-cleanup в registry.
+    2. Включить outboxCleanup.enabled=true в values конкретного сервиса
+       (e.g. infrastructure/helm/values/billing-service-prod.yaml).
+    3. Проверить, что секрет с DATABASE_URL существует и его читает SA.
+    4. helm upgrade --install ... → kubectl get cronjob.
+    5. Через сутки проверить kubectl logs -l job-name=<cronjob>-<timestamp>.
+    6. Алёрт «outbox row count > N» (VictoriaMetrics) должен начать спадать
+       после первого успешного запуска.
+*/}}
+{{- if .Values.outboxCleanup.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "aibank-service.fullname" . }}-outbox-cleanup
+  labels:
+    {{- include "aibank-service.labels" . | nindent 4 }}
+    app.kubernetes.io/component: outbox-cleanup
+spec:
+  schedule: {{ .Values.outboxCleanup.schedule | quote }}
+  # Не запускаем параллельные cleanup-запуски: SKIP LOCKED страхует от
+  # коррапта, но ровно один pod в момент времени — проще для observability.
+  concurrencyPolicy: Forbid
+  # Если нода была недоступна и slot пропущен — НЕ ловим хвост, ждём
+  # следующее окно (cleanup безопасно «пропустить день»).
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      # 1 час — sane upper-bound. Реальный cleanup отрабатывает за секунды
+      # на типовой таблице; час — лимит на случай патологически большого
+      # backlog'а после длительного простоя.
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels:
+            {{- include "aibank-service.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: outbox-cleanup
+          {{- with .Values.podAnnotations }}
+          annotations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        spec:
+          serviceAccountName: {{ include "aibank-service.serviceAccountName" . }}
+          restartPolicy: OnFailure
+          securityContext:
+            {{- toYaml .Values.podSecurityContext | nindent 12 }}
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: outbox-cleanup
+              image: "{{ .Values.outboxCleanup.image.repository }}:{{ .Values.outboxCleanup.image.tag }}"
+              imagePullPolicy: {{ .Values.outboxCleanup.image.pullPolicy | default "IfNotPresent" }}
+              securityContext:
+                {{- toYaml .Values.securityContext | nindent 16 }}
+              env:
+                - name: OUTBOX_TABLE
+                  value: {{ required "outboxCleanup.table is required when outboxCleanup.enabled=true" .Values.outboxCleanup.table | quote }}
+                - name: OUTBOX_RETENTION_DAYS
+                  value: {{ .Values.outboxCleanup.retentionDays | default 7 | quote }}
+                - name: OUTBOX_BATCH_SIZE
+                  value: {{ .Values.outboxCleanup.batchSize | default 1000 | quote }}
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ required "outboxCleanup.databaseUrlSecret.name is required" .Values.outboxCleanup.databaseUrlSecret.name | quote }}
+                      key: {{ .Values.outboxCleanup.databaseUrlSecret.key | default "DATABASE_URL" | quote }}
+              resources:
+                {{- toYaml (.Values.outboxCleanup.resources | default .Values.resources) | nindent 16 }}
+{{- end }}

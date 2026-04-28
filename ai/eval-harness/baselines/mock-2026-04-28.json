@@ -1,0 +1,68 @@
+{
+  "backend": "mock",
+  "fixed_at": "2026-04-28",
+  "fixed_by": "claude-flow agent (Цикл 3, placeholder)",
+  "note": "PLACEHOLDER — запустить eval-harness и зафиксировать реальные метрики до первого live-vLLM деплоя. См. baselines/README.md.",
+  "model_routing": {
+    "version": 1,
+    "force_mock": true,
+    "roles": {
+      "document-vision": "mock-fast",
+      "text-reasoning": "mock-fast",
+      "reconciliation": "mock-fast",
+      "ubo-tracing": "mock-fast",
+      "ru-chat": "mock-fast",
+      "rag": "mock-fast"
+    }
+  },
+  "datasets": {
+    "docs-parsing": {
+      "case_count": 50,
+      "metrics": {
+        "field_coverage_f1": null,
+        "exact_match_rate": null,
+        "avg_latency_ms": null,
+        "p95_latency_ms": null
+      }
+    },
+    "reconciliation": {
+      "case_count": 30,
+      "metrics": {
+        "match_accuracy": null,
+        "false_positive_rate": null,
+        "avg_latency_ms": null
+      }
+    },
+    "ubo-graphs": {
+      "case_count": 20,
+      "metrics": {
+        "graph_completeness_f1": null,
+        "ubo_25pct_recall": null,
+        "avg_latency_ms": null
+      }
+    },
+    "ru-banking-chat": {
+      "case_count": 30,
+      "metrics": {
+        "intent_accuracy": null,
+        "escalation_correctness": null,
+        "avg_response_quality": null
+      }
+    },
+    "rag-quality": {
+      "case_count": 20,
+      "metrics": {
+        "ragas_faithfulness": null,
+        "ragas_relevancy": null,
+        "answer_correctness": null
+      }
+    },
+    "adversarial": {
+      "case_count": 15,
+      "metrics": {
+        "refusal_rate": null,
+        "leak_rate": null
+      }
+    }
+  }
+}

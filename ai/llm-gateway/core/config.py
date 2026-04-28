@@ -3,9 +3,22 @@
 YAML-схема — см. configs/default-routing.yaml.
 Путь к конфигу настраивается переменной LLM_GATEWAY_CONFIG (по умолчанию
 configs/default-routing.yaml относительно процесса).
+
+ENV-overrides URL'ов для vLLM-backends (применяются после загрузки YAML):
+- ``VLLM_GEMMA_URL``  → backend ``vllm-gemma``
+- ``VLLM_QWEN_URL``   → backend ``vllm-qwen``
+- ``VLLM_TPRO_URL``   → backend ``vllm-tpro``
+- ``VLLM_BACKEND_URL_<NAME>`` → backend ``<name>`` (lowercased, kebab-case);
+  generic форма для произвольных имён, чтобы не добавлять ENV-вариант на
+  каждый новый backend. Пример: ``VLLM_BACKEND_URL_VLLM_VIKHR=...`` →
+  ``vllm-vikhr``.
+
+Применяются автоматически в ``get_routing_config()``. Это даёт возможность
+переключить gateway на live-vLLM кластер через Helm values без правки YAML.
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Literal
 
@@ -119,10 +132,45 @@ def find_config_path() -> Path:
 _config_cache: RoutingConfig | None = None
 
 
+# Mapping для коротких ENV-переменных. Дополняется generic VLLM_BACKEND_URL_<NAME>.
+_VLLM_BACKEND_ENV_ALIASES: dict[str, str] = {
+    "vllm-gemma": "VLLM_GEMMA_URL",
+    "vllm-qwen": "VLLM_QWEN_URL",
+    "vllm-tpro": "VLLM_TPRO_URL",
+}
+
+
+def apply_env_overrides(config: RoutingConfig) -> RoutingConfig:
+    """Override URL для vLLM-backends из ENV.
+
+    Семантика:
+      * Mock-backend никогда не override'ится — он не имеет URL.
+      * Если ENV не задан — оставляем YAML-значение (default).
+      * Имя backend'а в ENV-варианте — kebab-case → SCREAMING_SNAKE_CASE
+        (vllm-gemma → VLLM_BACKEND_URL_VLLM_GEMMA), плюс короткие алиасы.
+
+    Возвращает новый RoutingConfig (без мутации входного), валидированный
+    повторно через Pydantic.
+    """
+    raw = config.model_dump()
+    backends = raw.get("backends", {})
+    for name, backend in backends.items():
+        if backend.get("type") != "openai_compatible":
+            continue
+        env_name = _VLLM_BACKEND_ENV_ALIASES.get(
+            name,
+            "VLLM_BACKEND_URL_" + name.upper().replace("-", "_"),
+        )
+        if env_url := os.environ.get(env_name):
+            backend["url"] = env_url
+    return RoutingConfig.model_validate(raw)
+
+
 def get_routing_config() -> RoutingConfig:
     global _config_cache
     if _config_cache is None:
-        _config_cache = load_routing_config(find_config_path())
+        loaded = load_routing_config(find_config_path())
+        _config_cache = apply_env_overrides(loaded)
     return _config_cache
 
 

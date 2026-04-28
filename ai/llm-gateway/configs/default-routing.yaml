@@ -5,6 +5,13 @@
 # а не имена конкретных моделей. Маппинг роль → модель → backend
 # определяется этим конфигом — переключение модели не требует
 # перевыкладки агента (см. ADR-0011, draft).
+#
+# URL'ы vLLM-backends по умолчанию — k8s service-имена. В production
+# переопределяются через ENV (apply_env_overrides в core.config):
+#   - VLLM_GEMMA_URL → backend vllm-gemma
+#   - VLLM_QWEN_URL  → backend vllm-qwen
+#   - VLLM_TPRO_URL  → backend vllm-tpro
+#   - VLLM_BACKEND_URL_<NAME> → произвольный backend
 
 version: 1
 

@@ -7,7 +7,14 @@
 
 ## [Unreleased]
 
+### Added — Reliability (2026-04-28)
+- **Outbox DLQ для poison messages** (`packages/outbox`): ранее relay бесконечно ретраил неуспешные Publish, теперь после `MaxAttempts=5` (configurable) строка перемещается в `*_outbox_dead_letter`. Колонки `attempts/last_error/last_attempt_at` записываются на каждой неудаче. Миграция 003 для billing-service (add-only).
+- **Конфигурация** через `outbox.NewWithOptions(db, table, topic, Options{DeadLetterTable, MaxAttempts})` — обратносовместимо с `outbox.New()`.
+- **Runbook** `docs/runbooks/outbox-dlq-recovery.md` — inventory, классификация причин (transient / schema mismatch / poisoned / topic-removed), bulk replay через INSERT-back, selective discard с audit-trail.
+
 ### Added — Documentation
+- **Audit-bundle для банковского ИБ-аудита** (`docs/audit-bundle.md`) — собран из существующих docs (security-architecture, compliance-map, ADR, runbooks) для отправки CISO банка перед пилотом. Включает one-pager, deep-dive doc list, ADR-таблицу с релевантностью для ИБ, pilot-readiness gap, ИБ-чек-листы для локальной проверки.
+- Начальная архитектурная документация: product vision, technical structure, AI agents, domain model, compliance map, security architecture, tenant configuration
 - Начальная архитектурная документация: product vision, technical structure, AI agents, domain model, compliance map, security architecture, tenant configuration
 - Шаблон ADR (`docs/adr/0000-template.md`)
 - Структура монорепозитория

@@ -1,0 +1,26 @@
+apiVersion: v2
+name: istio-mesh
+description: |
+  AIbank-specific Istio mesh policies: STRICT mTLS, AuthorizationPolicy,
+  workload identity. Этот chart НЕ устанавливает Istio control plane —
+  istiod и istio-system должны быть установлены отдельно (через
+  istioctl или istio-base + istiod чарты HashiCorp/Istio).
+
+  Этот chart применяет AIbank-специфичные mesh-policies:
+    1. PeerAuthentication mode=STRICT (mesh-wide)
+    2. AuthorizationPolicy с per-service rules
+    3. NetworkPolicy как defence-in-depth (L3/L4 на случай sidecar failure)
+    4. Namespace label istio-injection=enabled
+type: application
+version: 0.1.0
+appVersion: "1.22"
+sources:
+  - https://github.com/istio/istio
+keywords:
+  - istio
+  - mtls
+  - zero-trust
+  - aibank
+maintainers:
+  - name: AIbank Platform
+    email: platform@example.com

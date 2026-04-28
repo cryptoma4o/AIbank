@@ -1,0 +1,96 @@
+# AIbank Istio mesh policies — values.
+
+# Namespace'ы, в которых включаем sidecar injection.
+# Stateful (vault, kafka, postgres) — НЕ включаются (см. ADR-0014).
+meshNamespaces:
+  - aibank-services
+  - aibank-bff
+  - aibank-ai
+
+# Peer auth: STRICT — никто без sidecar не сможет подключиться.
+# В первый rollout можно временно поставить PERMISSIVE для миграции, но
+# целевое production-state — STRICT.
+peerAuth:
+  mode: STRICT  # STRICT | PERMISSIVE | DISABLE
+
+# Authorization rules. Default deny + explicit allow-list per ADR-0014.
+# Источник: SPIFFE identity вида spiffe://<trust-domain>/ns/<ns>/sa/<sa>.
+authz:
+  trustDomain: cluster.local
+
+  # Каждое правило: from (source SA / namespace) → to (destination service).
+  rules:
+    # api-gateway → любой backend в aibank-services
+    - name: api-gateway-to-services
+      target:
+        namespace: aibank-services
+      from:
+        principals:
+          - "cluster.local/ns/aibank-bff/sa/api-gateway"
+
+    # bff-onboarding → только нужные backend'ы (least privilege)
+    - name: bff-onboarding-allow
+      target:
+        namespace: aibank-services
+        services:
+          - tenant-service
+          - identity-service
+          - document-service
+          - risk-engine
+          - onboarding-orchestrator
+          - client-service
+      from:
+        principals:
+          - "cluster.local/ns/aibank-bff/sa/bff-onboarding"
+
+    # bff-admin — admin RBAC, имеет доступ ко всему
+    - name: bff-admin-allow-all
+      target:
+        namespace: aibank-services
+      from:
+        principals:
+          - "cluster.local/ns/aibank-bff/sa/bff-admin"
+
+    # AI-агенты → llm-gateway (исходящий) + audit-service (запись событий)
+    - name: ai-agents-allow
+      target:
+        namespace: aibank-ai
+        services:
+          - llm-gateway
+      from:
+        namespaces:
+          - aibank-ai
+
+    # audit-service принимает события от всех AIbank-сервисов и от Vault.
+    - name: audit-service-ingress
+      target:
+        namespace: aibank-services
+        services:
+          - audit-service
+      from:
+        namespaces:
+          - aibank-services
+          - aibank-bff
+          - aibank-ai
+          - vault
+
+# NetworkPolicy как defence-in-depth (L3/L4) — на случай sidecar failure.
+networkPolicy:
+  enabled: true
+  # Какие namespace'ы могут вообще ходить друг к другу.
+  allowedConnections:
+    - from: aibank-bff
+      to: aibank-services
+    - from: aibank-bff
+      to: aibank-ai
+    - from: aibank-ai
+      to: aibank-services
+    - from: aibank-services
+      to: vault
+    - from: aibank-services
+      to: kafka
+
+# Telemetry — открытый вопрос (ADR-0014 № 2). По умолчанию выключено.
+telemetry:
+  enabled: false
+  exporter: ""  # prometheus | victoriametrics

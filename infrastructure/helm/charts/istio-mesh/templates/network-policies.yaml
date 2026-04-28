@@ -1,0 +1,35 @@
+{{- if .Values.networkPolicy.enabled }}
+# Defence-in-depth: L3/L4 NetworkPolicy дублирующий Istio AuthorizationPolicy.
+# Если Istio sidecar упал или был обойдён — k8s CNI всё ещё блокирует трафик.
+{{- range .Values.networkPolicy.allowedConnections }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-{{ .from }}-to-{{ .to }}
+  namespace: {{ .to }}
+spec:
+  podSelector: {}  # все pods в destination namespace
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .from }}
+---
+{{- end }}
+
+# Default-deny ingress на каждый AIbank namespace (если ничего из allow
+# не подходит — блокируем).
+{{- range .Values.meshNamespaces }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: {{ . }}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  # No ingress rules → deny all
+---
+{{- end }}
+{{- end }}

@@ -1,0 +1,43 @@
+# Default-deny на каждом namespace + explicit allow rules per ADR-0014.
+# AuthorizationPolicy без rules = deny-all для трафика в namespace.
+{{- range .Values.meshNamespaces }}
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: default-deny
+  namespace: {{ . }}
+spec: {}  # пустой spec → deny all (см. Istio doc)
+---
+{{- end }}
+
+# Per-rule allow policies (см. values.yaml authz.rules).
+{{- range $rule := .Values.authz.rules }}
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ $rule.name }}
+  namespace: {{ $rule.target.namespace }}
+spec:
+  action: ALLOW
+  {{- if $rule.target.services }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ first $rule.target.services }}  # FIXME: support multi-service rules
+  {{- end }}
+  rules:
+    - from:
+        - source:
+            {{- if $rule.from.principals }}
+            principals:
+              {{- range $rule.from.principals }}
+              - "{{ . }}"
+              {{- end }}
+            {{- end }}
+            {{- if $rule.from.namespaces }}
+            namespaces:
+              {{- range $rule.from.namespaces }}
+              - "{{ . }}"
+              {{- end }}
+            {{- end }}
+---
+{{- end }}

@@ -1,0 +1,25 @@
+# Mesh-wide PeerAuthentication: STRICT mTLS на всех namespace'ах AIbank.
+# Любой pod без Istio sidecar получит connection refused.
+{{- range .Values.meshNamespaces }}
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: {{ . }}
+spec:
+  mtls:
+    mode: {{ $.Values.peerAuth.mode }}
+---
+{{- end }}
+
+# Namespace-labels: enable sidecar injection.
+{{- range .Values.meshNamespaces }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ . }}
+  labels:
+    istio-injection: enabled
+    aibank.io/mesh: enabled
+---
+{{- end }}

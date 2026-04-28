@@ -35,4 +35,37 @@ test.describe("/applications/[id]", () => {
       page.getByRole("button", { name: /Загрузить документ/i })
     ).toBeVisible();
   });
+
+  test("upload modal opens on click and shows drag-and-drop area", async ({ page }) => {
+    await page.goto(`/applications/${SAMPLE_APPLICATION_DETAIL.id}`);
+
+    await page.getByTestId("open-upload").click();
+
+    // Модалка появилась
+    await expect(page.getByRole("dialog", { name: /Загрузка документов/i })).toBeVisible();
+    await expect(page.getByTestId("upload-dropzone")).toBeVisible();
+
+    // Подсказка про допустимые форматы
+    await expect(
+      page.getByText(/PDF, PNG, JPEG или TIFF/i)
+    ).toBeVisible();
+
+    // Закрытие крестиком
+    await page.getByLabel("Закрыть").click();
+    await expect(page.getByRole("dialog")).not.toBeVisible();
+  });
+
+  test("upload modal validates file type client-side", async ({ page }) => {
+    await page.goto(`/applications/${SAMPLE_APPLICATION_DETAIL.id}`);
+    await page.getByTestId("open-upload").click();
+
+    // Подсовываем .txt — должно отвергаться client-side validation.
+    await page.getByTestId("upload-input").setInputFiles({
+      name: "rejected.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("hello"),
+    });
+
+    await expect(page.getByText(/Неподдерживаемый формат/i)).toBeVisible();
+  });
 });

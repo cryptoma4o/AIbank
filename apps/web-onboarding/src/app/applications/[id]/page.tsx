@@ -3,20 +3,22 @@
 // /applications/[id] — детали конкретной заявки.
 //
 // На этом экране сходится почти весь контракт BFF: state machine,
-// applicant, documents и риск-оценка.  Действия зависят от текущего
-// состояния — пока stub'ы (см. TODO в README).
+// applicant, documents и риск-оценка.
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import { useQuery } from "@apollo/client";
 
 import { ApplicationStateTimeline } from "@/components/ApplicationStateTimeline";
 import { AuthGuard } from "@/components/AuthGuard";
 import { DocumentList } from "@/components/DocumentList";
+import { DocumentUploadModal } from "@/components/DocumentUploadModal";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { RiskBadge } from "@/components/RiskBadge";
 import { StateBadge } from "@/components/StateBadge";
+import { getAccessToken } from "@/lib/auth";
 import { QUERY_APPLICATION } from "@/lib/graphql-operations";
 import type { ApplicationDetail } from "@/types";
 
@@ -30,16 +32,19 @@ function formatDate(v: string): string {
   return d.toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" });
 }
 
-function ApplicationActions({ state }: { state: string }) {
+function ApplicationActions({
+  state,
+  onOpenUpload,
+}: {
+  state: string;
+  onOpenUpload: () => void;
+}) {
   if (state === "collecting_documents") {
     return (
       <button
         type="button"
-        // TODO: открыть модальное окно загрузки документа (mutation uploadDocument).
-        onClick={() =>
-          // eslint-disable-next-line no-alert
-          alert("Загрузка документов будет добавлена в следующей итерации.")
-        }
+        onClick={onOpenUpload}
+        data-testid="open-upload"
         className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover"
       >
         Загрузить документ
@@ -67,10 +72,11 @@ function ApplicationActions({ state }: { state: string }) {
 function ApplicationContent() {
   const params = useParams<{ id: string }>();
   const id = params?.id ?? "";
-  const { data, loading, error } = useQuery<QueryData>(QUERY_APPLICATION, {
+  const { data, loading, error, refetch } = useQuery<QueryData>(QUERY_APPLICATION, {
     variables: { id },
     skip: !id,
   });
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   if (!id) {
     return <ErrorBanner error="В URL не передан идентификатор заявки." />;
@@ -117,10 +123,23 @@ function ApplicationContent() {
           </div>
           <div className="flex items-center gap-3">
             <StateBadge state={app.state} />
-            <ApplicationActions state={app.state} />
+            <ApplicationActions
+              state={app.state}
+              onOpenUpload={() => setUploadOpen(true)}
+            />
           </div>
         </div>
       </div>
+
+      <DocumentUploadModal
+        applicationId={app.id}
+        token={getAccessToken() ?? ""}
+        isOpen={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        onUploaded={() => {
+          refetch();
+        }}
+      />
 
       <section className="rounded-xl border border-gray-200 bg-white p-6">
         <h2 className="mb-4 text-base font-semibold text-gray-900">Этапы прохождения</h2>

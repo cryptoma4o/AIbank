@@ -1,0 +1,81 @@
+{
+  "name": "AIbank Dev",
+  "image": "mcr.microsoft.com/devcontainers/go:1.22-bookworm",
+
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20",
+      "nvmInstallPath": "/usr/local/share/nvm"
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "moby": true
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12",
+      "installTools": true
+    },
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true
+    }
+  },
+
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "8gb",
+    "storage": "32gb"
+  },
+
+  "forwardPorts": [
+    3000, 3001,
+    8000, 8080, 8081, 8082, 8083, 8085, 8086, 8087, 8088, 8089, 8090, 8091, 8092,
+    8100, 8101, 8102, 8103, 8104, 8105, 8106,
+    8201, 8202, 8203, 8204,
+    9001, 9002, 9003,
+    5432, 6379, 9092, 9000, 6333
+  ],
+
+  "portsAttributes": {
+    "3000": {"label": "web-onboarding", "onAutoForward": "notify"},
+    "3001": {"label": "web-admin", "onAutoForward": "notify"},
+    "8000": {"label": "api-gateway"},
+    "8080": {"label": "tenant-service"},
+    "8081": {"label": "audit-service"},
+    "8082": {"label": "identity-service"},
+    "8085": {"label": "onboarding-orchestrator"},
+    "8091": {"label": "bff-onboarding (GraphQL)"},
+    "8092": {"label": "bff-admin (GraphQL)"},
+    "8100": {"label": "llm-gateway"},
+    "5432": {"label": "postgres"}
+  },
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "go.toolsManagement.autoUpdate": false,
+        "go.formatTool": "goimports",
+        "go.lintTool": "golangci-lint",
+        "[go]": {"editor.defaultFormatter": "golang.go"},
+        "[typescript]": {"editor.defaultFormatter": "esbenp.prettier-vscode"},
+        "[typescriptreact]": {"editor.defaultFormatter": "esbenp.prettier-vscode"}
+      },
+      "extensions": [
+        "golang.go",
+        "ms-azuretools.vscode-docker",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "redhat.vscode-yaml",
+        "tamasfe.even-better-toml",
+        "graphql.vscode-graphql"
+      ]
+    }
+  },
+
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+
+  "remoteUser": "vscode"
+}

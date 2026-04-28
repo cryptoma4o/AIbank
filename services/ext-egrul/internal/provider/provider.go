@@ -24,6 +24,18 @@ import (
 // эксплуатация — мониторить её отсутствие на проде после флипа EGRUL_LIVE=true.
 var ErrNotImplemented = errors.New("provider: метод не реализован — необходима реальная интеграция с ФНС")
 
+// ErrNotFound — upstream (ФНС/SMEV) сообщил, что запись по ИНН/ОГРН не найдена.
+// Хэндлер маппит это в 404 Not Found.
+var ErrNotFound = errors.New("provider: запись ЕГРЮЛ/ЕГРИП не найдена")
+
+// ErrCircuitOpen — circuit breaker LiveProvider открыт после серии подряд идущих
+// 5xx-ошибок. Хэндлер маппит это в 503 Service Unavailable.
+var ErrCircuitOpen = errors.New("provider: circuit breaker открыт, upstream временно отключён")
+
+// ErrUpstream — upstream вернул нерасшифрованную ошибку (5xx после исчерпания
+// ретраев, неожиданный статус, ошибка транспорта). Хэндлер маппит в 502 Bad Gateway.
+var ErrUpstream = errors.New("provider: ошибка upstream")
+
 // Provider — абстракция источника данных ЕГРЮЛ.
 //
 // Контракт совпадает с тем, что использует HTTP-обработчик: синтетический и

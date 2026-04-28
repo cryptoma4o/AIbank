@@ -5,7 +5,7 @@ go 1.22
 require (
 	github.com/aibank/platform/packages/observability v0.0.0-00010101000000-000000000000
 	github.com/go-chi/chi/v5 v5.1.0
-	github.com/redis/go-redis/v9 v9.5.1
+	github.com/redis/go-redis/v9 v9.18.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.55.0
 )
 
@@ -27,6 +27,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.30.0 // indirect
 	go.opentelemetry.io/otel/trace v1.30.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
+	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/sys v0.25.0 // indirect
 	golang.org/x/text v0.18.0 // indirect

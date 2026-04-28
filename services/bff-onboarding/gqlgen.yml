@@ -1,0 +1,53 @@
+# gqlgen v0.17.49 config — canonical contract for future codegen.
+#
+# Текущий runtime в этом BFF использует hand-rolled graphql-go/graphql,
+# чтобы не блокировать сборку и тесты на codegen-шаге.  Этот файл
+# описывает схему как single source of truth и готов к запуску
+# `go run github.com/99designs/gqlgen generate` при переходе на
+# gqlgen-резолверы (см. ADR-0003).
+#
+# Запуск:
+#   cd services/bff-onboarding
+#   go run github.com/99designs/gqlgen generate
+schema:
+  - graph/schema.graphqls
+
+exec:
+  filename: graph/generated/generated.go
+  package: generated
+
+model:
+  filename: internal/model/types_gen.go
+  package: model
+
+resolver:
+  layout: follow-schema
+  dir: graph
+  package: graph
+  filename_template: "{name}.resolvers.go"
+
+autobind:
+  - aibank/bff-onboarding/internal/model
+
+models:
+  ID:
+    model:
+      - github.com/99designs/gqlgen/graphql.ID
+  Time:
+    model:
+      - github.com/99designs/gqlgen/graphql.Time
+  JSON:
+    model:
+      - github.com/99designs/gqlgen/graphql.Map
+  ApplicationState:
+    model:
+      - aibank/bff-onboarding/internal/model.ApplicationState
+  DocumentType:
+    model:
+      - aibank/bff-onboarding/internal/model.DocumentType
+  RiskCategory:
+    model:
+      - aibank/bff-onboarding/internal/model.RiskCategory
+  DecisionKind:
+    model:
+      - aibank/bff-onboarding/internal/model.DecisionKind

@@ -1,0 +1,197 @@
+# bff-admin GraphQL schema (ADR-0003).
+#
+# Контракт между apps/web-admin (внутренняя админка банка) и BFF.
+# Аудитория — bank.admin (full visibility внутри одного тенанта) и
+# platform.admin (cross-tenant операции, например suspendTenant).
+#
+# Исполняемая схема собирается hand-rolled в graph/resolver.go (без gqlgen,
+# чтобы обойтись без codegen-шага в MVP).
+
+scalar Time
+scalar JSON
+
+"""
+Состояние заявки.  Зеркалит onboarding-orchestrator/internal/domain/state.go.
+"""
+enum ApplicationState {
+  draft
+  identifying
+  collecting_documents
+  validating
+  waiting_for_client
+  risk_assessing
+  auto_approved
+  manual_review
+  approved
+  approved_with_edd
+  requires_more_info
+  opening_account
+  account_opened
+  declined
+  abandoned
+}
+
+enum DecisionKind {
+  APPROVED
+  APPROVED_WITH_EDD
+  DECLINED
+  ESCALATED
+}
+
+enum RiskCategory { LOW MEDIUM HIGH }
+
+type Tenant {
+  id: ID!
+  name: String!
+  bik: String!
+  inn: String!
+  status: String!
+  deploymentMode: String!
+}
+
+"""
+Карточка заявки в админке.  В отличие от bff-onboarding, отдаёт полные
+поля, включая applicantId, риск-факторы и историю аудита.
+"""
+type Application {
+  id: ID!
+  tenantId: ID!
+  applicantId: ID
+  state: ApplicationState!
+  legalEntityType: String!
+  channel: String!
+  productCodes: [String!]!
+  createdAt: Time!
+  updatedAt: Time!
+  riskAssessment: RiskAssessment
+  decision: Decision
+}
+
+type RiskAssessment {
+  id: ID!
+  applicationId: ID!
+  score: Float!
+  category: RiskCategory!
+  recommendation: String!
+  computedAt: Time!
+  factors: [JSON!]
+}
+
+type Decision {
+  id: ID!
+  applicationId: ID!
+  decision: DecisionKind!
+  reasoning: String!
+  decidedAt: Time!
+}
+
+type AuditEvent {
+  id: ID!
+  tenantId: ID!
+  actorType: String!
+  actorId: String!
+  action: String!
+  subjectType: String!
+  subjectId: String!
+  occurredAt: Time!
+  data: JSON
+}
+
+type TenantConfig {
+  tenantId: ID!
+  schemaVersion: String!
+  rawConfig: String!
+  updatedAt: Time!
+}
+
+input ApplicationsFilter {
+  state: ApplicationState
+  legalEntityType: String
+  limit: Int
+}
+
+input AuditFilter {
+  actor: String
+  action: String
+  limit: Int
+}
+
+input UpdateApplicationDecisionInput {
+  applicationId: ID!
+  decision: DecisionKind!
+  reasoning: String!
+}
+
+input SuspendTenantInput {
+  tenantId: ID!
+  reason: String!
+}
+
+"""
+ComplianceDashboard — агрегированные KPI для комплаенс-офицера банка.
+
+Источник: docs/operations/monitoring-alerts.md (Business KPIs) и
+docs/product-vision.md § 6.  Используется для ежедневной выгрузки
+(09:00 МСК → BI банка) и для оперативного контроля автоматизации.
+
+Доступ: bank.compliance_officer / bank.admin / platform.admin.
+Cross-tenant запрос блокируется (кроме platform.admin).
+"""
+type ComplianceDashboard {
+  tenantId: String!
+  from: Time!
+  to: Time!
+  applicationsTotal: Int!
+  "state→count map (например {\"auto_approved\": 42, \"declined\": 3})."
+  applicationsByState: JSON!
+  decisionsAutoApproved: Int!
+  decisionsManualReview: Int!
+  decisionsDeclined: Int!
+  decisionsWithEDD: Int!
+  "automation_rate = auto_approved / applicationsTotal (0..1, 0 если total=0)."
+  automationRate: Float!
+  "Среднее время от created_at до decided_at, секунды."
+  averageTimeToDecisionSec: Float!
+  uboScreeningsTotal: Int!
+  screeningsWithMatch: Int!
+  "Sanity check: количество audit-событий за сегодня (≥1 → цепочка жива)."
+  auditEventsToday: Int!
+  "Метрика 152-ФЗ § 14: число удалённых субъектов за период."
+  forgottenApplicantsCount: Int!
+}
+
+type Query {
+  "Тенант, к которому относится текущий администратор."
+  tenant: Tenant
+
+  "Все заявки в текущем тенанте, с фильтрами."
+  applications(filter: ApplicationsFilter): [Application!]!
+
+  "Заявка по id; nil если не найдена или вне тенанта."
+  application(id: ID!): Application
+
+  "Срез audit log по тенанту (admin-only)."
+  auditEvents(filter: AuditFilter): [AuditEvent!]!
+
+  "Текущая конфигурация тенанта (read-only; правки — через GitOps)."
+  tenantConfig: TenantConfig
+
+  """
+  Сводка комплаенс-метрик за период [from, to].  Если from/to не заданы —
+  по умолчанию [начало текущих суток UTC, now].  tenantId должен совпадать
+  с auth.tenant (cross-tenant разрешён только для platform.admin).
+  """
+  complianceDashboard(tenantId: String!, from: Time, to: Time): ComplianceDashboard!
+}
+
+type Mutation {
+  """
+  Ручное решение по заявке (manual review).  Требует роль bank.admin.
+  """
+  updateApplicationDecision(input: UpdateApplicationDecisionInput!): Decision!
+
+  """
+  Приостановка тенанта (полный stop приёма заявок).  Требует platform.admin.
+  """
+  suspendTenant(input: SuspendTenantInput!): Tenant!
+}

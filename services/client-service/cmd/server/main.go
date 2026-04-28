@@ -1,71 +1,124 @@
+// client-service entry point.
+//
+// Назначение: HTTP API над клиентскими карточками (КУС). Тенант-изоляция —
+// schema-per-tenant (ADR-0002). Порт 8089 (8088 занят abs-connector в
+// инфраструктурной сетке портов).
 package main
 
 import (
 	"context"
 	"database/sql"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	_ "github.com/lib/pq"
+
+	"github.com/aibank/platform/packages/healthz"
+	obs "github.com/aibank/platform/packages/observability"
+
+	"aibank/client-service/internal/audit"
 	"aibank/client-service/internal/handler"
 	"aibank/client-service/internal/repository"
-
-	_ "github.com/lib/pq"
 )
 
 func main() {
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+
+	// OpenTelemetry: traces + metrics через packages/observability.
+	// При пустом OTEL_EXPORTER_OTLP_ENDPOINT провайдер запускается в no-op
+	// режиме (см. packages/observability/README.md).
+	obsCtx, obsCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	obsProvider, err := obs.Init(obsCtx, obs.Config{
+		ServiceName: "client-service",
+		Version:     os.Getenv("OTEL_SERVICE_VERSION"),
+		Environment: os.Getenv("DEPLOY_ENV"),
+		Endpoint:    os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
+		Logger:      log,
+	})
+	obsCancel()
+	if err != nil {
+		log.Error("init observability", "err", err)
+		os.Exit(1)
+	}
+	defer func() {
+		shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = obsProvider.Shutdown(shutCtx)
+	}()
+
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		log.Fatal("DATABASE_URL environment variable is required")
+		log.Error("DATABASE_URL is required")
+		os.Exit(1)
 	}
 
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		log.Fatalf("failed to open database: %v", err)
+		log.Error("open db", "err", err)
+		os.Exit(1)
 	}
+	db.SetMaxOpenConns(20)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxIdleTime(5 * time.Minute)
 	defer db.Close()
 
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(5 * time.Minute)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	if err := db.PingContext(ctx); err != nil {
-		log.Fatalf("failed to ping database: %v", err)
+	pingCtx, pingCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	if err := db.PingContext(pingCtx); err != nil {
+		pingCancel()
+		log.Error("ping db", "err", err)
+		os.Exit(1)
 	}
+	pingCancel()
 
-	repo := repository.NewClientRepository(db)
-	h := handler.NewHandler(repo)
+	clientRepo := repository.NewPostgresClientRepository(db)
+	historyRepo := repository.NewPostgresClientHistoryRepository(db)
+	auditClient := audit.MustClient(log)
+	clientHandler := handler.NewClientHandler(clientRepo, historyRepo, auditClient, log)
+
+	r := chi.NewRouter()
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Recoverer)
+	r.Use(obs.ChiMiddleware("client-service"))
+	r.Use(middleware.Timeout(30 * time.Second))
+
+	// Структурированные probe-эндпоинты на packages/healthz.
+	hc := healthz.New("client-service", os.Getenv("OTEL_SERVICE_VERSION"))
+	hc.Register("db", healthz.DBCheck(db), healthz.Timeout(2*time.Second))
+
+	r.Method(http.MethodGet, "/health", hc.LivenessHandler())
+	r.Method(http.MethodGet, "/ready", hc.HTTPHandler())
+	r.Mount("/v1/clients", clientHandler.Routes())
 
 	srv := &http.Server{
-		Addr:         ":8087",
-		Handler:      h.Router(),
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
+		Addr:         ":8089",
+		Handler:      r,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	go func() {
-		log.Printf("client-service listening on :8087")
+		log.Info("client-service starting", "addr", srv.Addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server error: %v", err)
+			log.Error("server error", "err", err)
+			os.Exit(1)
 		}
 	}()
 
-	<-quit
-	log.Println("shutting down...")
-
-	shutCtx, shutCancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer shutCancel()
-	if err := srv.Shutdown(shutCtx); err != nil {
-		log.Fatalf("graceful shutdown failed: %v", err)
-	}
-	log.Println("server stopped")
+	<-ctx.Done()
+	log.Info("shutting down")
+	shutCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	_ = srv.Shutdown(shutCtx)
+	log.Info("stopped")
 }

@@ -1,122 +1,183 @@
+// Package repository — PostgreSQL-реализация UBOGraphRepository.
+//
+// Изоляция тенантов — schema-per-tenant (ADR-0002). search_path выставляется
+// LOCAL'но в транзакции, имя схемы валидируется regex'ом, идентичным
+// tenant-service.
 package repository
 
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"regexp"
 	"time"
 
 	"aibank/ubo-service/internal/domain"
-
-	"github.com/google/uuid"
-	_ "github.com/lib/pq"
 )
 
-type UBORepository struct {
+// ErrNotFound — единая sentinel-ошибка из репозитория.
+var ErrNotFound = errors.New("not found")
+
+var validTenantID = regexp.MustCompile(`^[a-z][a-z0-9_]{1,31}$`)
+
+func tenantSchemaName(tenantID string) (string, error) {
+	if !validTenantID.MatchString(tenantID) {
+		return "", fmt.Errorf("invalid tenant id %q", tenantID)
+	}
+	return "tnt_" + tenantID, nil
+}
+
+func withTenantTx(ctx context.Context, db *sql.DB, tenantID string, fn func(*sql.Tx) error) error {
+	schema, err := tenantSchemaName(tenantID)
+	if err != nil {
+		return err
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, fmt.Sprintf(`SET LOCAL search_path TO %q, public`, schema)); err != nil {
+		_ = tx.Rollback()
+		return fmt.Errorf("set search_path: %w", err)
+	}
+	if err := fn(tx); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+// PostgresUBOGraphRepository реализует domain.UBOGraphRepository.
+type PostgresUBOGraphRepository struct {
 	db *sql.DB
 }
 
-func NewUBORepository(db *sql.DB) *UBORepository {
-	return &UBORepository{db: db}
+// NewPostgresUBOGraphRepository — конструктор.
+func NewPostgresUBOGraphRepository(db *sql.DB) *PostgresUBOGraphRepository {
+	return &PostgresUBOGraphRepository{db: db}
 }
 
-func (r *UBORepository) UpsertNode(ctx context.Context, n *domain.UBONode) error {
-	if n.ID == "" {
-		n.ID = "ubn_" + uuid.New().String()
-		n.CreatedAt = time.Now().UTC()
+// Create вычисляет version = MAX(version)+1 для пары (legal_entity_id) внутри
+// схемы тенанта и вставляет новую строку в одной транзакции. Сериализуемая
+// версия через UNIQUE-индекс защитит от двух одновременных вставок.
+func (r *PostgresUBOGraphRepository) Create(ctx context.Context, g *domain.UBOGraph) error {
+	if g.ComputedAt.IsZero() {
+		g.ComputedAt = time.Now().UTC()
 	}
-	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO ubo_nodes (id, tenant_id, app_id, node_type, name, inn, passport, stake, is_ubo, created_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-         ON CONFLICT (id) DO UPDATE SET name=$5, inn=$6, stake=$8, is_ubo=$9`,
-		n.ID, n.TenantID, n.AppID, n.NodeType, n.Name, n.INN, n.Passport, n.Stake, n.IsUBO, n.CreatedAt,
-	)
-	return err
+	return withTenantTx(ctx, r.db, g.TenantID, func(tx *sql.Tx) error {
+		var maxVer sql.NullInt64
+		if err := tx.QueryRowContext(ctx,
+			`SELECT MAX(version) FROM ubo_graphs WHERE legal_entity_id = $1`,
+			g.LegalEntityID).Scan(&maxVer); err != nil {
+			return err
+		}
+		g.Version = int(maxVer.Int64) + 1
+		_, err := tx.ExecContext(ctx,
+			`INSERT INTO ubo_graphs
+			   (id, legal_entity_id, version, nodes, edges, ubos,
+			    confidence, unresolved_branches, computed_at, computed_by)
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+			g.ID, g.LegalEntityID, g.Version,
+			[]byte(g.Nodes), []byte(g.Edges), []byte(g.UBOs),
+			g.Confidence, []byte(g.UnresolvedBranches),
+			g.ComputedAt, g.ComputedBy)
+		return err
+	})
 }
 
-func (r *UBORepository) AddEdge(ctx context.Context, e *domain.UBOEdge) error {
-	e.ID = "ube_" + uuid.New().String()
-	e.CreatedAt = time.Now().UTC()
-	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO ubo_edges (id, tenant_id, app_id, from_node_id, to_node_id, direct_stake, created_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-		e.ID, e.TenantID, e.AppID, e.FromNodeID, e.ToNodeID, e.DirectStake, e.CreatedAt,
-	)
-	return err
-}
-
-// GetGraph loads the full graph for an application.
-func (r *UBORepository) GetGraph(ctx context.Context, tenantID, appID string) (*domain.UBOGraph, error) {
-	graph := &domain.UBOGraph{AppID: appID, TenantID: tenantID, CreatedAt: time.Now().UTC()}
-
-	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, tenant_id, app_id, node_type, name, inn, COALESCE(passport,''), stake, is_ubo, created_at
-         FROM ubo_nodes WHERE app_id=$1 AND tenant_id=$2`, appID, tenantID)
+// GetByID — точечный запрос по PK; tenant_id используется только для
+// выбора схемы (search_path), в самой таблице его нет.
+func (r *PostgresUBOGraphRepository) GetByID(ctx context.Context, tenantID, id string) (*domain.UBOGraph, error) {
+	g := &domain.UBOGraph{TenantID: tenantID}
+	err := withTenantTx(ctx, r.db, tenantID, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx,
+			`SELECT id, legal_entity_id, version, nodes, edges, ubos,
+			        confidence, unresolved_branches, computed_at, computed_by
+			 FROM ubo_graphs WHERE id = $1`, id)
+		return scanGraph(row, g)
+	})
 	if err != nil {
-		return nil, fmt.Errorf("ubo repo: nodes: %w", err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var n domain.UBONode
-		if err := rows.Scan(&n.ID, &n.TenantID, &n.AppID, &n.NodeType, &n.Name, &n.INN, &n.Passport, &n.Stake, &n.IsUBO, &n.CreatedAt); err != nil {
-			return nil, err
-		}
-		graph.Nodes = append(graph.Nodes, n)
-		if n.IsUBO {
-			graph.UBOs = append(graph.UBOs, n)
-		}
-	}
-	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-
-	erows, err := r.db.QueryContext(ctx,
-		`SELECT id, tenant_id, app_id, from_node_id, to_node_id, direct_stake, created_at
-         FROM ubo_edges WHERE app_id=$1 AND tenant_id=$2`, appID, tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("ubo repo: edges: %w", err)
-	}
-	defer erows.Close()
-	for erows.Next() {
-		var e domain.UBOEdge
-		if err := erows.Scan(&e.ID, &e.TenantID, &e.AppID, &e.FromNodeID, &e.ToNodeID, &e.DirectStake, &e.CreatedAt); err != nil {
-			return nil, err
-		}
-		graph.Edges = append(graph.Edges, e)
-	}
-	return graph, erows.Err()
+	return g, nil
 }
 
-// ComputeEffectiveStakes uses a recursive CTE to compute indirect ownership.
-// Returns a map of nodeID → effective stake % for a given root node (the target company).
-func (r *UBORepository) ComputeEffectiveStakes(ctx context.Context, tenantID, appID, rootNodeID string) (map[string]float64, error) {
-	rows, err := r.db.QueryContext(ctx, `
-        WITH RECURSIVE ownership AS (
-            SELECT from_node_id, to_node_id, direct_stake AS effective_stake
-            FROM ubo_edges
-            WHERE to_node_id = $3 AND app_id = $1 AND tenant_id = $2
-            UNION ALL
-            SELECT e.from_node_id, e.to_node_id, o.effective_stake * e.direct_stake / 100.0
-            FROM ubo_edges e
-            JOIN ownership o ON e.to_node_id = o.from_node_id
-            WHERE e.app_id = $1 AND e.tenant_id = $2
-        )
-        SELECT from_node_id, SUM(effective_stake) AS total_stake
-        FROM ownership
-        GROUP BY from_node_id
-    `, appID, tenantID, rootNodeID)
+// GetLatestByLegalEntity возвращает запись с наибольшим version.
+// Использует idx_ubo_graphs_le_ver для O(log n) лукапа.
+func (r *PostgresUBOGraphRepository) GetLatestByLegalEntity(ctx context.Context, tenantID, legalEntityID string) (*domain.UBOGraph, error) {
+	g := &domain.UBOGraph{TenantID: tenantID}
+	err := withTenantTx(ctx, r.db, tenantID, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx,
+			`SELECT id, legal_entity_id, version, nodes, edges, ubos,
+			        confidence, unresolved_branches, computed_at, computed_by
+			 FROM ubo_graphs WHERE legal_entity_id = $1
+			 ORDER BY version DESC LIMIT 1`, legalEntityID)
+		return scanGraph(row, g)
+	})
 	if err != nil {
-		return nil, fmt.Errorf("ubo repo: compute stakes: %w", err)
+		return nil, err
 	}
-	defer rows.Close()
-	result := make(map[string]float64)
-	for rows.Next() {
-		var nodeID string
-		var stake float64
-		if err := rows.Scan(&nodeID, &stake); err != nil {
-			return nil, err
+	return g, nil
+}
+
+// ListByLegalEntity — история версий по убыванию.
+func (r *PostgresUBOGraphRepository) ListByLegalEntity(ctx context.Context, tenantID, legalEntityID string, limit, offset int) ([]*domain.UBOGraph, error) {
+	out := make([]*domain.UBOGraph, 0)
+	err := withTenantTx(ctx, r.db, tenantID, func(tx *sql.Tx) error {
+		rows, err := tx.QueryContext(ctx,
+			`SELECT id, legal_entity_id, version, nodes, edges, ubos,
+			        confidence, unresolved_branches, computed_at, computed_by
+			 FROM ubo_graphs WHERE legal_entity_id = $1
+			 ORDER BY version DESC LIMIT $2 OFFSET $3`,
+			legalEntityID, limit, offset)
+		if err != nil {
+			return err
 		}
-		result[nodeID] = stake
+		defer rows.Close()
+		for rows.Next() {
+			g := &domain.UBOGraph{TenantID: tenantID}
+			var nodes, edges, ubos, unresolved []byte
+			if err := rows.Scan(&g.ID, &g.LegalEntityID, &g.Version,
+				&nodes, &edges, &ubos,
+				&g.Confidence, &unresolved,
+				&g.ComputedAt, &g.ComputedBy); err != nil {
+				return err
+			}
+			g.Nodes = nodes
+			g.Edges = edges
+			g.UBOs = ubos
+			g.UnresolvedBranches = unresolved
+			out = append(out, g)
+		}
+		return rows.Err()
+	})
+	if err != nil {
+		return nil, err
 	}
-	return result, rows.Err()
+	return out, nil
+}
+
+// scanGraph — общая логика чтения единичного графа.
+type singleScanner interface {
+	Scan(dest ...any) error
+}
+
+func scanGraph(row singleScanner, g *domain.UBOGraph) error {
+	var nodes, edges, ubos, unresolved []byte
+	err := row.Scan(&g.ID, &g.LegalEntityID, &g.Version,
+		&nodes, &edges, &ubos,
+		&g.Confidence, &unresolved,
+		&g.ComputedAt, &g.ComputedBy)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	g.Nodes = nodes
+	g.Edges = edges
+	g.UBOs = ubos
+	g.UnresolvedBranches = unresolved
+	return nil
 }

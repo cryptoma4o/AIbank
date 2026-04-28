@@ -7,5 +7,5 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /ext-egrul .
 
 FROM gcr.io/distroless/static:nonroot
 COPY --from=builder /ext-egrul /ext-egrul
-EXPOSE 8090
+EXPOSE 8201
 ENTRYPOINT ["/ext-egrul"]

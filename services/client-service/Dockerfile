@@ -8,14 +8,14 @@ RUN go mod download
 
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -ldflags="-s -w" -o /client-service ./cmd/server
+    go build -trimpath -ldflags="-s -w" -o /client-service ./cmd/server
 
 # Final stage
 FROM gcr.io/distroless/static:nonroot
 
 COPY --from=builder /client-service /client-service
 
-EXPOSE 8087
+EXPOSE 8089
 
 USER nonroot:nonroot
 

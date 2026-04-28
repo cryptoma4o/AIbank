@@ -1,0 +1,201 @@
+# bff-onboarding GraphQL schema (ADR-0003).
+#
+# Контракт между web-onboarding (Next.js) и BFF.  Меняется в одном PR с
+# клиентскими запросами в apps/web-onboarding/src/graphql/operations.
+#
+# Single endpoint, без федерации.  Каждый резолвер — тонкий fan-out в
+# доменные сервисы (tenant-service, identity-service, document-service,
+# onboarding-orchestrator, risk-engine).
+
+scalar Time
+scalar JSON
+
+"""
+Состояние заявки.  Зеркалит onboarding-orchestrator/internal/domain/state.go.
+"""
+enum ApplicationState {
+  draft
+  identifying
+  collecting_documents
+  validating
+  waiting_for_client
+  risk_assessing
+  auto_approved
+  manual_review
+  approved
+  approved_with_edd
+  requires_more_info
+  opening_account
+  account_opened
+  declined
+  abandoned
+}
+
+"""
+Тип документа из docs/domain-model.md § 2.6.
+"""
+enum DocumentType {
+  PASSPORT
+  CHARTER
+  PROTOCOL
+  AGREEMENT
+  EGRUL_EXTRACT
+  POWER_OF_ATTORNEY
+  ACCOUNTING_REPORT
+  OTHER
+}
+
+"""
+Категория риска из RiskAssessment (docs/domain-model.md § 2.7).
+"""
+enum RiskCategory {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+"""
+Финальное решение по заявке (docs/domain-model.md § 2.8).
+"""
+enum DecisionKind {
+  APPROVED
+  APPROVED_WITH_EDD
+  DECLINED
+  ESCALATED
+}
+
+"""
+Аутентифицированный пользователь (claims из JWT).
+"""
+type Me {
+  userId: ID!
+  tenantId: String!
+  role: String!
+  email: String
+}
+
+"""
+Тенант (банк), которому принадлежит заявка.
+"""
+type Tenant {
+  id: ID!
+  name: String!
+  bik: String!
+  inn: String!
+  status: String!
+  deploymentMode: String!
+}
+
+"""
+Person — физлицо (заявитель, директор, УБО).
+"""
+type Person {
+  id: ID!
+  fullName: String!
+  inn: String
+  phone: String
+  email: String
+}
+
+"""
+Загруженный документ.
+"""
+type Document {
+  id: ID!
+  type: DocumentType!
+  applicationId: ID!
+  filename: String!
+  state: String!
+  uploadedAt: Time!
+}
+
+"""
+Оценка риска по заявке.
+"""
+type RiskAssessment {
+  id: ID!
+  applicationId: ID!
+  score: Float!
+  category: RiskCategory!
+  recommendation: String!
+  computedAt: Time!
+  factors: [JSON!]
+}
+
+"""
+Расхождение, найденное reconciliation-агентом (см. ai/agent-reconciliation).
+"""
+type Discrepancy {
+  field: String!
+  documentId: ID
+  expected: String
+  actual: String
+  severity: String!
+}
+
+"""
+Финальное решение по заявке.
+"""
+type Decision {
+  id: ID!
+  applicationId: ID!
+  decision: DecisionKind!
+  reasoning: String!
+  decidedAt: Time!
+}
+
+"""
+Application — главная сущность онбординга.
+"""
+type Application {
+  id: ID!
+  tenantId: ID!
+  state: ApplicationState!
+  legalEntityType: String!
+  channel: String!
+  productCodes: [String!]!
+  createdAt: Time!
+  updatedAt: Time!
+
+  # Field resolvers — выполняются параллельно через downstream-сервисы.
+  applicant: Person
+  documents: [Document!]!
+  riskAssessment: RiskAssessment
+  decision: Decision
+  discrepancies: [Discrepancy!]!
+}
+
+type Query {
+  "Текущий пользователь по JWT в Authorization header."
+  me: Me!
+
+  "Заявка по id (доступ — applicant=владелец или роль bank.*)."
+  application(id: ID!): Application
+
+  "Все заявки текущего пользователя (для applicant — свои; для bank.* — все в тенанте)."
+  myApplications: [Application!]!
+}
+
+input SubmitApplicationInput {
+  legalEntityType: String!
+  channel: String!
+  productCodes: [String!]!
+}
+
+input UploadDocumentInput {
+  applicationId: ID!
+  type: DocumentType!
+  filename: String!
+  contentBase64: String!
+}
+
+type Mutation {
+  "Создаёт заявку и стартует Temporal-workflow в orchestrator."
+  submitApplication(input: SubmitApplicationInput!): Application!
+
+  "Загружает файл документа в document-service и привязывает к заявке."
+  uploadDocument(input: UploadDocumentInput!): Document!
+
+  "Сигнал orchestrator'у, что клиент завершил загрузку документов."
+  sendDocumentsUploadedSignal(applicationId: ID!): Boolean!
+}

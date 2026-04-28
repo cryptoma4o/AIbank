@@ -1,0 +1,24 @@
+# abs-connector — Adapter Registry
+#
+# Маппинг tenant_id → ABS-adapter согласно ADR-0006:
+#   - один тенант — один активный адаптер (см. configs/tenants/<bank>/integrations/abs.yaml);
+#   - version — semver, читается build-системой адаптера из VERSION-файла;
+#   - URL — внутренний адрес сервиса в кластере (ClusterIP / mTLS-endpoint).
+#
+# Override через env: ABS_ADAPTER_<TENANTID>=adapter_name,url,version
+# Пример: ABS_ADAPTER_BANK_ALPHA=cft,http://abs-adapter-cft:9001,1.4.2
+#
+# Особое значение URL `memory:mock` — connector не делает HTTP-вызов,
+# а возвращает deterministic-ответ. Используем для demo-tenant'а в локальной
+# среде и в e2e-тестах без поднятия mock-абс'а.
+
+adapters:
+  - tenant_id: bank-alpha
+    adapter_name: cft
+    url: http://abs-adapter-cft:9001
+    version: "1"
+
+  - tenant_id: demo
+    adapter_name: cft
+    url: memory:mock
+    version: "0.0.0"

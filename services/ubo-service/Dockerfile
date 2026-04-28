@@ -16,7 +16,7 @@ FROM gcr.io/distroless/static:nonroot
 
 COPY --from=builder /ubo-service /ubo-service
 
-EXPOSE 8088
+EXPOSE 8090
 
 USER nonroot:nonroot
 

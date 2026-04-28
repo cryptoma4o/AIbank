@@ -7,5 +7,5 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /ext-fssp ./
 
 FROM gcr.io/distroless/static:nonroot
 COPY --from=builder /ext-fssp /ext-fssp
-EXPOSE 8092
+EXPOSE 8203
 ENTRYPOINT ["/ext-fssp"]

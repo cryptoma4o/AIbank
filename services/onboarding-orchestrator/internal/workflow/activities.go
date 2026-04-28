@@ -2,39 +2,60 @@ package workflow
 
 import "context"
 
-// EGRULData holds data fetched from the EGRUL registry.
-type EGRULData struct {
-	FullName string `json:"full_name"`
-	OKVED    string `json:"okved"`
-	CEO      string `json:"ceo"`
+// Имена активностей, регистрируемых в Temporal worker'е.
+//
+// Используем явные строковые имена через RegisterActivityWithOptions,
+// чтобы тесты могли подменять реализации без зависимости от типа структуры.
+const (
+	ActivityVerifyIdentity = "VerifyIdentity"
+	ActivityExtractDocument = "ExtractDocument"
+	ActivityReconcile       = "Reconcile"
+	ActivityAssessRisk      = "AssessRisk"
+	ActivityOpenAccount     = "OpenAccount"
+	ActivityCancelAccount   = "CancelAccount"
+)
+
+// IdentityActivity — порт к identity-service (ЕСИА, УКЭП, ручная верификация).
+//
+// Вызывается из workflow на переходе draft→identifying.
+type IdentityActivity interface {
+	// Verify — синхронный вызов identity-service. Должен быть idempotent
+	// по applicantID (повтор при retry активности — ок).
+	Verify(ctx context.Context, applicantID string) (*IdentityVerificationResult, error)
 }
 
-// Activities groups all Temporal activity implementations.
-type Activities struct{}
-
-// VerifyINN validates the INN number via an external service (stub).
-func (a *Activities) VerifyINN(_ context.Context, _ string) error { return nil }
-
-// FetchEGRUL fetches company data from the EGRUL registry (stub).
-func (a *Activities) FetchEGRUL(_ context.Context, _, _ string) (*EGRULData, error) {
-	return &EGRULData{}, nil
+// DocumentActivity — порт к document-service (загрузка/распознавание).
+type DocumentActivity interface {
+	// Extract — извлечение полей из документа (OCR + LLM).
+	// Должен быть idempotent по documentID.
+	Extract(ctx context.Context, ref DocumentReference) (*DocumentExtractionResult, error)
 }
 
-// ScreenRosfinmon checks the applicant against the Rosfinmonitoring list (stub).
-// Returns true if the applicant is blocked.
-func (a *Activities) ScreenRosfinmon(_ context.Context, _ string) (bool, error) {
-	return false, nil
+// ReconciliationActivity — порт к reconciliation-service.
+//
+// Сверяет данные клиента, документов и регистров (ЕГРЮЛ, ФССП).
+type ReconciliationActivity interface {
+	// Reconcile принимает список извлечённых документов + ID юрлица и
+	// возвращает результат сверки. RequiresReview=true означает
+	// state→waiting_for_client (нужны уточнения от клиента).
+	Reconcile(ctx context.Context, applicationID string, extractions []DocumentExtractionResult) (*ReconciliationResult, error)
 }
 
-// RunRiskScoring calculates a risk score for the application (stub).
-func (a *Activities) RunRiskScoring(_ context.Context, _ string) (int, error) {
-	return 75, nil
+// RiskActivity — порт к risk-engine.
+type RiskActivity interface {
+	// Assess вычисляет риск-скор и возвращает рекомендацию.
+	// Применяет blocking-rules — например, OKVED_BLOCKED, ROSFINMON_HIT.
+	Assess(ctx context.Context, applicationID string) (*RiskAssessmentResult, error)
 }
 
-// OpenAccount creates a bank account for an approved application (stub).
-func (a *Activities) OpenAccount(_ context.Context, _, _ string) (string, error) {
-	return "acc_placeholder", nil
-}
+// ABSActivity — порт к abs-connector (АБС банка).
+type ABSActivity interface {
+	// OpenAccount создаёт счета в АБС по списку productCodes.
+	// При сбое — workflow ОБЯЗАН вызвать CancelAccount (компенсация SAGA).
+	OpenAccount(ctx context.Context, applicationID string, productCodes []string) (*AccountOpenResult, error)
 
-// NotifyClient sends a status notification to the applicant (stub).
-func (a *Activities) NotifyClient(_ context.Context, _, _ string) error { return nil }
+	// CancelAccount — компенсирующая активность. Вызывается, если
+	// open-цепочка частично выполнилась и нужно откатить состояние АБС.
+	// Должна быть idempotent.
+	CancelAccount(ctx context.Context, accountIDs []string) error
+}

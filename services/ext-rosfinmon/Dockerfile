@@ -7,5 +7,5 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /ext-rosfinm
 
 FROM gcr.io/distroless/static:nonroot
 COPY --from=builder /ext-rosfinmon /ext-rosfinmon
-EXPOSE 8091
+EXPOSE 8202
 ENTRYPOINT ["/ext-rosfinmon"]

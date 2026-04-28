@@ -15,13 +15,48 @@ import (
 	"github.com/aibank/platform/services/audit-service/internal/domain"
 )
 
-type EventHandler struct {
-	repo domain.AuditEventRepository
-	log  *slog.Logger
+// EventSigner — узкий интерфейс для подписания audit-event-digest'а.
+//
+// Реализации:
+//   - packages/signature/ed25519.Signer (Pre-MVP)
+//   - адаптер вокруг packages/signature.SignatureProvider (после получения СКЗИ)
+//
+// nil-signer допустим — handler работает в legacy-режиме без подписи
+// (backwards compat для existing producers).
+type EventSigner interface {
+	Sign(digest []byte) ([]byte, error)
+	KeyID() string
 }
 
+// SignerAlgorithm возвращает значение для audit.signature_algorithm колонки.
+// Реализуется ed25519.Signer (через переменную Algorithm) и внешними signer'ами.
+type SignerAlgorithm interface {
+	Algorithm() string
+}
+
+type EventHandler struct {
+	repo      domain.AuditEventRepository
+	log       *slog.Logger
+	signer    EventSigner
+	algorithm string
+}
+
+// NewEventHandler — без подписи. Backwards-compatible конструктор.
 func NewEventHandler(repo domain.AuditEventRepository, log *slog.Logger) *EventHandler {
 	return &EventHandler{repo: repo, log: log}
+}
+
+// NewEventHandlerWithSigner — handler с криптографическим signing.
+// Если signer == nil — поведение совпадает с NewEventHandler.
+// algorithm — значение из ed25519.Algorithm ("ed25519") или эквивалент
+// для других signer'ов; влияет на колонку audit.signature_algorithm.
+func NewEventHandlerWithSigner(
+	repo domain.AuditEventRepository,
+	log *slog.Logger,
+	signer EventSigner,
+	algorithm string,
+) *EventHandler {
+	return &EventHandler{repo: repo, log: log, signer: signer, algorithm: algorithm}
 }
 
 func (h *EventHandler) Routes() chi.Router {
@@ -106,6 +141,26 @@ func (h *EventHandler) RecordEvent(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:  time.Now().UTC(),
 	}
 	event.Hash = event.ComputeHash(previousHash)
+
+	// Опциональная подпись поверх hash-chain. ComputeHash остаётся неизменной
+	// даже после signing — signature вне immutable-payload, см. event.go.
+	if h.signer != nil {
+		digest, err := event.SignedDigest()
+		if err != nil {
+			h.log.Error("decode hash digest for signing", "tenant", req.TenantID, "err", err)
+			writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
+			return
+		}
+		sig, err := h.signer.Sign(digest)
+		if err != nil {
+			h.log.Error("sign event", "tenant", req.TenantID, "err", err)
+			writeError(w, http.StatusInternalServerError, "sign_failed", "failed to sign event")
+			return
+		}
+		event.Signature = sig
+		event.SignatureAlgorithm = h.algorithm
+		event.SignerKeyID = h.signer.KeyID()
+	}
 
 	if err := h.repo.Append(r.Context(), event); err != nil {
 		h.log.Error("append event", "tenant", req.TenantID, "err", err)

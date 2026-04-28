@@ -23,6 +23,7 @@ import (
 
 	_ "github.com/lib/pq"
 
+	ed25519signer "github.com/aibank/platform/packages/signature/ed25519"
 	"github.com/aibank/platform/tools/audit-verifier/internal/verifier"
 )
 
@@ -71,6 +72,10 @@ func printUsage() {
   --from          ISO8601, нижняя граница CreatedAt
   --to            ISO8601, верхняя граница CreatedAt
   --format        text|json (по умолчанию text)
+  --pubkey        опционально: base64-encoded ed25519 public key (32 bytes)
+                  для проверки криптоподписей; если задан — после
+                  hash-chain проверки запускается signature verification
+  --pubkey-file   опционально: путь к файлу с base64 ed25519 public key
 
 ФЛАГИ latest:
   --tenant-id     обязательный
@@ -139,6 +144,8 @@ func runVerify(args []string, log *slog.Logger) int {
 	fromStr := fs.String("from", "", "ISO8601 нижняя граница (опционально)")
 	toStr := fs.String("to", "", "ISO8601 верхняя граница (опционально)")
 	format := fs.String("format", "text", "text|json")
+	pubkeyB64 := fs.String("pubkey", "", "base64-encoded ed25519 public key (32 bytes)")
+	pubkeyFile := fs.String("pubkey-file", "", "путь к файлу с base64 ed25519 public key")
 	if err := fs.Parse(args); err != nil {
 		return exitUsage
 	}
@@ -158,6 +165,12 @@ func runVerify(args []string, log *slog.Logger) int {
 		return exitUsage
 	}
 
+	signatureVerifier, err := buildSignatureVerifier(*pubkeyB64, *pubkeyFile)
+	if err != nil {
+		log.Error("init signature verifier", "err", err)
+		return exitUsage
+	}
+
 	store, cleanup, err := buildStore(c, log)
 	if err != nil {
 		log.Error("init store", "err", err)
@@ -168,25 +181,97 @@ func runVerify(args []string, log *slog.Logger) int {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 
-	res, err := verifier.NewVerifier(store).VerifyChain(ctx, c.tenantID, from, to)
+	v := verifier.NewVerifier(store)
+	chainRes, err := v.VerifyChain(ctx, c.tenantID, from, to)
 	if err != nil {
 		log.Error("verify chain", "err", err)
 		return exitInternal
 	}
 
+	var sigRes *verifier.SignatureVerificationResult
+	if signatureVerifier != nil && chainRes.Valid {
+		// Signature check имеет смысл только если hash chain цела —
+		// иначе digest в Signature считается над подменённым событием.
+		r, err := v.VerifySignatures(ctx, c.tenantID, signatureVerifier)
+		if err != nil {
+			log.Error("verify signatures", "err", err)
+			return exitInternal
+		}
+		sigRes = &r
+	}
+
 	switch *format {
 	case "json":
-		_ = json.NewEncoder(os.Stdout).Encode(res)
+		out := map[string]any{"chain": chainRes}
+		if sigRes != nil {
+			out["signatures"] = sigRes
+		}
+		_ = json.NewEncoder(os.Stdout).Encode(out)
 	case "text":
-		printVerifyText(res)
+		printVerifyText(chainRes)
+		if sigRes != nil {
+			printSignatureText(*sigRes)
+		}
 	default:
 		log.Error("--format: ожидается text|json", "got", *format)
 		return exitUsage
 	}
-	if !res.Valid {
+	if !chainRes.Valid {
+		return exitChainBroken
+	}
+	if sigRes != nil && !sigRes.Valid {
 		return exitChainBroken
 	}
 	return exitOK
+}
+
+// buildSignatureVerifier — собирает callback для verifier.VerifySignatures
+// из --pubkey или --pubkey-file. Возвращает nil если ни одно из них не задано.
+func buildSignatureVerifier(pubkeyB64, pubkeyFile string) (verifier.SignatureVerifyFunc, error) {
+	if pubkeyB64 == "" && pubkeyFile == "" {
+		return nil, nil
+	}
+	if pubkeyB64 != "" && pubkeyFile != "" {
+		return nil, errors.New("--pubkey и --pubkey-file взаимоисключающие")
+	}
+	keyB64 := pubkeyB64
+	if pubkeyFile != "" {
+		raw, err := os.ReadFile(pubkeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("read pubkey file: %w", err)
+		}
+		keyB64 = string(bytes(raw))
+	}
+	pub, err := ed25519signer.PublicKeyFromBase64(keyB64)
+	if err != nil {
+		return nil, fmt.Errorf("decode pubkey: %w", err)
+	}
+	expectedKeyID := ed25519signer.KeyIDFromPublicKey(pub)
+
+	return func(_ context.Context, ev *verifier.Event) error {
+		// Алгоритм должен совпадать с ed25519 — иначе ключ не подходит.
+		if ev.SignatureAlgorithm != ed25519signer.Algorithm {
+			return fmt.Errorf("event %s: algorithm=%q, want %q (ключ не для этого алгоритма)",
+				ev.ID, ev.SignatureAlgorithm, ed25519signer.Algorithm)
+		}
+		if ev.SignerKeyID != expectedKeyID {
+			return fmt.Errorf("event %s: signer_key_id=%q, want %q (другой ключ)",
+				ev.ID, ev.SignerKeyID, expectedKeyID)
+		}
+		digest, err := ev.SignedDigest()
+		if err != nil {
+			return fmt.Errorf("event %s: decode digest: %w", ev.ID, err)
+		}
+		return ed25519signer.VerifyWithPublicKey(pub, digest, ev.Signature)
+	}, nil
+}
+
+// bytes — trim trailing whitespace из файла (newline в конце).
+func bytes(b []byte) []byte {
+	for len(b) > 0 && (b[len(b)-1] == '\n' || b[len(b)-1] == '\r' || b[len(b)-1] == ' ' || b[len(b)-1] == '\t') {
+		b = b[:len(b)-1]
+	}
+	return b
 }
 
 func runLatest(args []string, log *slog.Logger) int {
@@ -232,6 +317,25 @@ func parseTime(s string) (*time.Time, error) {
 		return nil, fmt.Errorf("ожидается формат RFC3339 (2026-04-26T12:00:00Z): %w", err)
 	}
 	return &t, nil
+}
+
+// printSignatureText — отчёт по signature verification.
+func printSignatureText(r verifier.SignatureVerificationResult) {
+	fmt.Println()
+	fmt.Println("--- Криптоподписи ---")
+	fmt.Printf("Подписанных событий: %d из %d (%d без подписи)\n",
+		r.SignedCount, r.EventCount, r.UnsignedCount)
+	if r.Valid {
+		fmt.Println("Подписи:       ВСЕ ВАЛИДНЫ")
+		return
+	}
+	fmt.Println("Подписи:       НЕВАЛИДНЫ — TAMPERING ALERT (P0)")
+	if r.FirstInvalid != nil {
+		fmt.Printf("Первая аномалия: event_id=%s created_at=%s\n",
+			r.FirstInvalid.ID, r.FirstInvalid.CreatedAt.Format(time.RFC3339))
+	}
+	fmt.Printf("Причина:       %s\n", r.InvalidReason)
+	fmt.Println("Действия:      см. docs/runbooks/audit-log-integrity.md §3 INVESTIGATE.")
 }
 
 // printVerifyText — Russian-language отчёт для оператора в консоли.

@@ -5,6 +5,7 @@ go 1.22
 require (
 	github.com/aibank/platform/packages/healthz v0.0.0-00010101000000-000000000000
 	github.com/aibank/platform/packages/observability v0.0.0-00010101000000-000000000000
+	github.com/aibank/platform/packages/signature v0.0.0-00010101000000-000000000000
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.9
@@ -15,6 +16,8 @@ require (
 replace github.com/aibank/platform/packages/healthz => ../../packages/healthz
 
 replace github.com/aibank/platform/packages/observability => ../../packages/observability
+
+replace github.com/aibank/platform/packages/signature => ../../packages/signature
 
 require (
 	dario.cat/mergo v1.0.0 // indirect

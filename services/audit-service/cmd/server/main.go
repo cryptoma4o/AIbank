@@ -16,6 +16,7 @@ import (
 
 	"github.com/aibank/platform/packages/healthz"
 	obs "github.com/aibank/platform/packages/observability"
+	ed25519signer "github.com/aibank/platform/packages/signature/ed25519"
 	"github.com/aibank/platform/services/audit-service/internal/handler"
 	"github.com/aibank/platform/services/audit-service/internal/repository"
 )
@@ -70,7 +71,26 @@ func main() {
 	pingCancel()
 
 	repo := repository.NewPostgresAuditRepository(db)
-	eventHandler := handler.NewEventHandler(repo, log)
+
+	// Опциональная подпись audit-events. AUDIT_SIGNING_KEY — base64 32-byte
+	// ed25519 seed. Пустой ENV → handler работает в legacy-режиме (без подписи).
+	// В production seed должен приходить из Vault, а не из ENV (см. ADR-0010 § 6).
+	signer, err := ed25519signer.FromEnv("AUDIT_SIGNING_KEY")
+	if err != nil {
+		log.Error("init signer", "err", err)
+		os.Exit(1)
+	}
+
+	var eventHandler *handler.EventHandler
+	if signer != nil {
+		log.Info("audit signing enabled",
+			"algorithm", ed25519signer.Algorithm,
+			"key_id", signer.KeyID())
+		eventHandler = handler.NewEventHandlerWithSigner(repo, log, signer, ed25519signer.Algorithm)
+	} else {
+		log.Info("audit signing disabled (AUDIT_SIGNING_KEY not set)")
+		eventHandler = handler.NewEventHandler(repo, log)
+	}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)

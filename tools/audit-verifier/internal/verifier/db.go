@@ -44,7 +44,8 @@ func (s *DBStore) ListEvents(ctx context.Context, tenantID string, from, to *tim
 
 		rows, err := s.DB.QueryContext(ctx, `
 			SELECT id, tenant_id, entity_type, entity_id, event_type,
-			       actor_id, actor_type, payload, previous_hash, hash, created_at
+			       actor_id, actor_type, payload, previous_hash, hash, created_at,
+			       signature, signature_algorithm, signer_key_id
 			FROM audit.events
 			WHERE tenant_id = $1
 			  AND ($2::timestamptz IS NULL OR created_at >= $2)
@@ -59,12 +60,24 @@ func (s *DBStore) ListEvents(ctx context.Context, tenantID string, from, to *tim
 
 		for rows.Next() {
 			var e Event
+			var sig sql.RawBytes
+			var sigAlg, signerID sql.NullString
 			if err := rows.Scan(
 				&e.ID, &e.TenantID, &e.EntityType, &e.EntityID, &e.EventType,
 				&e.ActorID, &e.ActorType, &e.Payload, &e.PreviousHash, &e.Hash, &e.CreatedAt,
+				&sig, &sigAlg, &signerID,
 			); err != nil {
 				yield(Event{}, fmt.Errorf("scan event: %w", err))
 				return
+			}
+			if len(sig) > 0 {
+				e.Signature = append([]byte(nil), sig...)
+			}
+			if sigAlg.Valid {
+				e.SignatureAlgorithm = sigAlg.String
+			}
+			if signerID.Valid {
+				e.SignerKeyID = signerID.String
 			}
 			if !yield(e, nil) {
 				return

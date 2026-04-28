@@ -76,20 +76,43 @@ relay.Tick(ctx) // один цикл вместо Run
 
 ## Семантика отказов
 
-* **Publish провалился** — строка остаётся unpublished, следующий tick
-  повторит. Логируется как ERROR.
-* **БД-сбой при SELECT/UPDATE** — Tick возвращает ошибку, Run логирует и
-  продолжает на следующем тике (не падает).
+* **Publish провалился (attempts < max)** — `attempts` инкрементируется,
+  `last_error` записывается, строка остаётся в outbox. Следующий tick
+  повторит. Логируется как WARN.
+* **Publish провалился (attempts >= max)** — строка перемещается в
+  `{table}_dead_letter` с `failed_at = NOW()` и удаляется из outbox.
+  Логируется как ERROR. Recovery — см. ниже.
+* **БД-сбой при SELECT/UPDATE/INSERT** — Tick возвращает ошибку, Run логирует
+  и продолжает на следующем тике (не падает).
 * **ctx.Done()** — Run выходит штатно, текущая транзакция откатывается;
   unpublished-строки подберёт следующий запуск.
 
+## DLQ (dead-letter queue)
+
+Конфигурация:
+
+```go
+ob, _ := outbox.NewWithOptions(db, "platform.billing_outbox", "platform.billing.events",
+    outbox.Options{
+        DeadLetterTable: "platform.billing_outbox_dead_letter", // дефолт: {table}_dead_letter
+        MaxAttempts:     5,                                     // дефолт: DefaultMaxAttempts
+    })
+```
+
+Структура DLQ-таблицы повторяет outbox + добавляет `failed_at`,
+`attempts`, `last_error`. `id` сохраняется оригинальным (это удобно для
+correlation с audit-логом).
+
+Recovery procedure (как вернуть событие в работу): см.
+[docs/runbooks/outbox-dlq-recovery.md](../../docs/runbooks/outbox-dlq-recovery.md).
+
 ## TODO
 
-* **DLQ для poison messages** — события, которые валятся на Publish N раз
-  подряд, перекладывать в `*_dead_letter`. Сейчас они просто бесконечно
-  ретраятся.
 * **Cleanup published-rows** — partial-index спасает relay, но таблица всё
   равно растёт. Добавить cron-cleanup `DELETE WHERE published_at < NOW() -
   INTERVAL '7 days'` (но не раньше, чем consumer-side дедуп даст гарантию).
-* **Метрики** — `outbox_relay_published_total`, `outbox_relay_lag_seconds`,
-  `outbox_relay_publish_errors_total` для VictoriaMetrics.
+* **Метрики** — `outbox_relay_published_total`, `outbox_relay_dlq_total`,
+  `outbox_relay_lag_seconds`, `outbox_relay_publish_errors_total` для
+  VictoriaMetrics.
+* **Альерт на DLQ-rate** — если в DLQ за час упало >N сообщений, паджить
+  on-call (за пределами outbox-пакета — задача observability).

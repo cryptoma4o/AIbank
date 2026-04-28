@@ -11,21 +11,30 @@
 --   * event_type — каноничное имя события (см. domain.EventType*).
 --   * payload — сериализованный JSON, готовый к публикации в Kafka.
 --   * published_at IS NULL — индикатор «not yet relayed».
+--   * attempts / last_error / last_attempt_at — для DLQ (per-row retry tracking).
 --
 -- Индекс idx_unpublished — partial-index по unpublished-строкам, чтобы relay
 -- не сканировал миллионы published-строк (ретеншн published-rows можно решить
 -- отдельным cleanup job'ом, см. README).
+--
+-- Dead-letter таблица — куда relay перекладывает строки, провалившие Publish
+-- N раз подряд (max_attempts, по умолчанию 5). Структура совпадает с основной
+-- + failed_at и копией attempts/last_error на момент перемещения.
+-- Восстановление: см. docs/runbooks/outbox-dlq-recovery.md.
 
 CREATE SCHEMA IF NOT EXISTS {{SCHEMA}};
 
 CREATE TABLE IF NOT EXISTS {{SCHEMA}}.{{TABLE}} (
-    id              BIGSERIAL PRIMARY KEY,
+    id              BIGSERIAL   PRIMARY KEY,
     aggregate_type  TEXT        NOT NULL,
     aggregate_id    TEXT        NOT NULL,
     event_type      TEXT        NOT NULL,
     payload         JSONB       NOT NULL,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    published_at    TIMESTAMPTZ
+    published_at    TIMESTAMPTZ,
+    attempts        INT         NOT NULL DEFAULT 0,
+    last_error      TEXT,
+    last_attempt_at TIMESTAMPTZ
 );
 
 -- Partial index: relay полностью игнорирует published-строки.
@@ -33,6 +42,24 @@ CREATE INDEX IF NOT EXISTS idx_{{TABLE}}_unpublished
     ON {{SCHEMA}}.{{TABLE}} (id)
     WHERE published_at IS NULL;
 
+-- Dead-letter таблица для poison messages.
+CREATE TABLE IF NOT EXISTS {{SCHEMA}}.{{TABLE}}_dead_letter (
+    id              BIGINT      PRIMARY KEY,            -- сохраняем оригинальный outbox.id
+    aggregate_type  TEXT        NOT NULL,
+    aggregate_id    TEXT        NOT NULL,
+    event_type      TEXT        NOT NULL,
+    payload         JSONB       NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL,               -- когда вставлено в outbox
+    failed_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(), -- когда попало в DLQ
+    attempts        INT         NOT NULL,
+    last_error      TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_{{TABLE}}_dead_letter_failed_at
+    ON {{SCHEMA}}.{{TABLE}}_dead_letter (failed_at);
+
 -- +goose Down
+DROP INDEX IF EXISTS {{SCHEMA}}.idx_{{TABLE}}_dead_letter_failed_at;
+DROP TABLE IF EXISTS {{SCHEMA}}.{{TABLE}}_dead_letter;
 DROP INDEX IF EXISTS {{SCHEMA}}.idx_{{TABLE}}_unpublished;
 DROP TABLE IF EXISTS {{SCHEMA}}.{{TABLE}};

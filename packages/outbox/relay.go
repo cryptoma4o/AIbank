@@ -18,7 +18,7 @@ const DefaultPollInterval = 5 * time.Second
 const DefaultBatchSize = 100
 
 // Relay — background loop, который выгребает unpublished-строки из outbox и
-// публикует их в Kafka, помечая published_at.
+// публикует их в Kafka, помечая published_at. Provides DLQ для poison messages.
 type Relay struct {
 	outbox       *Outbox
 	pub          Publisher
@@ -70,8 +70,10 @@ func NewRelay(o *Outbox, pub Publisher, opts RelayOptions) (*Relay, error) {
 func (r *Relay) Run(ctx context.Context) error {
 	r.log.Info("outbox relay запущен",
 		"table", r.outbox.table,
+		"dlq_table", r.outbox.dlqTable,
 		"topic", r.outbox.topic,
 		"poll_interval", r.pollInterval,
+		"max_attempts", r.outbox.maxAttempts,
 	)
 
 	t := time.NewTicker(r.pollInterval)
@@ -93,14 +95,34 @@ func (r *Relay) Run(ctx context.Context) error {
 	}
 }
 
-// Tick — один цикл «забрать batch → опубликовать → пометить published».
+// pendingRow — строка, забранная из outbox в текущем тике.
+type pendingRow struct {
+	id          int64
+	aggregateID string
+	payload     []byte
+	attempts    int
+}
+
+// failedRow — pendingRow, для которого Publish провалился; хранит ошибку и
+// уже инкрементированное число попыток.
+type failedRow struct {
+	row         pendingRow
+	newAttempts int
+	err         error
+}
+
+// Tick — один цикл «забрать batch → опубликовать → пометить published / DLQ».
 // Концурентность: SELECT ... FOR UPDATE SKIP LOCKED гарантирует, что несколько
 // запущенных одновременно relay-инстансов не возьмут одни и те же строки.
 //
-// Семантика: транзакция держится на всё время батча. Если Publish провалился
-// для любой строки, мы не помечаем её published — следующий poll попробует
-// снова. Это at-least-once: дубликаты на consumer-стороне дедупятся
-// идемпотентным INSERT (ADR-0010 § 5: ON CONFLICT (id) DO NOTHING).
+// Семантика:
+//   - Транзакция держится на всё время батча.
+//   - При успехе Publish — UPDATE published_at для id'ов в едином UPDATE.
+//   - При неуспехе — UPDATE attempts/last_error для id'ов, у которых attempts < max.
+//   - При attempts >= max — INSERT в DLQ + DELETE из outbox (за один SQL-блок per row).
+//
+// Это at-least-once: дубликаты на consumer-стороне дедупятся идемпотентным
+// INSERT (ADR-0010 § 5: ON CONFLICT (id) DO NOTHING).
 func (r *Relay) Tick(ctx context.Context) error {
 	tx, err := r.outbox.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
@@ -109,7 +131,7 @@ func (r *Relay) Tick(ctx context.Context) error {
 	defer func() { _ = tx.Rollback() }() // noop при успешном Commit
 
 	rows, err := tx.QueryContext(ctx, fmt.Sprintf(
-		`SELECT id, aggregate_id, payload FROM %s
+		`SELECT id, aggregate_id, payload, attempts FROM %s
 		 WHERE published_at IS NULL
 		 ORDER BY id
 		 LIMIT %d
@@ -119,15 +141,10 @@ func (r *Relay) Tick(ctx context.Context) error {
 		return fmt.Errorf("outbox relay: select: %w", err)
 	}
 
-	type pending struct {
-		id          int64
-		aggregateID string
-		payload     []byte
-	}
-	batch := make([]pending, 0, r.batchSize)
+	batch := make([]pendingRow, 0, r.batchSize)
 	for rows.Next() {
-		var p pending
-		if err := rows.Scan(&p.id, &p.aggregateID, &p.payload); err != nil {
+		var p pendingRow
+		if err := rows.Scan(&p.id, &p.aggregateID, &p.payload, &p.attempts); err != nil {
 			rows.Close()
 			return fmt.Errorf("outbox relay: scan: %w", err)
 		}
@@ -144,27 +161,57 @@ func (r *Relay) Tick(ctx context.Context) error {
 	}
 
 	publishedIDs := make([]int64, 0, len(batch))
+	failed := make([]failedRow, 0)
 	for _, p := range batch {
 		if err := r.pub.Publish(ctx, []byte(p.aggregateID), p.payload); err != nil {
-			// Не фатально: оставляем строку unpublished, на следующем тике
-			// повторим. Логируем для наблюдаемости.
-			r.log.Error("outbox relay: ошибка публикации",
-				"id", p.id,
-				"aggregate_id", p.aggregateID,
-				"err", err,
-			)
+			failed = append(failed, failedRow{
+				row:         p,
+				newAttempts: p.attempts + 1,
+				err:         err,
+			})
 			continue
 		}
 		publishedIDs = append(publishedIDs, p.id)
 	}
 
 	if len(publishedIDs) > 0 {
-		_, err := tx.ExecContext(ctx, fmt.Sprintf(
+		if _, err := tx.ExecContext(ctx, fmt.Sprintf(
 			`UPDATE %s SET published_at = NOW() WHERE id = ANY($1)`,
-			r.outbox.table), int64Array(publishedIDs))
-		if err != nil {
+			r.outbox.table), int64Array(publishedIDs)); err != nil {
 			return fmt.Errorf("outbox relay: mark published: %w", err)
 		}
+	}
+
+	movedToDLQ := 0
+	for _, f := range failed {
+		if f.newAttempts >= r.outbox.maxAttempts {
+			if err := r.moveToDeadLetterTx(ctx, tx, f); err != nil {
+				return fmt.Errorf("outbox relay: move to DLQ: %w", err)
+			}
+			movedToDLQ++
+			r.log.Error("outbox relay: poison message → DLQ",
+				"id", f.row.id,
+				"aggregate_id", f.row.aggregateID,
+				"attempts", f.newAttempts,
+				"err", f.err,
+			)
+			continue
+		}
+		// Привычная ошибка — записываем attempts/last_error, оставляем для retry.
+		if _, err := tx.ExecContext(ctx, fmt.Sprintf(
+			`UPDATE %s SET attempts = $1, last_error = $2, last_attempt_at = NOW()
+			 WHERE id = $3`,
+			r.outbox.table),
+			f.newAttempts, f.err.Error(), f.row.id); err != nil {
+			return fmt.Errorf("outbox relay: update attempts: %w", err)
+		}
+		r.log.Warn("outbox relay: ошибка публикации, повторим",
+			"id", f.row.id,
+			"aggregate_id", f.row.aggregateID,
+			"attempts", f.newAttempts,
+			"max_attempts", r.outbox.maxAttempts,
+			"err", f.err,
+		)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -174,8 +221,28 @@ func (r *Relay) Tick(ctx context.Context) error {
 	r.log.Debug("outbox relay: tick завершён",
 		"selected", len(batch),
 		"published", len(publishedIDs),
-		"failed", len(batch)-len(publishedIDs),
+		"failed", len(failed),
+		"dlq", movedToDLQ,
 	)
+	return nil
+}
+
+// moveToDeadLetterTx переносит одну строку из outbox в DLQ-таблицу в указанной
+// транзакции. Использует RETURNING и идёт двумя SQL: INSERT с SELECT FROM
+// outbox + DELETE FROM outbox.
+func (r *Relay) moveToDeadLetterTx(ctx context.Context, tx *sql.Tx, f failedRow) error {
+	insertSQL := fmt.Sprintf(
+		`INSERT INTO %s (id, aggregate_type, aggregate_id, event_type, payload, created_at, attempts, last_error)
+		 SELECT id, aggregate_type, aggregate_id, event_type, payload, created_at, $1, $2
+		 FROM %s WHERE id = $3`,
+		r.outbox.dlqTable, r.outbox.table)
+	if _, err := tx.ExecContext(ctx, insertSQL, f.newAttempts, f.err.Error(), f.row.id); err != nil {
+		return fmt.Errorf("insert dlq: %w", err)
+	}
+	deleteSQL := fmt.Sprintf(`DELETE FROM %s WHERE id = $1`, r.outbox.table)
+	if _, err := tx.ExecContext(ctx, deleteSQL, f.row.id); err != nil {
+		return fmt.Errorf("delete from outbox: %w", err)
+	}
 	return nil
 }
 

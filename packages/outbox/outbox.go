@@ -6,6 +6,10 @@
 // Это гарантирует at-least-once-доставку события в Kafka даже при крэше сервиса
 // между БД-commit и публикацией: пропавшая публикация подхватится следующим
 // поллом relay.
+//
+// DLQ: события, провалившие Publish MaxAttempts раз подряд, перемещаются в
+// {table}_dead_letter (см. Options.MaxAttempts, default 5). Recovery —
+// docs/runbooks/outbox-dlq-recovery.md.
 package outbox
 
 import (
@@ -17,6 +21,11 @@ import (
 	kafkago "github.com/segmentio/kafka-go"
 )
 
+// DefaultMaxAttempts — сколько раз пытаемся опубликовать событие до перемещения
+// в dead-letter. 5 — компромисс: переживает короткие kafka-outage'и (5×5s=25s),
+// но не задерживает poison messages надолго.
+const DefaultMaxAttempts = 5
+
 // Publisher — абстракция над Kafka producer'ом. Тесты используют StubPublisher,
 // production — KafkaPublisher.
 type Publisher interface {
@@ -24,17 +33,36 @@ type Publisher interface {
 	Close() error
 }
 
+// Options — опциональные параметры для New. Все поля имеют sane defaults.
+type Options struct {
+	// DeadLetterTable — полное имя DLQ-таблицы. Если пусто, используется
+	// {table}_dead_letter (например "platform.billing_outbox_dead_letter").
+	DeadLetterTable string
+	// MaxAttempts — сколько Publish-неудач допускается до перемещения в DLQ.
+	// 0 → DefaultMaxAttempts (5).
+	MaxAttempts int
+}
+
 // Outbox — настройки и БД-handle для outbox-таблицы. Не содержит состояния:
 // безопасно использовать из нескольких goroutine.
 type Outbox struct {
-	db    *sql.DB
-	table string // полное имя таблицы, например "platform.billing_outbox"
-	topic string // Kafka topic, например "platform.billing.events"
+	db          *sql.DB
+	table       string // полное имя таблицы, например "platform.billing_outbox"
+	dlqTable    string // полное имя DLQ-таблицы
+	topic       string // Kafka topic, например "platform.billing.events"
+	maxAttempts int
 }
 
-// New конструирует Outbox. table должен включать схему ("platform.billing_outbox"),
-// topic — целевой Kafka topic.
+// New конструирует Outbox с дефолтными опциями. table должен включать схему
+// ("platform.billing_outbox"), topic — целевой Kafka topic. DLQ-таблица —
+// {table}_dead_letter, max attempts — DefaultMaxAttempts.
 func New(db *sql.DB, table, topic string) (*Outbox, error) {
+	return NewWithOptions(db, table, topic, Options{})
+}
+
+// NewWithOptions — расширенный конструктор. Используется когда нужно
+// переопределить DLQ-таблицу или max attempts (например в тестах).
+func NewWithOptions(db *sql.DB, table, topic string, opts Options) (*Outbox, error) {
 	if db == nil {
 		return nil, errors.New("outbox: db is required")
 	}
@@ -44,14 +72,34 @@ func New(db *sql.DB, table, topic string) (*Outbox, error) {
 	if topic == "" {
 		return nil, errors.New("outbox: topic is required")
 	}
-	return &Outbox{db: db, table: table, topic: topic}, nil
+	dlq := opts.DeadLetterTable
+	if dlq == "" {
+		dlq = table + "_dead_letter"
+	}
+	maxAttempts := opts.MaxAttempts
+	if maxAttempts <= 0 {
+		maxAttempts = DefaultMaxAttempts
+	}
+	return &Outbox{
+		db:          db,
+		table:       table,
+		dlqTable:    dlq,
+		topic:       topic,
+		maxAttempts: maxAttempts,
+	}, nil
 }
 
-// Table возвращает полное имя таблицы (для диагностики/тестов).
+// Table возвращает полное имя outbox-таблицы (для диагностики/тестов).
 func (o *Outbox) Table() string { return o.table }
+
+// DeadLetterTable возвращает полное имя DLQ-таблицы.
+func (o *Outbox) DeadLetterTable() string { return o.dlqTable }
 
 // Topic возвращает Kafka topic.
 func (o *Outbox) Topic() string { return o.topic }
+
+// MaxAttempts возвращает порог попыток до перемещения в DLQ.
+func (o *Outbox) MaxAttempts() int { return o.maxAttempts }
 
 // EnqueueTx вставляет outbox-запись в указанной транзакции. Должно вызываться
 // внутри той же tx, что доменный INSERT — это и есть суть outbox pattern.

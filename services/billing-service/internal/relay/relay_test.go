@@ -125,9 +125,9 @@ func TestBundle_RunWithStubPublisher(t *testing.T) {
 	defer db.Close()
 
 	mock.ExpectBegin()
-	mock.ExpectQuery(`SELECT id, aggregate_id, payload FROM platform.billing_outbox`).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "aggregate_id", "payload"}).
-			AddRow(int64(101), "evt-101", []byte(`{"id":"evt-101","tenant_id":"bank-alpha"}`)))
+	mock.ExpectQuery(`SELECT id, aggregate_id, payload, attempts FROM platform.billing_outbox`).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "aggregate_id", "payload", "attempts"}).
+			AddRow(int64(101), "evt-101", []byte(`{"id":"evt-101","tenant_id":"bank-alpha"}`), 0))
 	mock.ExpectExec(`UPDATE platform.billing_outbox SET published_at`).
 		WithArgs("{101}").
 		WillReturnResult(sqlmock.NewResult(0, 1))

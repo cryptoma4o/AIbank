@@ -1,30 +1,35 @@
+"""Pydantic schemas for the reconciliation agent."""
 from __future__ import annotations
+
 from enum import StrEnum
-from pydantic import BaseModel
+from typing import Any
 
-class ChangeType(StrEnum):
-    DIRECTOR_CHANGED = "director_changed"
-    ADDRESS_CHANGED = "address_changed"
-    OKVED_CHANGED = "okved_changed"
-    ROSFINMON_HIT = "rosfinmon_hit"
-    STATUS_CHANGED = "status_changed"
-    NO_CHANGE = "no_change"
+from pydantic import BaseModel, Field
 
-class ReconcileRequest(BaseModel):
-    application_id: str
-    tenant_id: str
-    inn: str
-    previous_egrul_data: dict   # snapshot stored when application was submitted
 
-class ReconcileChange(BaseModel):
-    change_type: ChangeType
+class Severity(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+class Discrepancy(BaseModel):
     field: str
-    old_value: str
-    new_value: str
+    extracted_value: str
+    registry_value: str
+    severity: Severity = Severity.MEDIUM
 
-class ReconcileResult(BaseModel):
+
+class ReconciliationRequest(BaseModel):
+    tenant_id: str
     application_id: str
-    inn: str
-    changes: list[ReconcileChange]
-    requires_review: bool       # True if any significant change detected
-    rosfinmon_blocked: bool
+    extracted_data: dict[str, Any] = Field(default_factory=dict)
+    egrul_data: dict[str, Any] = Field(default_factory=dict)
+
+
+class ReconciliationResult(BaseModel):
+    matches: bool
+    discrepancies: list[Discrepancy] = Field(default_factory=list)
+    questions_for_client: list[str] = Field(default_factory=list)
+    requires_review: bool = False
+    gateway_metadata: dict[str, Any] = Field(default_factory=dict)

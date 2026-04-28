@@ -1,0 +1,1403 @@
+[
+  {
+    "id": "ubo-graphs-trivial-001",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "3185513262",
+      "root_short_name": "ООО «Сириус»",
+      "ownership_extracts": [
+        {
+          "company_inn": "3185513262",
+          "owner": {
+            "type": "person",
+            "full_name": "Сидоров Алексей Николаевич",
+            "inn": "241775707204"
+          },
+          "share_percent": 100.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "3185513262",
+          "type": "company"
+        },
+        {
+          "id": "241775707204",
+          "type": "person"
+        }
+      ],
+      "edges": [
+        {
+          "from": "241775707204",
+          "to": "3185513262",
+          "share": 100.0
+        }
+      ],
+      "ubos": [
+        {
+          "inn": "241775707204",
+          "full_name": "Сидоров Алексей Николаевич",
+          "effective_share": 100.0
+        }
+      ],
+      "unresolved_branches": []
+    },
+    "tags": [
+      "ubo-graphs",
+      "trivial",
+      "synthetic"
+    ],
+    "description": "Тривиальный UBO: 1 физлицо 100% владеет ООО «Сириус»"
+  },
+  {
+    "id": "ubo-graphs-trivial-002",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "3627459092",
+      "root_short_name": "ООО «Берёзка»",
+      "ownership_extracts": [
+        {
+          "company_inn": "3627459092",
+          "owner": {
+            "type": "person",
+            "full_name": "Фёдоров Дмитрий Андреевич",
+            "inn": "609158060660"
+          },
+          "share_percent": 100.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "3627459092",
+          "type": "company"
+        },
+        {
+          "id": "609158060660",
+          "type": "person"
+        }
+      ],
+      "edges": [
+        {
+          "from": "609158060660",
+          "to": "3627459092",
+          "share": 100.0
+        }
+      ],
+      "ubos": [
+        {
+          "inn": "609158060660",
+          "full_name": "Фёдоров Дмитрий Андреевич",
+          "effective_share": 100.0
+        }
+      ],
+      "unresolved_branches": []
+    },
+    "tags": [
+      "ubo-graphs",
+      "trivial",
+      "synthetic"
+    ],
+    "description": "Тривиальный UBO: 1 физлицо 100% владеет ООО «Берёзка»"
+  },
+  {
+    "id": "ubo-graphs-trivial-003",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "6902227219",
+      "root_short_name": "ООО «Каскад»",
+      "ownership_extracts": [
+        {
+          "company_inn": "6902227219",
+          "owner": {
+            "type": "person",
+            "full_name": "Иванов Александр Алексеевич",
+            "inn": "711291470069"
+          },
+          "share_percent": 100.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "6902227219",
+          "type": "company"
+        },
+        {
+          "id": "711291470069",
+          "type": "person"
+        }
+      ],
+      "edges": [
+        {
+          "from": "711291470069",
+          "to": "6902227219",
+          "share": 100.0
+        }
+      ],
+      "ubos": [
+        {
+          "inn": "711291470069",
+          "full_name": "Иванов Александр Алексеевич",
+          "effective_share": 100.0
+        }
+      ],
+      "unresolved_branches": []
+    },
+    "tags": [
+      "ubo-graphs",
+      "trivial",
+      "synthetic"
+    ],
+    "description": "Тривиальный UBO: 1 физлицо 100% владеет ООО «Каскад»"
+  },
+  {
+    "id": "ubo-graphs-trivial-004",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "3351210323",
+      "root_short_name": "ООО «Импульс»",
+      "ownership_extracts": [
+        {
+          "company_inn": "3351210323",
+          "owner": {
+            "type": "person",
+            "full_name": "Сидоров Алексей Иванович",
+            "inn": "173031094548"
+          },
+          "share_percent": 100.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "3351210323",
+          "type": "company"
+        },
+        {
+          "id": "173031094548",
+          "type": "person"
+        }
+      ],
+      "edges": [
+        {
+          "from": "173031094548",
+          "to": "3351210323",
+          "share": 100.0
+        }
+      ],
+      "ubos": [
+        {
+          "inn": "173031094548",
+          "full_name": "Сидоров Алексей Иванович",
+          "effective_share": 100.0
+        }
+      ],
+      "unresolved_branches": []
+    },
+    "tags": [
+      "ubo-graphs",
+      "trivial",
+      "synthetic"
+    ],
+    "description": "Тривиальный UBO: 1 физлицо 100% владеет ООО «Импульс»"
+  },
+  {
+    "id": "ubo-graphs-trivial-005",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "7621104090",
+      "root_short_name": "ООО «Импульс»",
+      "ownership_extracts": [
+        {
+          "company_inn": "7621104090",
+          "owner": {
+            "type": "person",
+            "full_name": "Новиков Дмитрий Михайлович",
+            "inn": "392948740118"
+          },
+          "share_percent": 100.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "7621104090",
+          "type": "company"
+        },
+        {
+          "id": "392948740118",
+          "type": "person"
+        }
+      ],
+      "edges": [
+        {
+          "from": "392948740118",
+          "to": "7621104090",
+          "share": 100.0
+        }
+      ],
+      "ubos": [
+        {
+          "inn": "392948740118",
+          "full_name": "Новиков Дмитрий Михайлович",
+          "effective_share": 100.0
+        }
+      ],
+      "unresolved_branches": []
+    },
+    "tags": [
+      "ubo-graphs",
+      "trivial",
+      "synthetic"
+    ],
+    "description": "Тривиальный UBO: 1 физлицо 100% владеет ООО «Импульс»"
+  },
+  {
+    "id": "ubo-graphs-split-001",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "9008813043",
+      "root_short_name": "ООО «Меридиан»",
+      "ownership_extracts": [
+        {
+          "company_inn": "9008813043",
+          "owner": {
+            "type": "person",
+            "full_name": "Сидоров Алексей Александрович",
+            "inn": "904758754740"
+          },
+          "share_percent": 34.0
+        },
+        {
+          "company_inn": "9008813043",
+          "owner": {
+            "type": "person",
+            "full_name": "Фёдоров Дмитрий Николаевич",
+            "inn": "764773090888"
+          },
+          "share_percent": 33.0
+        },
+        {
+          "company_inn": "9008813043",
+          "owner": {
+            "type": "person",
+            "full_name": "Новиков Андрей Иванович",
+            "inn": "800985397678"
+          },
+          "share_percent": 33.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "9008813043",
+          "type": "company"
+        },
+        {
+          "id": "904758754740",
+          "type": "person"
+        },
+        {
+          "id": "764773090888",
+          "type": "person"
+        },
+        {
+          "id": "800985397678",
+          "type": "person"
+        }
+      ],
+      "edges": [
+        {
+          "from": "904758754740",
+          "to": "9008813043",
+          "share": 34.0
+        },
+        {
+          "from": "764773090888",
+          "to": "9008813043",
+          "share": 33.0
+        },
+        {
+          "from": "800985397678",
+          "to": "9008813043",
+          "share": 33.0
+        }
+      ],
+      "ubos": [
+        {
+          "inn": "904758754740",
+          "full_name": "Сидоров Алексей Александрович",
+          "effective_share": 34.0
+        },
+        {
+          "inn": "764773090888",
+          "full_name": "Фёдоров Дмитрий Николаевич",
+          "effective_share": 33.0
+        },
+        {
+          "inn": "800985397678",
+          "full_name": "Новиков Андрей Иванович",
+          "effective_share": 33.0
+        }
+      ],
+      "unresolved_branches": []
+    },
+    "tags": [
+      "ubo-graphs",
+      "split",
+      "synthetic"
+    ],
+    "description": "Разделённое владение ООО «Меридиан» (3 физлица)"
+  },
+  {
+    "id": "ubo-graphs-split-002",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "6203275146",
+      "root_short_name": "ООО «Меридиан»",
+      "ownership_extracts": [
+        {
+          "company_inn": "6203275146",
+          "owner": {
+            "type": "person",
+            "full_name": "Михайлов Алексей Николаевич",
+            "inn": "743538785211"
+          },
+          "share_percent": 34.0
+        },
+        {
+          "company_inn": "6203275146",
+          "owner": {
+            "type": "person",
+            "full_name": "Козлов Дмитрий Дмитриевич",
+            "inn": "417362727238"
+          },
+          "share_percent": 33.0
+        },
+        {
+          "company_inn": "6203275146",
+          "owner": {
+            "type": "person",
+            "full_name": "Новиков Дмитрий Андреевич",
+            "inn": "277785163916"
+          },
+          "share_percent": 33.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "6203275146",
+          "type": "company"
+        },
+        {
+          "id": "743538785211",
+          "type": "person"
+        },
+        {
+          "id": "417362727238",
+          "type": "person"
+        },
+        {
+          "id": "277785163916",
+          "type": "person"
+        }
+      ],
+      "edges": [
+        {
+          "from": "743538785211",
+          "to": "6203275146",
+          "share": 34.0
+        },
+        {
+          "from": "417362727238",
+          "to": "6203275146",
+          "share": 33.0
+        },
+        {
+          "from": "277785163916",
+          "to": "6203275146",
+          "share": 33.0
+        }
+      ],
+      "ubos": [
+        {
+          "inn": "743538785211",
+          "full_name": "Михайлов Алексей Николаевич",
+          "effective_share": 34.0
+        },
+        {
+          "inn": "417362727238",
+          "full_name": "Козлов Дмитрий Дмитриевич",
+          "effective_share": 33.0
+        },
+        {
+          "inn": "277785163916",
+          "full_name": "Новиков Дмитрий Андреевич",
+          "effective_share": 33.0
+        }
+      ],
+      "unresolved_branches": []
+    },
+    "tags": [
+      "ubo-graphs",
+      "split",
+      "synthetic"
+    ],
+    "description": "Разделённое владение ООО «Меридиан» (3 физлица)"
+  },
+  {
+    "id": "ubo-graphs-split-003",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "2979135612",
+      "root_short_name": "ООО «Каскад»",
+      "ownership_extracts": [
+        {
+          "company_inn": "2979135612",
+          "owner": {
+            "type": "person",
+            "full_name": "Новиков Максим Александрович",
+            "inn": "414566261447"
+          },
+          "share_percent": 34.0
+        },
+        {
+          "company_inn": "2979135612",
+          "owner": {
+            "type": "person",
+            "full_name": "Новиков Андрей Дмитриевич",
+            "inn": "832449693186"
+          },
+          "share_percent": 33.0
+        },
+        {
+          "company_inn": "2979135612",
+          "owner": {
+            "type": "person",
+            "full_name": "Кузнецов Александр Алексеевич",
+            "inn": "711168336713"
+          },
+          "share_percent": 33.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "2979135612",
+          "type": "company"
+        },
+        {
+          "id": "414566261447",
+          "type": "person"
+        },
+        {
+          "id": "832449693186",
+          "type": "person"
+        },
+        {
+          "id": "711168336713",
+          "type": "person"
+        }
+      ],
+      "edges": [
+        {
+          "from": "414566261447",
+          "to": "2979135612",
+          "share": 34.0
+        },
+        {
+          "from": "832449693186",
+          "to": "2979135612",
+          "share": 33.0
+        },
+        {
+          "from": "711168336713",
+          "to": "2979135612",
+          "share": 33.0
+        }
+      ],
+      "ubos": [
+        {
+          "inn": "414566261447",
+          "full_name": "Новиков Максим Александрович",
+          "effective_share": 34.0
+        },
+        {
+          "inn": "832449693186",
+          "full_name": "Новиков Андрей Дмитриевич",
+          "effective_share": 33.0
+        },
+        {
+          "inn": "711168336713",
+          "full_name": "Кузнецов Александр Алексеевич",
+          "effective_share": 33.0
+        }
+      ],
+      "unresolved_branches": []
+    },
+    "tags": [
+      "ubo-graphs",
+      "split",
+      "synthetic"
+    ],
+    "description": "Разделённое владение ООО «Каскад» (3 физлица)"
+  },
+  {
+    "id": "ubo-graphs-split-004",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "2465428360",
+      "root_short_name": "ООО «Вектор»",
+      "ownership_extracts": [
+        {
+          "company_inn": "2465428360",
+          "owner": {
+            "type": "person",
+            "full_name": "Васильев Андрей Дмитриевич",
+            "inn": "542730207106"
+          },
+          "share_percent": 50.0
+        },
+        {
+          "company_inn": "2465428360",
+          "owner": {
+            "type": "person",
+            "full_name": "Иванов Сергей Дмитриевич",
+            "inn": "580147210700"
+          },
+          "share_percent": 50.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "2465428360",
+          "type": "company"
+        },
+        {
+          "id": "542730207106",
+          "type": "person"
+        },
+        {
+          "id": "580147210700",
+          "type": "person"
+        }
+      ],
+      "edges": [
+        {
+          "from": "542730207106",
+          "to": "2465428360",
+          "share": 50.0
+        },
+        {
+          "from": "580147210700",
+          "to": "2465428360",
+          "share": 50.0
+        }
+      ],
+      "ubos": [
+        {
+          "inn": "542730207106",
+          "full_name": "Васильев Андрей Дмитриевич",
+          "effective_share": 50.0
+        },
+        {
+          "inn": "580147210700",
+          "full_name": "Иванов Сергей Дмитриевич",
+          "effective_share": 50.0
+        }
+      ],
+      "unresolved_branches": []
+    },
+    "tags": [
+      "ubo-graphs",
+      "split",
+      "synthetic"
+    ],
+    "description": "Разделённое владение ООО «Вектор» (2 физлица)"
+  },
+  {
+    "id": "ubo-graphs-split-005",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "3332650093",
+      "root_short_name": "ООО «Прогресс»",
+      "ownership_extracts": [
+        {
+          "company_inn": "3332650093",
+          "owner": {
+            "type": "person",
+            "full_name": "Козлов Дмитрий Иванович",
+            "inn": "302108176160"
+          },
+          "share_percent": 34.0
+        },
+        {
+          "company_inn": "3332650093",
+          "owner": {
+            "type": "person",
+            "full_name": "Сидоров Алексей Андреевич",
+            "inn": "636821627038"
+          },
+          "share_percent": 33.0
+        },
+        {
+          "company_inn": "3332650093",
+          "owner": {
+            "type": "person",
+            "full_name": "Михайлов Алексей Александрович",
+            "inn": "149229634996"
+          },
+          "share_percent": 33.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "3332650093",
+          "type": "company"
+        },
+        {
+          "id": "302108176160",
+          "type": "person"
+        },
+        {
+          "id": "636821627038",
+          "type": "person"
+        },
+        {
+          "id": "149229634996",
+          "type": "person"
+        }
+      ],
+      "edges": [
+        {
+          "from": "302108176160",
+          "to": "3332650093",
+          "share": 34.0
+        },
+        {
+          "from": "636821627038",
+          "to": "3332650093",
+          "share": 33.0
+        },
+        {
+          "from": "149229634996",
+          "to": "3332650093",
+          "share": 33.0
+        }
+      ],
+      "ubos": [
+        {
+          "inn": "302108176160",
+          "full_name": "Козлов Дмитрий Иванович",
+          "effective_share": 34.0
+        },
+        {
+          "inn": "636821627038",
+          "full_name": "Сидоров Алексей Андреевич",
+          "effective_share": 33.0
+        },
+        {
+          "inn": "149229634996",
+          "full_name": "Михайлов Алексей Александрович",
+          "effective_share": 33.0
+        }
+      ],
+      "unresolved_branches": []
+    },
+    "tags": [
+      "ubo-graphs",
+      "split",
+      "synthetic"
+    ],
+    "description": "Разделённое владение ООО «Прогресс» (3 физлица)"
+  },
+  {
+    "id": "ubo-graphs-nested-001",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "7345044869",
+      "root_short_name": "ООО «Гранит»",
+      "ownership_extracts": [
+        {
+          "company_inn": "7345044869",
+          "owner": {
+            "type": "company",
+            "short_name": "ООО «Альтаир»",
+            "inn": "5044218733"
+          },
+          "share_percent": 100.0
+        },
+        {
+          "company_inn": "5044218733",
+          "owner": {
+            "type": "person",
+            "full_name": "Фёдоров Дмитрий Алексеевич",
+            "inn": "102490319664"
+          },
+          "share_percent": 100.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "7345044869",
+          "type": "company"
+        },
+        {
+          "id": "5044218733",
+          "type": "company"
+        },
+        {
+          "id": "102490319664",
+          "type": "person"
+        }
+      ],
+      "edges": [
+        {
+          "from": "5044218733",
+          "to": "7345044869",
+          "share": 100.0
+        },
+        {
+          "from": "102490319664",
+          "to": "5044218733",
+          "share": 100.0
+        }
+      ],
+      "ubos": [
+        {
+          "inn": "102490319664",
+          "full_name": "Фёдоров Дмитрий Алексеевич",
+          "effective_share": 100.0
+        }
+      ],
+      "unresolved_branches": []
+    },
+    "tags": [
+      "ubo-graphs",
+      "nested",
+      "synthetic"
+    ],
+    "description": "Цепочка: Фёдоров Дмитрий Алексеевич → ООО «Альтаир» (100.0%) → ООО «Гранит» (100.0%)"
+  },
+  {
+    "id": "ubo-graphs-nested-002",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "8237943395",
+      "root_short_name": "ООО «Импульс»",
+      "ownership_extracts": [
+        {
+          "company_inn": "8237943395",
+          "owner": {
+            "type": "company",
+            "short_name": "ООО «Импульс»",
+            "inn": "5936790273"
+          },
+          "share_percent": 60.0
+        },
+        {
+          "company_inn": "5936790273",
+          "owner": {
+            "type": "person",
+            "full_name": "Васильев Андрей Михайлович",
+            "inn": "526779315851"
+          },
+          "share_percent": 100.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "8237943395",
+          "type": "company"
+        },
+        {
+          "id": "5936790273",
+          "type": "company"
+        },
+        {
+          "id": "526779315851",
+          "type": "person"
+        }
+      ],
+      "edges": [
+        {
+          "from": "5936790273",
+          "to": "8237943395",
+          "share": 60.0
+        },
+        {
+          "from": "526779315851",
+          "to": "5936790273",
+          "share": 100.0
+        }
+      ],
+      "ubos": [
+        {
+          "inn": "526779315851",
+          "full_name": "Васильев Андрей Михайлович",
+          "effective_share": 60.0
+        }
+      ],
+      "unresolved_branches": []
+    },
+    "tags": [
+      "ubo-graphs",
+      "nested",
+      "synthetic"
+    ],
+    "description": "Цепочка: Васильев Андрей Михайлович → ООО «Импульс» (100.0%) → ООО «Импульс» (60.0%)"
+  },
+  {
+    "id": "ubo-graphs-nested-003",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "1773441893",
+      "root_short_name": "ООО «Каскад»",
+      "ownership_extracts": [
+        {
+          "company_inn": "1773441893",
+          "owner": {
+            "type": "company",
+            "short_name": "ООО «Сириус»",
+            "inn": "3316409885"
+          },
+          "share_percent": 60.0
+        },
+        {
+          "company_inn": "3316409885",
+          "owner": {
+            "type": "person",
+            "full_name": "Сидоров Алексей Иванович",
+            "inn": "722420197852"
+          },
+          "share_percent": 100.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "1773441893",
+          "type": "company"
+        },
+        {
+          "id": "3316409885",
+          "type": "company"
+        },
+        {
+          "id": "722420197852",
+          "type": "person"
+        }
+      ],
+      "edges": [
+        {
+          "from": "3316409885",
+          "to": "1773441893",
+          "share": 60.0
+        },
+        {
+          "from": "722420197852",
+          "to": "3316409885",
+          "share": 100.0
+        }
+      ],
+      "ubos": [
+        {
+          "inn": "722420197852",
+          "full_name": "Сидоров Алексей Иванович",
+          "effective_share": 60.0
+        }
+      ],
+      "unresolved_branches": []
+    },
+    "tags": [
+      "ubo-graphs",
+      "nested",
+      "synthetic"
+    ],
+    "description": "Цепочка: Сидоров Алексей Иванович → ООО «Сириус» (100.0%) → ООО «Каскад» (60.0%)"
+  },
+  {
+    "id": "ubo-graphs-nested-004",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "4651107657",
+      "root_short_name": "ООО «Прогресс»",
+      "ownership_extracts": [
+        {
+          "company_inn": "4651107657",
+          "owner": {
+            "type": "company",
+            "short_name": "ООО «Прогресс»",
+            "inn": "4098275091"
+          },
+          "share_percent": 75.0
+        },
+        {
+          "company_inn": "4098275091",
+          "owner": {
+            "type": "person",
+            "full_name": "Кузнецов Александр Алексеевич",
+            "inn": "607923404499"
+          },
+          "share_percent": 100.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "4651107657",
+          "type": "company"
+        },
+        {
+          "id": "4098275091",
+          "type": "company"
+        },
+        {
+          "id": "607923404499",
+          "type": "person"
+        }
+      ],
+      "edges": [
+        {
+          "from": "4098275091",
+          "to": "4651107657",
+          "share": 75.0
+        },
+        {
+          "from": "607923404499",
+          "to": "4098275091",
+          "share": 100.0
+        }
+      ],
+      "ubos": [
+        {
+          "inn": "607923404499",
+          "full_name": "Кузнецов Александр Алексеевич",
+          "effective_share": 75.0
+        }
+      ],
+      "unresolved_branches": []
+    },
+    "tags": [
+      "ubo-graphs",
+      "nested",
+      "synthetic"
+    ],
+    "description": "Цепочка: Кузнецов Александр Алексеевич → ООО «Прогресс» (100.0%) → ООО «Прогресс» (75.0%)"
+  },
+  {
+    "id": "ubo-graphs-nested-005",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "5855611984",
+      "root_short_name": "ООО «Импульс»",
+      "ownership_extracts": [
+        {
+          "company_inn": "5855611984",
+          "owner": {
+            "type": "company",
+            "short_name": "ООО «Вектор»",
+            "inn": "7773485637"
+          },
+          "share_percent": 100.0
+        },
+        {
+          "company_inn": "7773485637",
+          "owner": {
+            "type": "person",
+            "full_name": "Смирнов Александр Александрович",
+            "inn": "750943193865"
+          },
+          "share_percent": 100.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "5855611984",
+          "type": "company"
+        },
+        {
+          "id": "7773485637",
+          "type": "company"
+        },
+        {
+          "id": "750943193865",
+          "type": "person"
+        }
+      ],
+      "edges": [
+        {
+          "from": "7773485637",
+          "to": "5855611984",
+          "share": 100.0
+        },
+        {
+          "from": "750943193865",
+          "to": "7773485637",
+          "share": 100.0
+        }
+      ],
+      "ubos": [
+        {
+          "inn": "750943193865",
+          "full_name": "Смирнов Александр Александрович",
+          "effective_share": 100.0
+        }
+      ],
+      "unresolved_branches": []
+    },
+    "tags": [
+      "ubo-graphs",
+      "nested",
+      "synthetic"
+    ],
+    "description": "Цепочка: Смирнов Александр Александрович → ООО «Вектор» (100.0%) → ООО «Импульс» (100.0%)"
+  },
+  {
+    "id": "ubo-graphs-edge-001",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "2446698442",
+      "root_short_name": "ООО «Меридиан»",
+      "ownership_extracts": [
+        {
+          "company_inn": "2446698442",
+          "owner": {
+            "type": "foreign_company",
+            "short_name": "Cyprus Holdings Ltd.",
+            "jurisdiction": "CY"
+          },
+          "share_percent": 100.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "2446698442",
+          "type": "company"
+        },
+        {
+          "id": "foreign:CY:Cyprus Holdings Ltd.",
+          "type": "foreign_company"
+        }
+      ],
+      "edges": [
+        {
+          "from": "foreign:CY:Cyprus Holdings Ltd.",
+          "to": "2446698442",
+          "share": 100.0
+        }
+      ],
+      "ubos": [],
+      "unresolved_branches": [
+        {
+          "reason": "foreign_jurisdiction",
+          "node": "foreign:CY:Cyprus Holdings Ltd."
+        }
+      ]
+    },
+    "tags": [
+      "ubo-graphs",
+      "edge",
+      "synthetic",
+      "adversarial"
+    ],
+    "description": "Иностранный учредитель (CY) у ООО «Меридиан» — не резолвится"
+  },
+  {
+    "id": "ubo-graphs-edge-002",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "5828320425",
+      "root_short_name": "ООО «Вектор»",
+      "ownership_extracts": [
+        {
+          "company_inn": "5828320425",
+          "owner": {
+            "type": "state",
+            "name": "Российская Федерация"
+          },
+          "share_percent": 100.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "5828320425",
+          "type": "company"
+        },
+        {
+          "id": "state:RU",
+          "type": "state"
+        }
+      ],
+      "edges": [
+        {
+          "from": "state:RU",
+          "to": "5828320425",
+          "share": 100.0
+        }
+      ],
+      "ubos": [],
+      "unresolved_branches": []
+    },
+    "tags": [
+      "ubo-graphs",
+      "edge",
+      "synthetic"
+    ],
+    "description": "100% государственное участие в ООО «Вектор» — UBO нет"
+  },
+  {
+    "id": "ubo-graphs-edge-003",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "4738131069",
+      "root_short_name": "ООО «Берёзка»",
+      "ownership_extracts": [
+        {
+          "company_inn": "4738131069",
+          "owner": {
+            "type": "person",
+            "full_name": "Козлов Дмитрий Андреевич",
+            "inn": "635109041105"
+          },
+          "share_percent": 80.0
+        },
+        {
+          "company_inn": "4738131069",
+          "owner": {
+            "type": "person",
+            "full_name": "Кузнецов Дмитрий Дмитриевич",
+            "inn": "311832149390"
+          },
+          "share_percent": 20.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "4738131069",
+          "type": "company"
+        },
+        {
+          "id": "635109041105",
+          "type": "person"
+        },
+        {
+          "id": "311832149390",
+          "type": "person"
+        }
+      ],
+      "edges": [
+        {
+          "from": "635109041105",
+          "to": "4738131069",
+          "share": 80.0
+        },
+        {
+          "from": "311832149390",
+          "to": "4738131069",
+          "share": 20.0
+        }
+      ],
+      "ubos": [
+        {
+          "inn": "635109041105",
+          "full_name": "Козлов Дмитрий Андреевич",
+          "effective_share": 80.0
+        }
+      ],
+      "unresolved_branches": []
+    },
+    "tags": [
+      "ubo-graphs",
+      "edge",
+      "synthetic"
+    ],
+    "description": "Технический владелец 20% у ООО «Берёзка» — не UBO"
+  },
+  {
+    "id": "ubo-graphs-edge-004",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "7418788580",
+      "root_short_name": "ООО «Сириус»",
+      "ownership_extracts": [
+        {
+          "company_inn": "7418788580",
+          "owner": {
+            "type": "state",
+            "name": "Российская Федерация"
+          },
+          "share_percent": 51.0
+        },
+        {
+          "company_inn": "7418788580",
+          "owner": {
+            "type": "person",
+            "full_name": "Васильев Максим Иванович",
+            "inn": "138682644668"
+          },
+          "share_percent": 19.0
+        },
+        {
+          "company_inn": "7418788580",
+          "owner": {
+            "type": "foreign_company",
+            "short_name": "BVI Trust Inc.",
+            "jurisdiction": "VG"
+          },
+          "share_percent": 30.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "7418788580",
+          "type": "company"
+        },
+        {
+          "id": "state:RU",
+          "type": "state"
+        },
+        {
+          "id": "138682644668",
+          "type": "person"
+        },
+        {
+          "id": "foreign:VG:BVI Trust Inc.",
+          "type": "foreign_company"
+        }
+      ],
+      "edges": [
+        {
+          "from": "state:RU",
+          "to": "7418788580",
+          "share": 51.0
+        },
+        {
+          "from": "138682644668",
+          "to": "7418788580",
+          "share": 19.0
+        },
+        {
+          "from": "foreign:VG:BVI Trust Inc.",
+          "to": "7418788580",
+          "share": 30.0
+        }
+      ],
+      "ubos": [],
+      "unresolved_branches": [
+        {
+          "reason": "foreign_jurisdiction",
+          "node": "foreign:VG:BVI Trust Inc."
+        }
+      ]
+    },
+    "tags": [
+      "ubo-graphs",
+      "edge",
+      "synthetic"
+    ],
+    "description": "Смесь: государство 51% + 30% офшор + 19% физлицо в ООО «Сириус»"
+  },
+  {
+    "id": "ubo-graphs-edge-005",
+    "agent": "ubo-tracing",
+    "input": {
+      "root_inn": "5061506812",
+      "root_short_name": "ООО «Ромашка»",
+      "ownership_extracts": [
+        {
+          "company_inn": "5061506812",
+          "owner": {
+            "type": "trust",
+            "name": "Частный траст без указания бенефициаров"
+          },
+          "share_percent": 100.0
+        }
+      ],
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "nodes": [
+        {
+          "id": "5061506812",
+          "type": "company"
+        },
+        {
+          "id": "trust:anonymous",
+          "type": "trust"
+        }
+      ],
+      "edges": [
+        {
+          "from": "trust:anonymous",
+          "to": "5061506812",
+          "share": 100.0
+        }
+      ],
+      "ubos": [],
+      "unresolved_branches": [
+        {
+          "reason": "anonymous_trust",
+          "node": "trust:anonymous"
+        }
+      ]
+    },
+    "tags": [
+      "ubo-graphs",
+      "edge",
+      "synthetic",
+      "adversarial"
+    ],
+    "description": "Анонимный траст 100% у ООО «Ромашка» — бенефициар не известен"
+  }
+]

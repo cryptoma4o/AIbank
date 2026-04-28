@@ -11,6 +11,6 @@ RUN pip install --no-cache-dir \
 
 COPY . .
 
-EXPOSE 8107
+EXPOSE 8106
 
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8107"]
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8106"]

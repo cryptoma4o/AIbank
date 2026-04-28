@@ -1,26 +1,39 @@
+"""Pydantic v2 schemas for agent-compliance-assistant."""
 from __future__ import annotations
+
+from typing import Any, Literal
+
 from pydantic import BaseModel, Field
 
 
-class ComplianceQuestion(BaseModel):
+class AnswerRequest(BaseModel):
+    tenant_id: str
     question: str
-    context: dict = Field(default_factory=dict)  # optional: application data for context-aware answers
-    regulation_filter: str | None = None          # e.g. "115-fz", "375-p"
-    top_k: int = 3
+    context: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Optional case context — application_id, client facts, regulation hints.",
+    )
+    top_k: int = 5
+    source_type: str | None = None   # narrow RAG search to e.g. "law" / "regulation"
 
 
-class ComplianceSource(BaseModel):
+class Citation(BaseModel):
     doc_id: str
-    title: str
-    chunk: str
+    snippet: str
     source: str
-    score: float
+    source_type: str = "law"
+    score: float = 0.0
 
 
-class ComplianceAnswer(BaseModel):
+Confidence = Literal["high", "medium", "low"]
+
+
+class AnswerResponse(BaseModel):
+    tenant_id: str
     question: str
     answer: str
-    sources: list[ComplianceSource]
-    confidence: str     # "high" | "medium" | "low"
+    citations: list[Citation]
+    confidence: Confidence
+    requires_human_review: bool = False
     disclaimer: str
-    model_used: str
+    gateway_metadata: dict[str, Any] = Field(default_factory=dict)

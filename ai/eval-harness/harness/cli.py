@@ -8,15 +8,84 @@ from rich.table import Table
 
 from .runner import AgentRunner
 from .metrics import field_coverage
+from .scenarios import ScenarioRunner
 from .types import EvalCase
 
 console = Console()
+
+
+# Lazy-load scenarios so the harness still works in environments without
+# `respx` installed (e.g. minimal CI for unit metrics only).
+def _load_scenarios() -> dict:
+    try:
+        from scenarios import HAPPY_PATH_SCENARIO  # noqa: PLC0415
+    except ImportError as e:
+        raise click.ClickException(
+            f"scenarios package unavailable ({e}). Install dev extras: pip install respx"
+        ) from e
+    return {"happy_path": HAPPY_PATH_SCENARIO}
 
 
 @click.group()
 def main():
     """AIbank AI agent evaluation harness."""
     pass
+
+
+@main.group()
+def scenario():
+    """Run multi-step end-to-end onboarding scenarios."""
+    pass
+
+
+@scenario.command("list")
+def scenario_list():
+    """List available scenarios."""
+    scenarios = _load_scenarios()
+    table = Table(title="Available scenarios")
+    table.add_column("ID", style="cyan")
+    table.add_column("Steps", justify="right")
+    table.add_column("Final state", style="green")
+    table.add_column("Description")
+    for sid, sc in scenarios.items():
+        table.add_row(sid, str(len(sc.steps)), sc.expected_final_state, sc.description)
+    console.print(table)
+
+
+@scenario.command("run")
+@click.argument("scenario_id")
+def scenario_run(scenario_id: str):
+    """Run a scenario by id (e.g. happy_path)."""
+    scenarios = _load_scenarios()
+    if scenario_id not in scenarios:
+        raise click.ClickException(f"unknown scenario {scenario_id!r}; available: {list(scenarios)}")
+    sc = scenarios[scenario_id]
+    runner = ScenarioRunner()
+    result = asyncio.run(runner.run(sc))
+
+    table = Table(title=f"Scenario {sc.id} — {result.final_state}")
+    table.add_column("#", justify="right")
+    table.add_column("Step")
+    table.add_column("Status", style="bold")
+    table.add_column("State after", style="green")
+    table.add_column("Latency (ms)", justify="right")
+    table.add_column("Error")
+    for idx, sr in enumerate(result.step_results, 1):
+        color = "green" if sr.status == "pass" else "red"
+        table.add_row(
+            str(idx),
+            sr.name,
+            f"[{color}]{sr.status}[/{color}]",
+            sr.state_after or "-",
+            f"{sr.duration_ms:.0f}",
+            sr.error or "",
+        )
+    console.print(table)
+    console.print(f"\nTotal: {result.total_duration_ms:.0f}ms; "
+                  f"passed {result.steps_passed}/{len(sc.steps)}; "
+                  f"audit events: {len(result.audit_events)}")
+    if not result.passed:
+        raise SystemExit(1)
 
 
 @main.command()

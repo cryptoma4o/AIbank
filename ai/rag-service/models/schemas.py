@@ -1,36 +1,55 @@
+"""Pydantic v2 schemas for rag-service public API."""
 from __future__ import annotations
-from pydantic import BaseModel
+
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+
+class IndexDocument(BaseModel):
+    """Single document submitted for indexing."""
+
+    id: str
+    text: str
+    source: str            # human-readable label, e.g. "115-ФЗ ст.7"
+    source_type: str = "law"   # "law" | "regulation" | "internal" | ...
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class IndexRequest(BaseModel):
-    doc_id: str
-    title: str
-    content: str
-    source: str     # e.g. "115-fz", "375-p", "499-p"
-    chunk_size: int = 500
+    tenant_id: str
+    documents: list[IndexDocument]
+
+
+class IndexResponse(BaseModel):
+    tenant_id: str
+    indexed: int
+    collection: str
+
+
+class SearchFilters(BaseModel):
+    source_type: str | None = None
+    source: str | None = None
 
 
 class SearchRequest(BaseModel):
+    tenant_id: str
     query: str
     top_k: int = 5
-    source_filter: str | None = None   # filter by regulation source
+    filters: SearchFilters | None = None
 
 
-class SearchResult(BaseModel):
-    doc_id: str
-    title: str
-    chunk: str
+class SearchHit(BaseModel):
+    document_id: str
     score: float
+    snippet: str
     source: str
+    source_type: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-class AskRequest(BaseModel):
-    question: str
-    top_k: int = 3
-    source_filter: str | None = None
-
-
-class AskResponse(BaseModel):
-    answer: str
-    sources: list[SearchResult]
-    model_used: str
+class SearchResponse(BaseModel):
+    tenant_id: str
+    query: str
+    hits: list[SearchHit]
+    backend: str          # "qdrant" | "memory" — useful in tests / dev

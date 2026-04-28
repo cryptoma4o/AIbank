@@ -1,0 +1,894 @@
+[
+  {
+    "id": "docs-parsing-charter-001",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/001.pdf",
+      "page_count": 14,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Прогресс-Групп»",
+        "full_name": "Общество с ограниченной ответственностью «Прогресс-Групп»",
+        "inn": "6767976480",
+        "ogrn": "1197603558063",
+        "kpp": "676777001",
+        "registration_date": "20.03.2012",
+        "legal_address": "г. Екатеринбург, ул. Малышева, д. 47, кв. 163",
+        "director_full_name": "Смирнов Матвей Викторович",
+        "capital_kopecks": 1000000,
+        "okved_main": "43.21",
+        "okved_additional": [
+          "68.20",
+          "46.90",
+          "62.01"
+        ]
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Прогресс-Групп», Екатеринбург"
+  },
+  {
+    "id": "docs-parsing-charter-002",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/002.pdf",
+      "page_count": 13,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Новый Век»",
+        "full_name": "Общество с ограниченной ответственностью «Новый Век»",
+        "inn": "8733863757",
+        "ogrn": "1189162578978",
+        "kpp": "873335001",
+        "registration_date": "03.02.2018",
+        "legal_address": "г. Казань, ул. Баумана, д. 133, кв. 40",
+        "director_full_name": "Егоров Александр Александрович",
+        "capital_kopecks": 10000000,
+        "okved_main": "70.22",
+        "okved_additional": []
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Новый Век», Казань"
+  },
+  {
+    "id": "docs-parsing-charter-003",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/003.pdf",
+      "page_count": 20,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Запад-Сервис»",
+        "full_name": "Общество с ограниченной ответственностью «Запад-Сервис»",
+        "inn": "7291821900",
+        "ogrn": "1886905714122",
+        "kpp": "729150001",
+        "registration_date": "24.08.2024",
+        "legal_address": "г. Ростов-на-Дону, пр. Соколова, д. 142, кв. 114",
+        "director_full_name": "Романов Артём Сергеевич",
+        "capital_kopecks": 10000000,
+        "okved_main": "68.20",
+        "okved_additional": [
+          "46.90"
+        ]
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Запад-Сервис», Ростов-на-Дону"
+  },
+  {
+    "id": "docs-parsing-charter-004",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/004.pdf",
+      "page_count": 18,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Вектор»",
+        "full_name": "Общество с ограниченной ответственностью «Вектор»",
+        "inn": "7081450826",
+        "ogrn": "1836899203766",
+        "kpp": "708183001",
+        "registration_date": "11.07.2015",
+        "legal_address": "г. Екатеринбург, ул. Малышева, д. 178, кв. 184",
+        "director_full_name": "Никитин Илья Сергеевич",
+        "capital_kopecks": 1000000,
+        "okved_main": "47.11",
+        "okved_additional": []
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Вектор», Екатеринбург"
+  },
+  {
+    "id": "docs-parsing-charter-005",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/005.pdf",
+      "page_count": 21,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Юг-Трейд»",
+        "full_name": "Общество с ограниченной ответственностью «Юг-Трейд»",
+        "inn": "1725541496",
+        "ogrn": "1104563365928",
+        "kpp": "172559001",
+        "registration_date": "23.08.2011",
+        "legal_address": "г. Екатеринбург, ул. Малышева, д. 79, кв. 29",
+        "director_full_name": "Соловьёв Арсений Андреевич",
+        "capital_kopecks": 100000000,
+        "okved_main": "96.01",
+        "okved_additional": [
+          "43.21",
+          "46.90"
+        ]
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Юг-Трейд», Екатеринбург"
+  },
+  {
+    "id": "docs-parsing-charter-006",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/006.pdf",
+      "page_count": 15,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Континент-Трейд»",
+        "full_name": "Общество с ограниченной ответственностью «Континент-Трейд»",
+        "inn": "3645127646",
+        "ogrn": "1337750413560",
+        "kpp": "364593001",
+        "registration_date": "13.03.2022",
+        "legal_address": "г. Нижний Новгород, ул. Большая Покровская, д. 36, кв. 149",
+        "director_full_name": "Васильев Егор Николаевич",
+        "capital_kopecks": 5000000,
+        "okved_main": "43.21",
+        "okved_additional": [
+          "70.22",
+          "62.01",
+          "49.41"
+        ]
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Континент-Трейд», Нижний Новгород"
+  },
+  {
+    "id": "docs-parsing-charter-007",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/007.pdf",
+      "page_count": 9,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Фортуна»",
+        "full_name": "Общество с ограниченной ответственностью «Фортуна»",
+        "inn": "2105873905",
+        "ogrn": "1897126152229",
+        "kpp": "210510001",
+        "registration_date": "28.11.2025",
+        "legal_address": "г. Ростов-на-Дону, пр. Соколова, д. 57, кв. 139",
+        "director_full_name": "Новиков Алексей Сергеевич",
+        "capital_kopecks": 50000000,
+        "okved_main": "49.41",
+        "okved_additional": [
+          "82.99",
+          "45.20",
+          "62.01"
+        ]
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Фортуна», Ростов-на-Дону"
+  },
+  {
+    "id": "docs-parsing-charter-008",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/008.pdf",
+      "page_count": 9,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Алый Парус-Трейд»",
+        "full_name": "Общество с ограниченной ответственностью «Алый Парус-Трейд»",
+        "inn": "7871611431",
+        "ogrn": "1139574683423",
+        "kpp": "787110001",
+        "registration_date": "26.12.2022",
+        "legal_address": "г. Екатеринбург, ул. Малышева, д. 163, кв. 113",
+        "director_full_name": "Егоров Роман Николаевич",
+        "capital_kopecks": 5000000,
+        "okved_main": "46.90",
+        "okved_additional": [
+          "96.01",
+          "62.01"
+        ]
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Алый Парус-Трейд», Екатеринбург"
+  },
+  {
+    "id": "docs-parsing-charter-009",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/009.pdf",
+      "page_count": 21,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Вектор-Логистик»",
+        "full_name": "Общество с ограниченной ответственностью «Вектор-Логистик»",
+        "inn": "2613345720",
+        "ogrn": "1160453766637",
+        "kpp": "261318001",
+        "registration_date": "15.10.2021",
+        "legal_address": "г. Москва, ул. Тверская, д. 174, кв. 174",
+        "director_full_name": "Морозов Алексей Николаевич",
+        "capital_kopecks": 10000000,
+        "okved_main": "96.01",
+        "okved_additional": [
+          "43.21",
+          "82.99",
+          "70.22"
+        ]
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Вектор-Логистик», Москва"
+  },
+  {
+    "id": "docs-parsing-charter-010",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/010.pdf",
+      "page_count": 22,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Лидер-Инвест»",
+        "full_name": "Общество с ограниченной ответственностью «Лидер-Инвест»",
+        "inn": "8358910073",
+        "ogrn": "1864659072661",
+        "kpp": "835859001",
+        "registration_date": "01.01.2016",
+        "legal_address": "г. Ростов-на-Дону, пр. Соколова, д. 10, кв. 60",
+        "director_full_name": "Егоров Алексей Михайлович",
+        "capital_kopecks": 10000000,
+        "okved_main": "45.20",
+        "okved_additional": []
+      },
+      "quality_warnings": [
+        "multiple_versions_detected",
+        "outdated_director"
+      ]
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic",
+      "adversarial"
+    ],
+    "description": "Устав ООО «Лидер-Инвест», Ростов-на-Дону — сложный кейс (старая редакция)"
+  },
+  {
+    "id": "docs-parsing-charter-011",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/011.pdf",
+      "page_count": 8,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Радуга-Капитал»",
+        "full_name": "Общество с ограниченной ответственностью «Радуга-Капитал»",
+        "inn": "2302678477",
+        "ogrn": "1135668894228",
+        "kpp": "230233001",
+        "registration_date": "09.01.2010",
+        "legal_address": "г. Казань, ул. Баумана, д. 65, кв. 245",
+        "director_full_name": "Соколов Максим Андреевич",
+        "capital_kopecks": 5000000,
+        "okved_main": "46.90",
+        "okved_additional": [
+          "70.22"
+        ]
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Радуга-Капитал», Казань"
+  },
+  {
+    "id": "docs-parsing-charter-012",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/012.pdf",
+      "page_count": 19,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Прогресс»",
+        "full_name": "Общество с ограниченной ответственностью «Прогресс»",
+        "inn": "8730511700",
+        "ogrn": "1571032000043",
+        "kpp": "873075001",
+        "registration_date": "19.07.2012",
+        "legal_address": "г. Новосибирск, ул. Ленина, д. 92, кв. 168",
+        "director_full_name": "Новиков Алексей Михайлович",
+        "capital_kopecks": 100000000,
+        "okved_main": "45.20",
+        "okved_additional": [
+          "49.41",
+          "46.90",
+          "47.11"
+        ]
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Прогресс», Новосибирск"
+  },
+  {
+    "id": "docs-parsing-charter-013",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/013.pdf",
+      "page_count": 10,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Вектор»",
+        "full_name": "Общество с ограниченной ответственностью «Вектор»",
+        "inn": "3301275981",
+        "ogrn": "1178143284703",
+        "kpp": "330127001",
+        "registration_date": "07.10.2025",
+        "legal_address": "г. Нижний Новгород, ул. Большая Покровская, д. 47, кв. 163",
+        "director_full_name": "Сидоров Андрей Александрович",
+        "capital_kopecks": 100000000,
+        "okved_main": "96.01",
+        "okved_additional": [
+          "70.22",
+          "68.20",
+          "49.41"
+        ]
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Вектор», Нижний Новгород"
+  },
+  {
+    "id": "docs-parsing-charter-014",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/014.pdf",
+      "page_count": 19,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Альтаир-Инвест»",
+        "full_name": "Общество с ограниченной ответственностью «Альтаир-Инвест»",
+        "inn": "8579699220",
+        "ogrn": "1974555866646",
+        "kpp": "857981001",
+        "registration_date": "16.08.2010",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 97, кв. 38",
+        "director_full_name": "Иванов Андрей Юрьевич",
+        "capital_kopecks": 5000000,
+        "okved_main": "70.22",
+        "okved_additional": [
+          "49.41"
+        ]
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Альтаир-Инвест», Санкт-Петербург"
+  },
+  {
+    "id": "docs-parsing-charter-015",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/015.pdf",
+      "page_count": 15,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Импульс-Логистик»",
+        "full_name": "Общество с ограниченной ответственностью «Импульс-Логистик»",
+        "inn": "4059789569",
+        "ogrn": "1411125733138",
+        "kpp": "405952001",
+        "registration_date": "02.03.2012",
+        "legal_address": "г. Москва, ул. Тверская, д. 49, кв. 101",
+        "director_full_name": "Новиков Сергей Викторович",
+        "capital_kopecks": 50000000,
+        "okved_main": "47.11",
+        "okved_additional": []
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Импульс-Логистик», Москва"
+  },
+  {
+    "id": "docs-parsing-charter-016",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/016.pdf",
+      "page_count": 9,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Заря-Инвест»",
+        "full_name": "Общество с ограниченной ответственностью «Заря-Инвест»",
+        "inn": "1586403337",
+        "ogrn": "1752749200785",
+        "kpp": "158642001",
+        "registration_date": "29.06.2020",
+        "legal_address": "г. Ростов-на-Дону, пр. Соколова, д. 54, кв. 246",
+        "director_full_name": "Смирнов Артём Юрьевич",
+        "capital_kopecks": 50000000,
+        "okved_main": "96.01",
+        "okved_additional": [
+          "62.01",
+          "45.20",
+          "46.90"
+        ]
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Заря-Инвест», Ростов-на-Дону"
+  },
+  {
+    "id": "docs-parsing-charter-017",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/017.pdf",
+      "page_count": 8,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Алый Парус-Трейд»",
+        "full_name": "Общество с ограниченной ответственностью «Алый Парус-Трейд»",
+        "inn": "6097820686",
+        "ogrn": "1163112427532",
+        "kpp": "609747001",
+        "registration_date": "13.05.2022",
+        "legal_address": "г. Ростов-на-Дону, пр. Соколова, д. 66, кв. 46",
+        "director_full_name": "Сидоров Роман Алексеевич",
+        "capital_kopecks": 1000000,
+        "okved_main": "82.99",
+        "okved_additional": []
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Алый Парус-Трейд», Ростов-на-Дону"
+  },
+  {
+    "id": "docs-parsing-charter-018",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/018.pdf",
+      "page_count": 9,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Меридиан-Трейд»",
+        "full_name": "Общество с ограниченной ответственностью «Меридиан-Трейд»",
+        "inn": "9518947044",
+        "ogrn": "1765537643287",
+        "kpp": "951867001",
+        "registration_date": "05.05.2013",
+        "legal_address": "г. Казань, ул. Баумана, д. 87, кв. 80",
+        "director_full_name": "Волков Егор Викторович",
+        "capital_kopecks": 5000000,
+        "okved_main": "49.41",
+        "okved_additional": []
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Меридиан-Трейд», Казань"
+  },
+  {
+    "id": "docs-parsing-charter-019",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/019.pdf",
+      "page_count": 11,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Каскад»",
+        "full_name": "Общество с ограниченной ответственностью «Каскад»",
+        "inn": "1433442106",
+        "ogrn": "1936955191006",
+        "kpp": "143345001",
+        "registration_date": "08.01.2018",
+        "legal_address": "г. Нижний Новгород, ул. Большая Покровская, д. 39, кв. 32",
+        "director_full_name": "Алексеев Алексей Дмитриевич",
+        "capital_kopecks": 100000000,
+        "okved_main": "68.20",
+        "okved_additional": []
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Каскад», Нижний Новгород"
+  },
+  {
+    "id": "docs-parsing-charter-020",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/020.pdf",
+      "page_count": 11,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Юг»",
+        "full_name": "Общество с ограниченной ответственностью «Юг»",
+        "inn": "6391492327",
+        "ogrn": "1668849968654",
+        "kpp": "639195001",
+        "registration_date": "05.07.2022",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 124, кв. 138",
+        "director_full_name": "Никитин Арсений Иванович",
+        "capital_kopecks": 10000000,
+        "okved_main": "62.01",
+        "okved_additional": [
+          "47.11",
+          "70.22",
+          "49.41"
+        ]
+      },
+      "quality_warnings": [
+        "multiple_versions_detected",
+        "outdated_director"
+      ]
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic",
+      "adversarial"
+    ],
+    "description": "Устав ООО «Юг», Санкт-Петербург — сложный кейс (старая редакция)"
+  },
+  {
+    "id": "docs-parsing-charter-021",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/021.pdf",
+      "page_count": 20,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Запад»",
+        "full_name": "Общество с ограниченной ответственностью «Запад»",
+        "inn": "6014771325",
+        "ogrn": "1906727272978",
+        "kpp": "601451001",
+        "registration_date": "26.02.2013",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 44, кв. 147",
+        "director_full_name": "Романов Егор Николаевич",
+        "capital_kopecks": 100000000,
+        "okved_main": "43.21",
+        "okved_additional": [
+          "49.41",
+          "96.01",
+          "62.01"
+        ]
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Запад», Санкт-Петербург"
+  },
+  {
+    "id": "docs-parsing-charter-022",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/022.pdf",
+      "page_count": 15,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Гранит-Капитал»",
+        "full_name": "Общество с ограниченной ответственностью «Гранит-Капитал»",
+        "inn": "1225068151",
+        "ogrn": "1852852782528",
+        "kpp": "122584001",
+        "registration_date": "11.02.2017",
+        "legal_address": "г. Казань, ул. Баумана, д. 37, кв. 118",
+        "director_full_name": "Иванов Егор Алексеевич",
+        "capital_kopecks": 1000000,
+        "okved_main": "82.99",
+        "okved_additional": []
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Гранит-Капитал», Казань"
+  },
+  {
+    "id": "docs-parsing-charter-023",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/023.pdf",
+      "page_count": 18,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Фортуна-Холдинг»",
+        "full_name": "Общество с ограниченной ответственностью «Фортуна-Холдинг»",
+        "inn": "7604680418",
+        "ogrn": "1388803019417",
+        "kpp": "760483001",
+        "registration_date": "29.12.2013",
+        "legal_address": "г. Новосибирск, ул. Ленина, д. 113, кв. 78",
+        "director_full_name": "Романов Андрей Иванович",
+        "capital_kopecks": 10000000,
+        "okved_main": "49.41",
+        "okved_additional": [
+          "62.01"
+        ]
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Фортуна-Холдинг», Новосибирск"
+  },
+  {
+    "id": "docs-parsing-charter-024",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/024.pdf",
+      "page_count": 19,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Континент»",
+        "full_name": "Общество с ограниченной ответственностью «Континент»",
+        "inn": "5338945322",
+        "ogrn": "1123319664159",
+        "kpp": "533888001",
+        "registration_date": "20.03.2019",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 47, кв. 100",
+        "director_full_name": "Соловьёв Кирилл Дмитриевич",
+        "capital_kopecks": 50000000,
+        "okved_main": "68.20",
+        "okved_additional": [
+          "49.41",
+          "70.22",
+          "46.90"
+        ]
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Континент», Санкт-Петербург"
+  },
+  {
+    "id": "docs-parsing-charter-025",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "charter",
+      "document_url": "fixtures://charters/025.pdf",
+      "page_count": 12,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "charter",
+      "fields": {
+        "short_name": "ООО «Алый Парус-Капитал»",
+        "full_name": "Общество с ограниченной ответственностью «Алый Парус-Капитал»",
+        "inn": "4806882323",
+        "ogrn": "1357355469272",
+        "kpp": "480696001",
+        "registration_date": "24.04.2012",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 7, кв. 187",
+        "director_full_name": "Романов Максим Юрьевич",
+        "capital_kopecks": 10000000,
+        "okved_main": "43.21",
+        "okved_additional": [
+          "68.20",
+          "47.11"
+        ]
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "charter",
+      "ooo",
+      "synthetic"
+    ],
+    "description": "Устав ООО «Алый Парус-Капитал», Санкт-Петербург"
+  }
+]

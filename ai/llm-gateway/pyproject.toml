@@ -1,6 +1,7 @@
 [project]
 name = "llm-gateway"
-version = "0.1.0"
+version = "0.2.0"
+description = "AIbank LLM Gateway — OpenAI-compatible proxy with role-based routing, per-tenant usage, and mock mode"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.111",
@@ -8,4 +9,36 @@ dependencies = [
     "httpx>=0.27",
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
+    "pyyaml>=6.0",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+]
+otel = [
+    "opentelemetry-api>=1.25",
+    "opentelemetry-sdk>=1.25",
+    "opentelemetry-instrumentation-fastapi>=0.46b0",
+    "opentelemetry-exporter-otlp-proto-http>=1.25",
+]
+audit = [
+    # Resolved via local path in deployment; see packages/audit-sdk/python.
+    # Listed here only as a marker — install with `pip install -e packages/audit-sdk/python`.
+    "aibank-audit-sdk>=0.1.0",
+]
+
+[tool.setuptools]
+# Explicit list — `configs/` is YAML-only (auto-discovery would fail).
+packages = ["core", "routers"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"

@@ -1,6 +1,9 @@
+"""Pydantic v2 schemas for agent-document-intake."""
 from __future__ import annotations
+
 from enum import StrEnum
 from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -35,3 +38,4 @@ class ExtractionResult(BaseModel):
     raw_text: str
     model_used: str
     processing_ms: int
+    gateway_metadata: dict[str, Any] = Field(default_factory=dict)

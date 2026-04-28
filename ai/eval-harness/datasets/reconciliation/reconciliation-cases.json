@@ -1,0 +1,1223 @@
+[
+  {
+    "id": "reconciliation-clean-001",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Гранит»",
+        "inn": "3185513262",
+        "ogrn": "1271417757071",
+        "kpp": "318532001",
+        "legal_address": "г. Москва, ул. Тверская, д. 36, кв. 101",
+        "director_full_name": "Кузнецов Илья Алексеевич",
+        "okved_main": "82.99"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Гранит»",
+        "inn": "3185513262",
+        "ogrn": "1271417757071",
+        "kpp": "318532001",
+        "legal_address": "г. Москва, ул. Тверская, д. 36, кв. 101",
+        "director_full_name": "Кузнецов Илья Алексеевич",
+        "okved_main": "82.99"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": true,
+      "discrepancies": [],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "no-discrepancies",
+      "synthetic"
+    ],
+    "description": "Полное совпадение данных по ООО «Гранит»"
+  },
+  {
+    "id": "reconciliation-clean-002",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Меридиан»",
+        "inn": "1992350913",
+        "ogrn": "1580606759028",
+        "kpp": "199230001",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 176, кв. 125",
+        "director_full_name": "Смирнов Дмитрий Александрович",
+        "okved_main": "62.01"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Меридиан»",
+        "inn": "1992350913",
+        "ogrn": "1580606759028",
+        "kpp": "199230001",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 176, кв. 125",
+        "director_full_name": "Смирнов Дмитрий Александрович",
+        "okved_main": "62.01"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": true,
+      "discrepancies": [],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "no-discrepancies",
+      "synthetic"
+    ],
+    "description": "Полное совпадение данных по ООО «Меридиан»"
+  },
+  {
+    "id": "reconciliation-clean-003",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Прогресс»",
+        "inn": "7112914703",
+        "ogrn": "1092351210324",
+        "kpp": "711226001",
+        "legal_address": "г. Екатеринбург, ул. Малышева, д. 84, кв. 243",
+        "director_full_name": "Иванов Илья Андреевич",
+        "okved_main": "62.01"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Прогресс»",
+        "inn": "7112914703",
+        "ogrn": "1092351210324",
+        "kpp": "711226001",
+        "legal_address": "г. Екатеринбург, ул. Малышева, д. 84, кв. 243",
+        "director_full_name": "Иванов Илья Андреевич",
+        "okved_main": "62.01"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": true,
+      "discrepancies": [],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "no-discrepancies",
+      "synthetic"
+    ],
+    "description": "Полное совпадение данных по ООО «Прогресс»"
+  },
+  {
+    "id": "reconciliation-clean-004",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Новый Век»",
+        "inn": "2094596622",
+        "ogrn": "1110409836294",
+        "kpp": "209433001",
+        "legal_address": "г. Екатеринбург, ул. Малышева, д. 78, кв. 129",
+        "director_full_name": "Егоров Андрей Александрович",
+        "okved_main": "47.11"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Новый Век»",
+        "inn": "2094596622",
+        "ogrn": "1110409836294",
+        "kpp": "209433001",
+        "legal_address": "г. Екатеринбург, ул. Малышева, д. 78, кв. 129",
+        "director_full_name": "Егоров Андрей Александрович",
+        "okved_main": "47.11"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": true,
+      "discrepancies": [],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "no-discrepancies",
+      "synthetic"
+    ],
+    "description": "Полное совпадение данных по ООО «Новый Век»"
+  },
+  {
+    "id": "reconciliation-clean-005",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Альтаир»",
+        "inn": "9008813043",
+        "ogrn": "1208047587549",
+        "kpp": "900869001",
+        "legal_address": "г. Екатеринбург, ул. Малышева, д. 50, кв. 241",
+        "director_full_name": "Егоров Артём Михайлович",
+        "okved_main": "70.22"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Альтаир»",
+        "inn": "9008813043",
+        "ogrn": "1208047587549",
+        "kpp": "900869001",
+        "legal_address": "г. Екатеринбург, ул. Малышева, д. 50, кв. 241",
+        "director_full_name": "Егоров Артём Михайлович",
+        "okved_main": "70.22"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": true,
+      "discrepancies": [],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "no-discrepancies",
+      "synthetic"
+    ],
+    "description": "Полное совпадение данных по ООО «Альтаир»"
+  },
+  {
+    "id": "reconciliation-clean-006",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Сириус»",
+        "inn": "8309088887",
+        "ogrn": "1957009853975",
+        "kpp": "830959001",
+        "legal_address": "г. Екатеринбург, ул. Малышева, д. 88, кв. 163",
+        "director_full_name": "Смирнов Александр Андреевич",
+        "okved_main": "46.90"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Сириус»",
+        "inn": "8309088887",
+        "ogrn": "1957009853975",
+        "kpp": "830959001",
+        "legal_address": "г. Екатеринбург, ул. Малышева, д. 88, кв. 163",
+        "director_full_name": "Смирнов Александр Андреевич",
+        "okved_main": "46.90"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": true,
+      "discrepancies": [],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "no-discrepancies",
+      "synthetic"
+    ],
+    "description": "Полное совпадение данных по ООО «Сириус»"
+  },
+  {
+    "id": "reconciliation-clean-007",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Сириус»",
+        "inn": "6147764359",
+        "ogrn": "1387852331316",
+        "kpp": "614770001",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 194, кв. 111",
+        "director_full_name": "Кузнецов Илья Сергеевич",
+        "okved_main": "49.41"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Сириус»",
+        "inn": "6147764359",
+        "ogrn": "1387852331316",
+        "kpp": "614770001",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 194, кв. 111",
+        "director_full_name": "Кузнецов Илья Сергеевич",
+        "okved_main": "49.41"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": true,
+      "discrepancies": [],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "no-discrepancies",
+      "synthetic"
+    ],
+    "description": "Полное совпадение данных по ООО «Сириус»"
+  },
+  {
+    "id": "reconciliation-clean-008",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Алый Парус»",
+        "inn": "9231777859",
+        "ogrn": "1163979197910",
+        "kpp": "923134001",
+        "legal_address": "г. Казань, ул. Баумана, д. 97, кв. 18",
+        "director_full_name": "Соловьёв Кирилл Иванович",
+        "okved_main": "62.01"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Алый Парус»",
+        "inn": "9231777859",
+        "ogrn": "1163979197910",
+        "kpp": "923134001",
+        "legal_address": "г. Казань, ул. Баумана, д. 97, кв. 18",
+        "director_full_name": "Соловьёв Кирилл Иванович",
+        "okved_main": "62.01"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": true,
+      "discrepancies": [],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "no-discrepancies",
+      "synthetic"
+    ],
+    "description": "Полное совпадение данных по ООО «Алый Парус»"
+  },
+  {
+    "id": "reconciliation-clean-009",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Меридиан»",
+        "inn": "4145662615",
+        "ogrn": "1488173244965",
+        "kpp": "414585001",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 22, кв. 175",
+        "director_full_name": "Волков Александр Алексеевич",
+        "okved_main": "43.21"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Меридиан»",
+        "inn": "4145662615",
+        "ogrn": "1488173244965",
+        "kpp": "414585001",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 22, кв. 175",
+        "director_full_name": "Волков Александр Алексеевич",
+        "okved_main": "43.21"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": true,
+      "discrepancies": [],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "no-discrepancies",
+      "synthetic"
+    ],
+    "description": "Полное совпадение данных по ООО «Меридиан»"
+  },
+  {
+    "id": "reconciliation-clean-010",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Импульс»",
+        "inn": "2116833679",
+        "ogrn": "1414654283625",
+        "kpp": "211659001",
+        "legal_address": "г. Екатеринбург, ул. Малышева, д. 135, кв. 26",
+        "director_full_name": "Фёдоров Андрей Сергеевич",
+        "okved_main": "49.41"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Импульс»",
+        "inn": "2116833679",
+        "ogrn": "1414654283625",
+        "kpp": "211659001",
+        "legal_address": "г. Екатеринбург, ул. Малышева, д. 135, кв. 26",
+        "director_full_name": "Фёдоров Андрей Сергеевич",
+        "okved_main": "49.41"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": true,
+      "discrepancies": [],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "no-discrepancies",
+      "synthetic"
+    ],
+    "description": "Полное совпадение данных по ООО «Импульс»"
+  },
+  {
+    "id": "reconciliation-minor-001",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Новый Век»",
+        "inn": "1207107143",
+        "ogrn": "1801472107226",
+        "kpp": "120735001",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 44, кв. 173",
+        "director_full_name": "Алексеев Алексей Александрович",
+        "okved_main": "62.01"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Новый Век»",
+        "inn": "1207107143",
+        "ogrn": "1801472107226",
+        "kpp": "120735001",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 46, кв. 173",
+        "director_full_name": "Алексеев Алексей Александрович",
+        "okved_main": "62.01"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "legal_address",
+          "extracted": "г. Санкт-Петербург, Невский пр-кт, д. 44, кв. 173",
+          "egrul": "г. Санкт-Петербург, Невский пр-кт, д. 46, кв. 173",
+          "severity": "low"
+        }
+      ],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "minor-discrepancies",
+      "synthetic"
+    ],
+    "description": "Незначительное расхождение в 'legal_address' для ООО «Новый Век»"
+  },
+  {
+    "id": "reconciliation-minor-002",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Атлант»",
+        "inn": "4352021088",
+        "ogrn": "1176128353686",
+        "kpp": "435232001",
+        "legal_address": "г. Москва, ул. Тверская, д. 181, кв. 104",
+        "director_full_name": "Смирнов Илья Александрович",
+        "okved_main": "49.41"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Атлант»",
+        "inn": "4352021088",
+        "ogrn": "1176128353686",
+        "kpp": "435232001",
+        "legal_address": "г. Москва, ул. Тверская, д. 181, кв. 104",
+        "director_full_name": "Смирнов Илья Александрович",
+        "okved_main": "82.99"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "okved_main",
+          "extracted": "49.41",
+          "egrul": "82.99",
+          "severity": "medium"
+        }
+      ],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "minor-discrepancies",
+      "synthetic"
+    ],
+    "description": "Незначительное расхождение в 'okved_main' для ООО «Атлант»"
+  },
+  {
+    "id": "reconciliation-minor-003",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Ромашка»",
+        "inn": "1492296344",
+        "ogrn": "1936345044865",
+        "kpp": "149298001",
+        "legal_address": "г. Новосибирск, ул. Ленина, д. 80, кв. 4",
+        "director_full_name": "Новиков Андрей Сергеевич",
+        "okved_main": "47.11"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Ромашка»",
+        "inn": "1492296344",
+        "ogrn": "1936345044865",
+        "kpp": "149298002",
+        "legal_address": "г. Новосибирск, ул. Ленина, д. 80, кв. 4",
+        "director_full_name": "Новиков Андрей Сергеевич",
+        "okved_main": "47.11"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "kpp",
+          "extracted": "149298001",
+          "egrul": "149298002",
+          "severity": "low"
+        }
+      ],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "minor-discrepancies",
+      "synthetic"
+    ],
+    "description": "Незначительное расхождение в 'kpp' для ООО «Ромашка»"
+  },
+  {
+    "id": "reconciliation-minor-004",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Заря»",
+        "inn": "9739340025",
+        "ogrn": "1490319609724",
+        "kpp": "973940001",
+        "legal_address": "г. Новосибирск, ул. Ленина, д. 154, кв. 78",
+        "director_full_name": "Васильев Сергей Алексеевич",
+        "okved_main": "68.20"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Заря»",
+        "inn": "9739340025",
+        "ogrn": "1490319609724",
+        "kpp": "973940001",
+        "legal_address": "г. Новосибирск, ул. Ленина, д. 155, кв. 78",
+        "director_full_name": "Васильев Сергей Алексеевич",
+        "okved_main": "68.20"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "legal_address",
+          "extracted": "г. Новосибирск, ул. Ленина, д. 154, кв. 78",
+          "egrul": "г. Новосибирск, ул. Ленина, д. 155, кв. 78",
+          "severity": "low"
+        }
+      ],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "minor-discrepancies",
+      "synthetic"
+    ],
+    "description": "Незначительное расхождение в 'legal_address' для ООО «Заря»"
+  },
+  {
+    "id": "reconciliation-minor-005",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Сириус»",
+        "inn": "1276869424",
+        "ogrn": "1677931589708",
+        "kpp": "127668001",
+        "legal_address": "г. Новосибирск, ул. Ленина, д. 52, кв. 173",
+        "director_full_name": "Новиков Андрей Дмитриевич",
+        "okved_main": "82.99"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Сириус»",
+        "inn": "1276869424",
+        "ogrn": "1677931589708",
+        "kpp": "127668001",
+        "legal_address": "г. Новосибирск, ул. Ленина, д. 52, кв. 173",
+        "director_full_name": "Новиков Андрей Дмитриевич",
+        "okved_main": "47.11"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "okved_main",
+          "extracted": "82.99",
+          "egrul": "47.11",
+          "severity": "medium"
+        }
+      ],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "minor-discrepancies",
+      "synthetic"
+    ],
+    "description": "Незначительное расхождение в 'okved_main' для ООО «Сириус»"
+  },
+  {
+    "id": "reconciliation-minor-006",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Новый Век»",
+        "inn": "2640988255",
+        "ogrn": "1622420197882",
+        "kpp": "264031001",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 105, кв. 235",
+        "director_full_name": "Морозов Дмитрий Дмитриевич",
+        "okved_main": "62.01"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Новый Век»",
+        "inn": "2640988255",
+        "ogrn": "1622420197882",
+        "kpp": "264031002",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 105, кв. 235",
+        "director_full_name": "Морозов Дмитрий Дмитриевич",
+        "okved_main": "62.01"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "kpp",
+          "extracted": "264031001",
+          "egrul": "264031002",
+          "severity": "low"
+        }
+      ],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "minor-discrepancies",
+      "synthetic"
+    ],
+    "description": "Незначительное расхождение в 'kpp' для ООО «Новый Век»"
+  },
+  {
+    "id": "reconciliation-minor-007",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Сириус»",
+        "inn": "7523098272",
+        "ogrn": "1509514507920",
+        "kpp": "752340001",
+        "legal_address": "г. Казань, ул. Баумана, д. 12, кв. 74",
+        "director_full_name": "Фёдоров Илья Алексеевич",
+        "okved_main": "82.99"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Сириус»",
+        "inn": "7523098272",
+        "ogrn": "1509514507920",
+        "kpp": "752340001",
+        "legal_address": "г. Казань, ул. Баумана, д. 13, кв. 74",
+        "director_full_name": "Фёдоров Илья Алексеевич",
+        "okved_main": "82.99"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "legal_address",
+          "extracted": "г. Казань, ул. Баумана, д. 12, кв. 74",
+          "egrul": "г. Казань, ул. Баумана, д. 13, кв. 74",
+          "severity": "low"
+        }
+      ],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "minor-discrepancies",
+      "synthetic"
+    ],
+    "description": "Незначительное расхождение в 'legal_address' для ООО «Сириус»"
+  },
+  {
+    "id": "reconciliation-minor-008",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Вектор»",
+        "inn": "2198496774",
+        "ogrn": "1348563400965",
+        "kpp": "219853001",
+        "legal_address": "г. Москва, ул. Тверская, д. 149, кв. 73",
+        "director_full_name": "Васильев Дмитрий Андреевич",
+        "okved_main": "47.11"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Вектор»",
+        "inn": "2198496774",
+        "ogrn": "1348563400965",
+        "kpp": "219853001",
+        "legal_address": "г. Москва, ул. Тверская, д. 149, кв. 73",
+        "director_full_name": "Васильев Дмитрий Андреевич",
+        "okved_main": "82.99"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "okved_main",
+          "extracted": "47.11",
+          "egrul": "82.99",
+          "severity": "medium"
+        }
+      ],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "minor-discrepancies",
+      "synthetic"
+    ],
+    "description": "Незначительное расхождение в 'okved_main' для ООО «Вектор»"
+  },
+  {
+    "id": "reconciliation-minor-009",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Берёзка»",
+        "inn": "5466984447",
+        "ogrn": "1482832042131",
+        "kpp": "546672001",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 141, кв. 22",
+        "director_full_name": "Михайлов Дмитрий Александрович",
+        "okved_main": "43.21"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Берёзка»",
+        "inn": "5466984447",
+        "ogrn": "1482832042131",
+        "kpp": "546672002",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 141, кв. 22",
+        "director_full_name": "Михайлов Дмитрий Александрович",
+        "okved_main": "43.21"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "kpp",
+          "extracted": "546672001",
+          "egrul": "546672002",
+          "severity": "low"
+        }
+      ],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "minor-discrepancies",
+      "synthetic"
+    ],
+    "description": "Незначительное расхождение в 'kpp' для ООО «Берёзка»"
+  },
+  {
+    "id": "reconciliation-minor-010",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Новый Век»",
+        "inn": "4353510902",
+        "ogrn": "1411531211838",
+        "kpp": "435333001",
+        "legal_address": "г. Москва, ул. Тверская, д. 80, кв. 152",
+        "director_full_name": "Михайлов Алексей Михайлович",
+        "okved_main": "70.22"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Новый Век»",
+        "inn": "4353510902",
+        "ogrn": "1411531211838",
+        "kpp": "435333001",
+        "legal_address": "г. Москва, ул. Тверская, д. 79, кв. 152",
+        "director_full_name": "Михайлов Алексей Михайлович",
+        "okved_main": "70.22"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "legal_address",
+          "extracted": "г. Москва, ул. Тверская, д. 80, кв. 152",
+          "egrul": "г. Москва, ул. Тверская, д. 79, кв. 152",
+          "severity": "low"
+        }
+      ],
+      "requires_review": false
+    },
+    "tags": [
+      "reconciliation",
+      "minor-discrepancies",
+      "synthetic"
+    ],
+    "description": "Незначительное расхождение в 'legal_address' для ООО «Новый Век»"
+  },
+  {
+    "id": "reconciliation-major-001",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Альтаир»",
+        "inn": "8885864508",
+        "ogrn": "1386826446049",
+        "kpp": "888592001",
+        "legal_address": "г. Москва, ул. Тверская, д. 109, кв. 31",
+        "director_full_name": "Волков Александр Михайлович",
+        "okved_main": "47.11"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Альтаир»",
+        "inn": "8885864508",
+        "ogrn": "1386826446049",
+        "kpp": "888592001",
+        "legal_address": "г. Москва, ул. Тверская, д. 109, кв. 31",
+        "director_full_name": "Павлов Илья Дмитриевич",
+        "okved_main": "47.11"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "director_full_name",
+          "extracted": "Волков Александр Михайлович",
+          "egrul": "Павлов Илья Дмитриевич",
+          "severity": "high"
+        }
+      ],
+      "requires_review": true
+    },
+    "tags": [
+      "reconciliation",
+      "major-discrepancies",
+      "synthetic"
+    ],
+    "description": "Серьёзное расхождение в 'director_full_name' для ООО «Альтаир» — требуется ручная проверка"
+  },
+  {
+    "id": "reconciliation-major-002",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Импульс»",
+        "inn": "9807298685",
+        "ogrn": "1202057679768",
+        "kpp": "980695001",
+        "legal_address": "г. Казань, ул. Баумана, д. 142, кв. 211",
+        "director_full_name": "Козлов Михаил Николаевич",
+        "okved_main": "43.21"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Импульс»",
+        "inn": "9806298685",
+        "ogrn": "1202057679768",
+        "kpp": "980695001",
+        "legal_address": "г. Казань, ул. Баумана, д. 142, кв. 211",
+        "director_full_name": "Козлов Михаил Николаевич",
+        "okved_main": "43.21"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "inn",
+          "extracted": "9807298685",
+          "egrul": "9806298685",
+          "severity": "high"
+        }
+      ],
+      "requires_review": true
+    },
+    "tags": [
+      "reconciliation",
+      "major-discrepancies",
+      "synthetic"
+    ],
+    "description": "Серьёзное расхождение в 'inn' для ООО «Импульс» — требуется ручная проверка"
+  },
+  {
+    "id": "reconciliation-major-003",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Импульс»",
+        "inn": "1355806868",
+        "ogrn": null,
+        "kpp": "135563001",
+        "legal_address": "г. Москва, ул. Тверская, д. 174, кв. 66",
+        "director_full_name": "Фёдоров Илья Николаевич",
+        "okved_main": "68.20"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Импульс»",
+        "inn": "1355806868",
+        "ogrn": "1632028821291",
+        "kpp": "135563001",
+        "legal_address": "г. Москва, ул. Тверская, д. 174, кв. 66",
+        "director_full_name": "Фёдоров Илья Николаевич",
+        "okved_main": "68.20"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "ogrn",
+          "extracted": null,
+          "egrul": "1632028821291",
+          "severity": "high"
+        }
+      ],
+      "requires_review": true
+    },
+    "tags": [
+      "reconciliation",
+      "major-discrepancies",
+      "synthetic"
+    ],
+    "description": "Серьёзное расхождение в 'ogrn' для ООО «Импульс» — требуется ручная проверка"
+  },
+  {
+    "id": "reconciliation-major-004",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Заря»",
+        "inn": "4863751895",
+        "ogrn": "1162578973413",
+        "kpp": "486370001",
+        "legal_address": "г. Москва, ул. Тверская, д. 3, кв. 87",
+        "director_full_name": "Павлов Максим Алексеевич",
+        "okved_main": "47.11"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Заря»",
+        "inn": "4863751895",
+        "ogrn": "1162578973413",
+        "kpp": "486370001",
+        "legal_address": "г. Москва, ул. Тверская, д. 3, кв. 87",
+        "director_full_name": "Сидоров Алексей Александрович",
+        "okved_main": "47.11"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "director_full_name",
+          "extracted": "Павлов Максим Алексеевич",
+          "egrul": "Сидоров Алексей Александрович",
+          "severity": "high"
+        }
+      ],
+      "requires_review": true
+    },
+    "tags": [
+      "reconciliation",
+      "major-discrepancies",
+      "synthetic"
+    ],
+    "description": "Серьёзное расхождение в 'director_full_name' для ООО «Заря» — требуется ручная проверка"
+  },
+  {
+    "id": "reconciliation-major-005",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Гранит»",
+        "inn": "7292821900",
+        "ogrn": "1886905714122",
+        "kpp": "729150001",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 60, кв. 245",
+        "director_full_name": "Соколов Максим Михайлович",
+        "okved_main": "46.90"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Гранит»",
+        "inn": "7291821900",
+        "ogrn": "1886905714122",
+        "kpp": "729150001",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 60, кв. 245",
+        "director_full_name": "Соколов Максим Михайлович",
+        "okved_main": "46.90"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "inn",
+          "extracted": "7292821900",
+          "egrul": "7291821900",
+          "severity": "high"
+        }
+      ],
+      "requires_review": true
+    },
+    "tags": [
+      "reconciliation",
+      "major-discrepancies",
+      "synthetic"
+    ],
+    "description": "Серьёзное расхождение в 'inn' для ООО «Гранит» — требуется ручная проверка"
+  },
+  {
+    "id": "reconciliation-major-006",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Восток»",
+        "inn": "9777301965",
+        "ogrn": null,
+        "kpp": "977777001",
+        "legal_address": "г. Екатеринбург, ул. Малышева, д. 148, кв. 36",
+        "director_full_name": "Петров Сергей Николаевич",
+        "okved_main": "43.21"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Восток»",
+        "inn": "9777301965",
+        "ogrn": "1081450828360",
+        "kpp": "977777001",
+        "legal_address": "г. Екатеринбург, ул. Малышева, д. 148, кв. 36",
+        "director_full_name": "Петров Сергей Николаевич",
+        "okved_main": "43.21"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "ogrn",
+          "extracted": null,
+          "egrul": "1081450828360",
+          "severity": "high"
+        }
+      ],
+      "requires_review": true
+    },
+    "tags": [
+      "reconciliation",
+      "major-discrepancies",
+      "synthetic"
+    ],
+    "description": "Серьёзное расхождение в 'ogrn' для ООО «Восток» — требуется ручная проверка"
+  },
+  {
+    "id": "reconciliation-major-007",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Каскад»",
+        "inn": "2187282650",
+        "ogrn": "1205907255410",
+        "kpp": "218748001",
+        "legal_address": "г. Екатеринбург, ул. Малышева, д. 167, кв. 29",
+        "director_full_name": "Петров Андрей Иванович",
+        "okved_main": "43.21"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Каскад»",
+        "inn": "2187282650",
+        "ogrn": "1205907255410",
+        "kpp": "218748001",
+        "legal_address": "г. Екатеринбург, ул. Малышева, д. 167, кв. 29",
+        "director_full_name": "Михайлов Сергей Михайлович",
+        "okved_main": "43.21"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "director_full_name",
+          "extracted": "Петров Андрей Иванович",
+          "egrul": "Михайлов Сергей Михайлович",
+          "severity": "high"
+        }
+      ],
+      "requires_review": true
+    },
+    "tags": [
+      "reconciliation",
+      "major-discrepancies",
+      "synthetic"
+    ],
+    "description": "Серьёзное расхождение в 'director_full_name' для ООО «Каскад» — требуется ручная проверка"
+  },
+  {
+    "id": "reconciliation-major-008",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Импульс»",
+        "inn": "6927956299",
+        "ogrn": "1384107485398",
+        "kpp": "692687001",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 195, кв. 219",
+        "director_full_name": "Лебедев Андрей Иванович",
+        "okved_main": "47.11"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Импульс»",
+        "inn": "6926956299",
+        "ogrn": "1384107485398",
+        "kpp": "692687001",
+        "legal_address": "г. Санкт-Петербург, Невский пр-кт, д. 195, кв. 219",
+        "director_full_name": "Лебедев Андрей Иванович",
+        "okved_main": "47.11"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "inn",
+          "extracted": "6927956299",
+          "egrul": "6926956299",
+          "severity": "high"
+        }
+      ],
+      "requires_review": true
+    },
+    "tags": [
+      "reconciliation",
+      "major-discrepancies",
+      "synthetic"
+    ],
+    "description": "Серьёзное расхождение в 'inn' для ООО «Импульс» — требуется ручная проверка"
+  },
+  {
+    "id": "reconciliation-major-009",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Алый Парус»",
+        "inn": "8643377505",
+        "ogrn": null,
+        "kpp": "864335001",
+        "legal_address": "г. Новосибирск, ул. Ленина, д. 161, кв. 36",
+        "director_full_name": "Соколов Артём Сергеевич",
+        "okved_main": "43.21"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Алый Парус»",
+        "inn": "8643377505",
+        "ogrn": "1413566648802",
+        "kpp": "864335001",
+        "legal_address": "г. Новосибирск, ул. Ленина, д. 161, кв. 36",
+        "director_full_name": "Соколов Артём Сергеевич",
+        "okved_main": "43.21"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "ogrn",
+          "extracted": null,
+          "egrul": "1413566648802",
+          "severity": "high"
+        }
+      ],
+      "requires_review": true
+    },
+    "tags": [
+      "reconciliation",
+      "major-discrepancies",
+      "synthetic"
+    ],
+    "description": "Серьёзное расхождение в 'ogrn' для ООО «Алый Парус» — требуется ручная проверка"
+  },
+  {
+    "id": "reconciliation-major-010",
+    "agent": "reconciliation",
+    "input": {
+      "extracted_data": {
+        "short_name": "ООО «Сириус»",
+        "inn": "9887611053",
+        "ogrn": "1873908971264",
+        "kpp": "988721001",
+        "legal_address": "г. Казань, ул. Баумана, д. 47, кв. 233",
+        "director_full_name": "Кузнецов Максим Александрович",
+        "okved_main": "49.41"
+      },
+      "egrul_data": {
+        "short_name": "ООО «Сириус»",
+        "inn": "9887611053",
+        "ogrn": "1873908971264",
+        "kpp": "988721001",
+        "legal_address": "г. Казань, ул. Баумана, д. 47, кв. 233",
+        "director_full_name": "Семёнов Алексей Николаевич",
+        "okved_main": "49.41"
+      },
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "matches": false,
+      "discrepancies": [
+        {
+          "field": "director_full_name",
+          "extracted": "Кузнецов Максим Александрович",
+          "egrul": "Семёнов Алексей Николаевич",
+          "severity": "high"
+        }
+      ],
+      "requires_review": true
+    },
+    "tags": [
+      "reconciliation",
+      "major-discrepancies",
+      "synthetic",
+      "adversarial"
+    ],
+    "description": "Серьёзное расхождение в 'director_full_name' для ООО «Сириус» — требуется ручная проверка"
+  }
+]

@@ -25,6 +25,7 @@ dev = [
     "pytest-xdist>=3.5",
     "ruff>=0.4",
     "mypy>=1.10",
+    "respx>=0.21",
 ]
 
 [tool.pytest.ini_options]

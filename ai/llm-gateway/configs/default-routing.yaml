@@ -1,0 +1,76 @@
+# Default LLM routing config. Соответствует пулу моделей из
+# docs/technical-structure.md § 7.2.
+#
+# Агенты обращаются к моделям через РОЛИ (`model: "role:document-vision"`),
+# а не имена конкретных моделей. Маппинг роль → модель → backend
+# определяется этим конфигом — переключение модели не требует
+# перевыкладки агента (см. ADR-0011, draft).
+
+version: 1
+
+backends:
+  vllm-gemma:
+    type: openai_compatible
+    url: http://vllm-gemma:8000
+    timeout_s: 120
+  vllm-qwen:
+    type: openai_compatible
+    url: http://vllm-qwen:8000
+    timeout_s: 120
+  vllm-tpro:
+    type: openai_compatible
+    url: http://vllm-tpro:8000
+    timeout_s: 60
+  mock:
+    type: mock
+
+models:
+  gemma-4-26b:
+    backend: vllm-gemma
+    cost_per_1k_input_kop: 50      # копейки за 1k input tokens
+    cost_per_1k_output_kop: 150
+  gemma-4-31b:
+    backend: vllm-gemma
+    cost_per_1k_input_kop: 80
+    cost_per_1k_output_kop: 220
+  qwen-3-27b:
+    backend: vllm-qwen
+    cost_per_1k_input_kop: 40
+    cost_per_1k_output_kop: 120
+  qwen-3-vl-32b:
+    backend: vllm-qwen
+    cost_per_1k_input_kop: 90
+    cost_per_1k_output_kop: 250
+  t-pro:
+    backend: vllm-tpro
+    cost_per_1k_input_kop: 30
+    cost_per_1k_output_kop: 90
+  mock-fast:
+    backend: mock
+    cost_per_1k_input_kop: 0
+    cost_per_1k_output_kop: 0
+
+# Роль = логическая задача, привязанная к модели + опциональному fallback.
+# Если основная модель недоступна, gateway пробует fallback с пометкой в usage.
+roles:
+  document-vision:
+    model: gemma-4-26b
+    fallback: qwen-3-vl-32b
+  text-reasoning:
+    model: gemma-4-31b
+    fallback: qwen-3-27b
+  reconciliation:
+    model: gemma-4-31b
+    fallback: qwen-3-27b
+  ubo-tracing:
+    model: gemma-4-31b
+    fallback: qwen-3-27b
+  ru-chat:
+    model: t-pro
+    fallback: qwen-3-27b
+  rag:
+    model: gemma-4-26b
+    fallback: qwen-3-27b
+  # Test-only роль — всегда уходит в mock backend.
+  mock-eval:
+    model: mock-fast

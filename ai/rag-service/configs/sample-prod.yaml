@@ -1,0 +1,83 @@
+# rag-service — production sample config (для k8s ConfigMap / Helm values).
+#
+# Это пример переменных окружения, которые должны быть проставлены в
+# production-инсталляции rag-service. Конкретные значения зашиваются в
+# Helm values на стадии релиза (см. infrastructure/helm/services/).
+#
+# См. также:
+#   - docs/adr/0008-vector-db-qdrant-vs-pgvector.md  (выбор embedder-а)
+#   - docs/technical-structure.md § 4.4 (RAG-сервис), § 7.4 (RAG-корпус)
+
+env:
+  # ---------------------------------------------------------------------------
+  # Embedder
+  # ---------------------------------------------------------------------------
+  # Production: ходим за эмбеддингами в TEI-сидекар с моделью BAAI/bge-m3.
+  # Mock-режим оставляем только для CI и локальной разработки без GPU.
+  RAG_EMBEDDER: "tei"
+
+  # URL внутреннего TEI-сервиса. В k8s — обычно ClusterIP-Service соседнего
+  # пода (sidecar container) или отдельный Deployment в том же namespace
+  # с нодселектором на GPU-ноду:
+  #
+  #     # values-prod.yaml (упрощённо)
+  #     tei:
+  #       enabled: true
+  #       image: ghcr.io/huggingface/text-embeddings-inference:latest
+  #       model: BAAI/bge-m3
+  #       resources:
+  #         limits:
+  #           nvidia.com/gpu: 1
+  #       nodeSelector:
+  #         workload-class: gpu
+  #
+  # rag-service подключается через service-DNS:
+  RAG_TEI_URL: "http://tei.aibank-rag.svc.cluster.local:8080"
+
+  # Размерность вектора BGE-M3.
+  # Должна совпадать с dim той collection в Qdrant, которая создаётся
+  # `ensure_collection` при первом ингесте. Если меняете модель —
+  # координированный rebuild collection (см. ADR-0008 «Reindex
+  # embedder-модели в Qdrant — атомарная операция через alias swap»).
+  RAG_EMBED_DIM: "1024"
+
+  # ---------------------------------------------------------------------------
+  # Vector store
+  # ---------------------------------------------------------------------------
+  # `qdrant` — production. `memory` — только для тестов / локальной разработки.
+  RAG_BACKEND: "qdrant"
+  QDRANT_URL: "http://qdrant.aibank-data.svc.cluster.local:6333"
+
+  # ---------------------------------------------------------------------------
+  # HTTP / observability (опционально)
+  # ---------------------------------------------------------------------------
+  PORT: "8105"
+  LOG_LEVEL: "INFO"
+
+# ---------------------------------------------------------------------------
+# TEI deployment notes
+# ---------------------------------------------------------------------------
+#
+# 1. Модель: BAAI/bge-m3
+#    - 1024-мерные dense-векторы (cosine similarity).
+#    - Многоязычная (включая русский) — критично для нашей нормативки.
+#    - Поддерживает sparse + multi-vector режимы; пока используем только dense
+#      (sparse — будущая работа, см. TODO в README).
+#
+# 2. Развёртывание в k8s (продакшен SaaS):
+#    - Отдельный Deployment `tei` в namespace `aibank-rag` с GPU-реквестами.
+#    - HPA по utilization (TEI хорошо параллелит).
+#    - PodDisruptionBudget min-available=1 (один под — потеря RAG, см.
+#      ADR-0008 «деградация без RAG-контекста»).
+#
+# 3. On-prem (air-gapped):
+#    - TEI-образ кладётся в air-gapped bundle (см. § 10.2 technical-structure).
+#    - Веса BGE-M3 — отдельный артефакт, ~2.5 ГБ, грузятся в init-container из
+#      локального registry / S3-совместимого хранилища банка.
+#    - Без GPU допустимо, но latency p99 ~ 1–2с на батч → деградация UX;
+#      рекомендуется хотя бы одна T4-карта.
+#
+# 4. Health-check:
+#    - TEI отдаёт `/health` (200 OK когда модель загружена).
+#    - rag-service `/healthz` теперь рапортует выбранный embedder ("mock"|"tei")
+#      и dim — k8s-readiness checker может алертить на mismatch.

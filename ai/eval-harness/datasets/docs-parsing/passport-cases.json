@@ -1,0 +1,785 @@
+[
+  {
+    "id": "docs-parsing-passport-001",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/001.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Смирнов",
+        "first_name": "Дмитрий",
+        "middle_name": "Викторович",
+        "series": "45 44",
+        "number": "192539",
+        "issued_by": "ОТДЕЛ УФМС РОССИИ ПО Г. САНКТ-ПЕТЕРБУРГУ",
+        "issued_at": "06.07.2013",
+        "issued_code": "947-949",
+        "birth_date": "10.02.1991",
+        "registration_address": "г. Москва, ул. Тверская, д. 119, кв. 120"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, мужской, г. Москва"
+  },
+  {
+    "id": "docs-parsing-passport-002",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/002.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Волков",
+        "first_name": "Никита",
+        "middle_name": "Юрьевич",
+        "series": "40 88",
+        "number": "740443",
+        "issued_by": "ОТДЕЛ УФМС РОССИИ ПО Г. САНКТ-ПЕТЕРБУРГУ",
+        "issued_at": "24.01.2019",
+        "issued_code": "696-267",
+        "birth_date": "12.02.1999",
+        "registration_address": "г. Ростов-на-Дону, пр. Соколова, д. 142, кв. 6"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, мужской, г. Ростов-на-Дону"
+  },
+  {
+    "id": "docs-parsing-passport-003",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/003.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Яковлева",
+        "first_name": "Елена",
+        "middle_name": "Николаевна",
+        "series": "42 08",
+        "number": "118207",
+        "issued_by": "ГУ МВД РОССИИ ПО МОСКОВСКОЙ ОБЛ.",
+        "issued_at": "03.11.2011",
+        "issued_code": "119-385",
+        "birth_date": "28.10.1970",
+        "registration_address": "г. Москва, ул. Тверская, д. 65, кв. 191"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, женский, г. Москва"
+  },
+  {
+    "id": "docs-parsing-passport-004",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/004.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Сидорова",
+        "first_name": "Анна",
+        "middle_name": "Андреевна",
+        "series": "42 16",
+        "number": "774194",
+        "issued_by": "ОВД ПО Г. КАЗАНЬ",
+        "issued_at": "07.08.2008",
+        "issued_code": "761-672",
+        "birth_date": "03.04.1962",
+        "registration_address": "г. Ростов-на-Дону, пр. Соколова, д. 187, кв. 15"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, женский, г. Ростов-на-Дону"
+  },
+  {
+    "id": "docs-parsing-passport-005",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/005.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Иванов",
+        "first_name": "Михаил",
+        "middle_name": "Викторович",
+        "series": "43 87",
+        "number": "535429",
+        "issued_by": "ОТДЕЛ УФМС РОССИИ ПО Г. САНКТ-ПЕТЕРБУРГУ",
+        "issued_at": "26.09.2017",
+        "issued_code": "269-709",
+        "birth_date": "24.05.1991",
+        "registration_address": "г. Москва, ул. Тверская, д. 24, кв. 135"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, мужской, г. Москва"
+  },
+  {
+    "id": "docs-parsing-passport-006",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/006.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Кузнецова",
+        "first_name": "Анна",
+        "middle_name": "Викторовна",
+        "series": "40 39",
+        "number": "613591",
+        "issued_by": "ОТДЕЛ ПО Г. НОВОСИБИРСКУ",
+        "issued_at": "09.06.2023",
+        "issued_code": "924-469",
+        "birth_date": "28.10.1989",
+        "registration_address": "г. Санкт-Петербург, Невский пр-кт, д. 127, кв. 98"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, женский, г. Санкт-Петербург"
+  },
+  {
+    "id": "docs-parsing-passport-007",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/007.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Никитин",
+        "first_name": "Кирилл",
+        "middle_name": "Юрьевич",
+        "series": "45 56",
+        "number": "151221",
+        "issued_by": "ОТДЕЛ ПО Г. НОВОСИБИРСКУ",
+        "issued_at": "07.06.2024",
+        "issued_code": "102-837",
+        "birth_date": "13.08.1996",
+        "registration_address": "г. Ростов-на-Дону, пр. Соколова, д. 192, кв. 140"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, мужской, г. Ростов-на-Дону"
+  },
+  {
+    "id": "docs-parsing-passport-008",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/008.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Борисова",
+        "first_name": "Светлана",
+        "middle_name": "Николаевна",
+        "series": "46 32",
+        "number": "306185",
+        "issued_by": "ОТДЕЛ УФМС РОССИИ ПО Г. САНКТ-ПЕТЕРБУРГУ",
+        "issued_at": "17.11.2022",
+        "issued_code": "434-752",
+        "birth_date": "31.03.1981",
+        "registration_address": "г. Санкт-Петербург, Невский пр-кт, д. 49, кв. 30"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, женский, г. Санкт-Петербург"
+  },
+  {
+    "id": "docs-parsing-passport-009",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/009.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Смирнов",
+        "first_name": "Егор",
+        "middle_name": "Андреевич",
+        "series": "41 60",
+        "number": "822861",
+        "issued_by": "ОТДЕЛЕНИЕМ УФМС РОССИИ ПО ЕКАТЕРИНБУРГУ",
+        "issued_at": "12.12.2024",
+        "issued_code": "557-574",
+        "birth_date": "14.11.1964",
+        "registration_address": "г. Ростов-на-Дону, пр. Соколова, д. 197, кв. 200"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, мужской, г. Ростов-на-Дону"
+  },
+  {
+    "id": "docs-parsing-passport-010",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/010.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Алексеев",
+        "first_name": "Дмитрий",
+        "middle_name": "<unreadable>",
+        "series": "48 44",
+        "number": "692018",
+        "issued_by": "ОТДЕЛЕНИЕМ УФМС РОССИИ ПО ЕКАТЕРИНБУРГУ",
+        "issued_at": "25.02.2015",
+        "issued_code": "952-115",
+        "birth_date": "30.06.1976",
+        "registration_address": "г. Новосибирск, ул. Ленина, д. 104, кв. 170"
+      },
+      "quality_warnings": [
+        "low_resolution_or_skewed"
+      ]
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic",
+      "adversarial"
+    ],
+    "description": "Паспорт РФ, мужской, г. Новосибирск — сложный кейс (низкое качество)"
+  },
+  {
+    "id": "docs-parsing-passport-011",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/011.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Новикова",
+        "first_name": "Наталья",
+        "middle_name": "Юрьевна",
+        "series": "46 75",
+        "number": "348694",
+        "issued_by": "ГУ МВД РОССИИ ПО НИЖЕГОРОДСКОЙ ОБЛ.",
+        "issued_at": "30.01.2019",
+        "issued_code": "187-799",
+        "birth_date": "24.07.1979",
+        "registration_address": "г. Нижний Новгород, ул. Большая Покровская, д. 25, кв. 19"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, женский, г. Нижний Новгород"
+  },
+  {
+    "id": "docs-parsing-passport-012",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/012.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Лебедев",
+        "first_name": "Алексей",
+        "middle_name": "Алексеевич",
+        "series": "42 69",
+        "number": "855609",
+        "issued_by": "ОТДЕЛ УФМС РОССИИ ПО Г. САНКТ-ПЕТЕРБУРГУ",
+        "issued_at": "17.09.2020",
+        "issued_code": "352-497",
+        "birth_date": "09.05.1966",
+        "registration_address": "г. Санкт-Петербург, Невский пр-кт, д. 120, кв. 64"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, мужской, г. Санкт-Петербург"
+  },
+  {
+    "id": "docs-parsing-passport-013",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/013.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Сидоров",
+        "first_name": "Никита",
+        "middle_name": "Алексеевич",
+        "series": "47 21",
+        "number": "199305",
+        "issued_by": "ОТДЕЛ УФМС РОССИИ ПО Г. САНКТ-ПЕТЕРБУРГУ",
+        "issued_at": "07.04.2013",
+        "issued_code": "111-573",
+        "birth_date": "27.11.1970",
+        "registration_address": "г. Нижний Новгород, ул. Большая Покровская, д. 102, кв. 93"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, мужской, г. Нижний Новгород"
+  },
+  {
+    "id": "docs-parsing-passport-014",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/014.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Иванов",
+        "first_name": "Матвей",
+        "middle_name": "Викторович",
+        "series": "41 62",
+        "number": "529651",
+        "issued_by": "ОТДЕЛ УФМС РОССИИ ПО Г. САНКТ-ПЕТЕРБУРГУ",
+        "issued_at": "08.06.2015",
+        "issued_code": "223-993",
+        "birth_date": "18.11.1987",
+        "registration_address": "г. Санкт-Петербург, Невский пр-кт, д. 24, кв. 181"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, мужской, г. Санкт-Петербург"
+  },
+  {
+    "id": "docs-parsing-passport-015",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/015.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Смирнов",
+        "first_name": "Матвей",
+        "middle_name": "Юрьевич",
+        "series": "46 25",
+        "number": "418540",
+        "issued_by": "ГУ МВД РОССИИ ПО МОСКОВСКОЙ ОБЛ.",
+        "issued_at": "23.05.2015",
+        "issued_code": "707-338",
+        "birth_date": "02.12.1983",
+        "registration_address": "г. Казань, ул. Баумана, д. 70, кв. 229"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, мужской, г. Казань"
+  },
+  {
+    "id": "docs-parsing-passport-016",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/016.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Егорова",
+        "first_name": "Ольга",
+        "middle_name": "Юрьевна",
+        "series": "43 39",
+        "number": "156776",
+        "issued_by": "ОТДЕЛ УФМС РОССИИ ПО Г. МОСКВЕ",
+        "issued_at": "24.05.2012",
+        "issued_code": "945-994",
+        "birth_date": "21.10.2000",
+        "registration_address": "г. Москва, ул. Тверская, д. 61, кв. 221"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, женский, г. Москва"
+  },
+  {
+    "id": "docs-parsing-passport-017",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/017.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Васильева",
+        "first_name": "Ольга",
+        "middle_name": "Юрьевна",
+        "series": "49 39",
+        "number": "712859",
+        "issued_by": "ГУ МВД РОССИИ ПО МОСКОВСКОЙ ОБЛ.",
+        "issued_at": "23.03.2009",
+        "issued_code": "348-488",
+        "birth_date": "18.07.1988",
+        "registration_address": "г. Ростов-на-Дону, пр. Соколова, д. 106, кв. 192"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, женский, г. Ростов-на-Дону"
+  },
+  {
+    "id": "docs-parsing-passport-018",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/018.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Никитина",
+        "first_name": "Екатерина",
+        "middle_name": "Николаевна",
+        "series": "40 58",
+        "number": "622639",
+        "issued_by": "ОВД ПО Г. КАЗАНЬ",
+        "issued_at": "17.02.2017",
+        "issued_code": "306-788",
+        "birth_date": "29.06.1997",
+        "registration_address": "г. Санкт-Петербург, Невский пр-кт, д. 54, кв. 26"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, женский, г. Санкт-Петербург"
+  },
+  {
+    "id": "docs-parsing-passport-019",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/019.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Смирнова",
+        "first_name": "Наталья",
+        "middle_name": "Сергеевна",
+        "series": "40 08",
+        "number": "755155",
+        "issued_by": "ГУ МВД РОССИИ ПО НИЖЕГОРОДСКОЙ ОБЛ.",
+        "issued_at": "07.03.2024",
+        "issued_code": "550-666",
+        "birth_date": "03.06.1986",
+        "registration_address": "г. Москва, ул. Тверская, д. 9, кв. 120"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, женский, г. Москва"
+  },
+  {
+    "id": "docs-parsing-passport-020",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/020.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Соловьёв",
+        "first_name": "Алексей",
+        "middle_name": "<unreadable>",
+        "series": "44 40",
+        "number": "153844",
+        "issued_by": "ОТДЕЛ УФМС РОССИИ ПО Г. САНКТ-ПЕТЕРБУРГУ",
+        "issued_at": "26.05.2015",
+        "issued_code": "581-688",
+        "birth_date": "10.05.1962",
+        "registration_address": "г. Ростов-на-Дону, пр. Соколова, д. 125, кв. 150"
+      },
+      "quality_warnings": [
+        "low_resolution_or_skewed"
+      ]
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic",
+      "adversarial"
+    ],
+    "description": "Паспорт РФ, мужской, г. Ростов-на-Дону — сложный кейс (низкое качество)"
+  },
+  {
+    "id": "docs-parsing-passport-021",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/021.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Соловьёва",
+        "first_name": "Татьяна",
+        "middle_name": "Николаевна",
+        "series": "47 83",
+        "number": "321264",
+        "issued_by": "ОВД ПО Г. КАЗАНЬ",
+        "issued_at": "10.04.2021",
+        "issued_code": "381-660",
+        "birth_date": "20.01.1963",
+        "registration_address": "г. Новосибирск, ул. Ленина, д. 192, кв. 88"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, женский, г. Новосибирск"
+  },
+  {
+    "id": "docs-parsing-passport-022",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/022.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Фёдоров",
+        "first_name": "Андрей",
+        "middle_name": "Михайлович",
+        "series": "46 83",
+        "number": "732846",
+        "issued_by": "ОВД ПО Г. КАЗАНЬ",
+        "issued_at": "26.05.2016",
+        "issued_code": "645-947",
+        "birth_date": "18.12.1977",
+        "registration_address": "г. Санкт-Петербург, Невский пр-кт, д. 131, кв. 60"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, мужской, г. Санкт-Петербург"
+  },
+  {
+    "id": "docs-parsing-passport-023",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/023.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Григорьев",
+        "first_name": "Дмитрий",
+        "middle_name": "Александрович",
+        "series": "46 31",
+        "number": "344154",
+        "issued_by": "ОТДЕЛЕНИЕМ УФМС РОССИИ ПО ЕКАТЕРИНБУРГУ",
+        "issued_at": "04.06.2015",
+        "issued_code": "307-467",
+        "birth_date": "29.11.1963",
+        "registration_address": "г. Ростов-на-Дону, пр. Соколова, д. 155, кв. 10"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, мужской, г. Ростов-на-Дону"
+  },
+  {
+    "id": "docs-parsing-passport-024",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/024.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Михайлова",
+        "first_name": "Елена",
+        "middle_name": "Дмитриевна",
+        "series": "44 75",
+        "number": "344538",
+        "issued_by": "ГУ МВД РОССИИ ПО НИЖЕГОРОДСКОЙ ОБЛ.",
+        "issued_at": "18.02.2017",
+        "issued_code": "443-517",
+        "birth_date": "17.09.1988",
+        "registration_address": "г. Казань, ул. Баумана, д. 129, кв. 106"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, женский, г. Казань"
+  },
+  {
+    "id": "docs-parsing-passport-025",
+    "agent": "document-intake",
+    "input": {
+      "document_type": "passport",
+      "document_url": "fixtures://passports/025.png",
+      "page_count": 1,
+      "tenant_id": "tnt_demo"
+    },
+    "expected": {
+      "document_type": "passport",
+      "fields": {
+        "last_name": "Новикова",
+        "first_name": "Татьяна",
+        "middle_name": "Александровна",
+        "series": "44 82",
+        "number": "918864",
+        "issued_by": "ОТДЕЛ УФМС РОССИИ ПО Г. МОСКВЕ",
+        "issued_at": "01.12.2019",
+        "issued_code": "135-532",
+        "birth_date": "04.09.1986",
+        "registration_address": "г. Екатеринбург, ул. Малышева, д. 124, кв. 23"
+      }
+    },
+    "tags": [
+      "docs-parsing",
+      "passport",
+      "synthetic"
+    ],
+    "description": "Паспорт РФ, женский, г. Екатеринбург"
+  }
+]

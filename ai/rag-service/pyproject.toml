@@ -9,3 +9,27 @@ dependencies = [
     "pydantic>=2.7",
     "qdrant-client>=1.9",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+otel = [
+    "opentelemetry-api>=1.25",
+    "opentelemetry-sdk>=1.25",
+    "opentelemetry-instrumentation-fastapi>=0.46b0",
+    "opentelemetry-exporter-otlp-proto-http>=1.25",
+]
+audit = [
+    # Install via local path: `pip install -e packages/audit-sdk/python`.
+    "aibank-audit-sdk>=0.1.0",
+]
+
+[tool.setuptools]
+# Явный список пакетов: после появления `configs/` (yaml-файлы только)
+# setuptools auto-discovery валится с «Multiple top-level packages».
+packages = ["models", "service"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

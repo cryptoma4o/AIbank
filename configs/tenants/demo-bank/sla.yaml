@@ -1,0 +1,25 @@
+schema_version: "1.0"
+targets:
+  ip:
+    auto_processing_minutes: 5
+    total_minutes: 60
+    automation_rate_target: 0.85
+  llc:
+    auto_processing_minutes: 15
+    total_minutes: 240
+    automation_rate_target: 0.75
+  jsc:
+    auto_processing_minutes: 30
+    total_minutes: 480
+    automation_rate_target: 0.55
+on_breach:
+  notify_channels:
+    - email: "sla-alerts@demo-bank.example"
+    - telegram: "@demo_bank_sla_bot"
+  escalation:
+    after_minutes: 30
+    to:
+      - role: tenant_ops_oncall
+        email: "ops-oncall@demo-bank.example"
+      - role: aibank_csm
+        email: "csm@aibank.io"

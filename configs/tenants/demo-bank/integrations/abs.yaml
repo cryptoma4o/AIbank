@@ -1,0 +1,10 @@
+schema_version: "1.0"
+abs:
+  type: cft                          # ЦФТ-Банк (используем abs-adapter-cft)
+  version: "v23.4"
+  endpoint: "vault://kv/tenants/demo-bank/abs/endpoint"
+  api_key: "vault://kv/tenants/demo-bank/abs/api_key"
+  auth_method: mtls
+  cert_ref: "vault://kv/tenants/demo-bank/abs/mtls_cert"
+  timeout_seconds: 30
+  retry_attempts: 3

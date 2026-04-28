@@ -1,0 +1,37 @@
+schema_version: "1.0"
+models:
+  document_parsing:
+    model_name: production-vision     # gemma-4-26b per ADR-0011
+    fallback: production-vision-lite
+    rate_limit_rpm: 60
+    cost_alert_usd_per_day: 50
+    timeout_seconds: 30
+  reconciliation:
+    model_name: production-reasoning  # t-pro reasoning role
+    rate_limit_rpm: 30
+    cost_alert_usd_per_day: 30
+    timeout_seconds: 45
+  ubo_tracing:
+    model_name: production-thinking
+    rate_limit_rpm: 10
+    cost_alert_usd_per_day: 20
+    timeout_seconds: 90
+  risk_explanation:
+    model_name: production-reasoning
+    rate_limit_rpm: 30
+    cost_alert_usd_per_day: 10
+    timeout_seconds: 30
+  conversational:
+    model_name: production-chat-ru    # t-pro Russian chat
+    rate_limit_rpm: 120
+    cost_alert_usd_per_day: 20
+    timeout_seconds: 20
+  rag:
+    model_name: production-vision
+    rate_limit_rpm: 60
+    cost_alert_usd_per_day: 15
+    timeout_seconds: 30
+guardrails:
+  pii_filter: always_on
+  output_safety_check: always_on
+  audit_logging: always_on

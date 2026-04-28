@@ -1,0 +1,40 @@
+schema_version: "1.0"
+tenant:
+  id: demo-bank
+  name: "Демо банк (для пилотов)"
+  legal_name: "АО «Демонстрационный Банк»"
+  bik: "044525974"
+  inn: "7700000000"
+  status: trial
+  contract:
+    contract_id: "DEMO-2026-PILOT-001"
+    start_date: "2026-04-01"
+    end_date: "2026-12-31"
+    pricing_tier: trial
+  deployment:
+    mode: saas
+    region: ru-central
+    data_residency:
+      - RU
+  features:
+    enabled:
+      - kyb_egrul
+      - kyb_rosfinmon
+      - risk_scoring
+      - document_parsing
+      - ubo_tracing
+    disabled:
+      - spark_integration
+      - bki_integration
+  contacts:
+    technical_lead:
+      name: "Иван Технов"
+      email: "tech-lead@demo-bank.example"
+      phone: "+7 495 000-00-01"
+    compliance_officer:
+      name: "Мария Комплаенс"
+      email: "compliance@demo-bank.example"
+      phone: "+7 495 000-00-02"
+    business_owner:
+      name: "Сергей Бизнесов"
+      email: "owner@demo-bank.example"

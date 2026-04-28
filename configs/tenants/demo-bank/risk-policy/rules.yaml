@@ -1,0 +1,55 @@
+schema_version: "1.0"
+rules:
+  - id: ROSFINMON_MATCH
+    description: "Совпадение с перечнями Росфинмониторинга (115-ФЗ)"
+    severity: critical
+    action: auto_reject
+    immutable: true
+
+  - id: BANKRUPTCY
+    description: "Активная процедура банкротства по данным ЕФРСБ"
+    severity: high
+    action: auto_reject
+    immutable: true
+
+  - id: BLOCKED_OKVED
+    description: "Основной ОКВЭД из запрещённого списка банка"
+    severity: high
+    action: manual_review
+    immutable: false
+    require_edd: true
+
+  - id: HIGH_RISK_OKVED_SECONDARY
+    description: "Высокорисковый ОКВЭД присутствует в дополнительных видах деятельности"
+    severity: medium
+    action: manual_review
+    immutable: false
+
+  - id: FOREIGN_UBO
+    description: "Среди бенефициаров есть нерезиденты РФ"
+    severity: medium
+    action: manual_review
+    immutable: false
+    require_edd: true
+    block_auto_approval: true
+
+  - id: HIGH_CAPITAL
+    description: "Уставный капитал свыше 100 млн ₽ — требуется проверка источника"
+    severity: medium
+    action: manual_review
+    immutable: false
+
+  - id: RECENT_REGISTRATION
+    description: "ЮЛ зарегистрировано менее 90 дней назад"
+    severity: low
+    action: set_medium_risk
+    immutable: false
+
+priority_order:
+  - ROSFINMON_MATCH
+  - BANKRUPTCY
+  - BLOCKED_OKVED
+  - FOREIGN_UBO
+  - HIGH_CAPITAL
+  - HIGH_RISK_OKVED_SECONDARY
+  - RECENT_REGISTRATION

@@ -1,0 +1,38 @@
+schema_version: "1.0"
+blocked_okveds:
+  - code: "92.11"
+    name: "Деятельность по организации азартных игр"
+    reason: "high_aml_risk"
+  - code: "92.12"
+    name: "Деятельность букмекерских контор и тотализаторов"
+    reason: "high_aml_risk"
+  - code: "64.92.6"
+    name: "Деятельность по предоставлению ломбардами краткосрочных займов"
+    reason: "regulatory_oversight"
+    require_documents:
+      - lombard_license
+  - code: "47.78.22"
+    name: "Торговля розничная драгоценными металлами и камнями в специализированных магазинах"
+    reason: "high_aml_risk"
+    require_documents:
+      - probirnaya_palata_license
+  - code: "66.19.4"
+    name: "Деятельность по предоставлению консультационных услуг по вопросам финансового посредничества"
+    reason: "high_risk_intermediary"
+  - code: "64.99"
+    name: "Прочие виды финансовых услуг, не включённые в другие группировки"
+    reason: "ambiguous_activity"
+  - code: "82.99"
+    name: "Деятельность по предоставлению прочих вспомогательных услуг для бизнеса"
+    reason: "shell_company_indicator"
+  - code: "46.18.9"
+    name: "Деятельность агентов по оптовой торговле товарами, не включёнными в другие группировки"
+    reason: "shell_company_indicator"
+  - code: "68.31"
+    name: "Деятельность агентств недвижимости за вознаграждение или на договорной основе"
+    reason: "high_aml_risk_real_estate"
+    require_documents:
+      - real_estate_license
+  - code: "96.09"
+    name: "Предоставление прочих персональных услуг, не включённых в другие группировки"
+    reason: "ambiguous_activity"

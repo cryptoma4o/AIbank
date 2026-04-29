@@ -1,6 +1,6 @@
 module github.com/aibank/platform/services/document-service
 
-go 1.22
+go 1.25
 
 require (
 	github.com/aibank/platform/packages/audit-sdk v0.0.0-00010101000000-000000000000

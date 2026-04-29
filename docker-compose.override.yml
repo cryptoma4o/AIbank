@@ -40,9 +40,18 @@ services:
   # web-admin Next.js слушает container:3000 (default Next.js port),
   # а main mapping 3001:3001 биндит на не-listening 3001. Меняем на
   # 3001:3000 чтобы host:3001 → container:3000.
+  # NEXT_PUBLIC_*_URL — публичный hostname для browser-side fetch.
   web-admin:
     ports:
       - "3001:3000"
+    environment:
+      NEXT_PUBLIC_IDENTITY_SERVICE_URL: http://206.204.106.28:8082
+      NEXT_PUBLIC_BFF_ADMIN_URL: http://206.204.106.28:8092/graphql
+
+  web-onboarding:
+    environment:
+      NEXT_PUBLIC_IDENTITY_SERVICE_URL: http://206.204.106.28:8082
+      NEXT_PUBLIC_BFF_ONBOARDING_URL: http://206.204.106.28:8091/graphql
 
   # ────────────────────────────────────────────────────────────
   # Go-сервисы: monorepo build context + healthcheck disable

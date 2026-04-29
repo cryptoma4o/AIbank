@@ -29,7 +29,6 @@ ARG GO_VERSION=1.25
 FROM golang:${GO_VERSION}-alpine AS builder
 
 ARG SERVICE_PATH
-ARG GO_FLAGS="-trimpath -ldflags=-s -w"
 
 # Pre-deps for replace directives — копируем все packages/ сразу.
 # Это даёт Docker возможность кешировать слой пока packages не меняются.
@@ -50,9 +49,9 @@ COPY ${SERVICE_PATH}/ ./${SERVICE_PATH}/
 # fallback на корневой `.` package если cmd/server отсутствует.
 WORKDIR /repo/${SERVICE_PATH}
 RUN if [ -d cmd/server ]; then \
-      CGO_ENABLED=0 GOOS=linux go build ${GO_FLAGS} -o /service ./cmd/server; \
+      CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags='-s -w' -o /service ./cmd/server; \
     else \
-      CGO_ENABLED=0 GOOS=linux go build ${GO_FLAGS} -o /service .; \
+      CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags='-s -w' -o /service .; \
     fi
 
 # Runtime stage — distroless для минимального attack surface.

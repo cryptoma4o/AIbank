@@ -13,24 +13,6 @@
 services:
 
   # ────────────────────────────────────────────────────────────
-  # JWT_SECRET для всех auth-validating сервисов (staging dev secret).
-  # Production: должен приходить через Vault (см. ADR-0013).
-  # ────────────────────────────────────────────────────────────
-  api-gateway:
-    environment:
-      JWT_SECRET: aibank-staging-dev-secret-32bytes-minimum-do-not-use-in-prod
-      AUTH_DEV_MODE: "1"
-  bff-admin:
-    environment:
-      JWT_SECRET: aibank-staging-dev-secret-32bytes-minimum-do-not-use-in-prod
-  bff-onboarding:
-    environment:
-      JWT_SECRET: aibank-staging-dev-secret-32bytes-minimum-do-not-use-in-prod
-  identity-service:
-    environment:
-      JWT_SECRET: aibank-staging-dev-secret-32bytes-minimum-do-not-use-in-prod
-
-  # ────────────────────────────────────────────────────────────
   # Stateful infrastructure overrides
   # ────────────────────────────────────────────────────────────
 
@@ -86,6 +68,8 @@ services:
         SERVICE_PATH: services/identity-service
     healthcheck:
       disable: true
+    environment:
+      JWT_SECRET: aibank-staging-dev-secret-32bytes-minimum-do-not-use-in-prod
 
   document-service:
     build:
@@ -137,6 +121,9 @@ services:
       dockerfile: docker/Dockerfile.go-service
       args:
         SERVICE_PATH: services/api-gateway
+    environment:
+      JWT_SECRET: aibank-staging-dev-secret-32bytes-minimum-do-not-use-in-prod
+      AUTH_DEV_MODE: "1"
 
   ext-egrul:
     build:
@@ -200,6 +187,8 @@ services:
       dockerfile: docker/Dockerfile.go-service
       args:
         SERVICE_PATH: services/bff-onboarding
+    environment:
+      JWT_SECRET: aibank-staging-dev-secret-32bytes-minimum-do-not-use-in-prod
 
   bff-admin:
     build:
@@ -207,6 +196,8 @@ services:
       dockerfile: docker/Dockerfile.go-service
       args:
         SERVICE_PATH: services/bff-admin
+    environment:
+      JWT_SECRET: aibank-staging-dev-secret-32bytes-minimum-do-not-use-in-prod
 
   db-migrator-platform:
     build:

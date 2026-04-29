@@ -1,36 +1,27 @@
 # docker-compose.override.yml — automatic merge с docker-compose.yml.
 #
-# Назначение: переопределить build для всех Go-сервисов AIbank на
-# monorepo-context build (context=., dockerfile=docker/Dockerfile.go-service).
-# Это нужно потому что сервисы используют go.mod replace на ../../packages/*,
-# и старый build: ./services/X не имеет packages/ в build context.
-#
-# Старые Dockerfile'ы в каждом services/X/Dockerfile сохранены для
-# обратной совместимости (для DevOps, которые билдят отдельный сервис),
-# но НЕ работают из-за replace проблемы. docker compose использует
-# этот override автоматически.
-#
-# При обновлении списка сервисов — добавь сюда новый блок и не забудь
-# про docker-compose.yml (главный файл) тоже.
+# Причины существования (см. отдельные секции):
+# 1) Build context fix для Go-сервисов (replace ../../packages/* нужен
+#    monorepo build context, а не папку сервиса).
+# 2) MinIO pin к 2022-06 (CPU compat для x86-64-v1 QEMU staging).
+# 3) Temporal env DB=postgres12 (вместо неправильного "postgresql").
+# 4) Healthcheck disable для distroless (Go) / slim (Python) — в них
+#    нет wget/curl, healthcheck always fails.
+# 5) Port collision MinIO (9001) vs abs-adapter-cft (9001) — MinIO console
+#    переезжает на host:9101.
 
 services:
-  # Port collision fix: и MinIO console и abs-adapter-cft биндились
-  # на host:9001. MinIO console — диагностический, переносим на 9101.
-  # Внутри docker network он по-прежнему доступен на :9001.
-  #
-  # CPU compat fix: legacy QEMU Virtual CPU (наш staging at-bastion) не
-  # имеет x86-64-v2 instructions (popcnt, sse4_*, ssse3). Все MinIO
-  # релизы после ~2022-09 требуют v2 → fatal glibc. Pin 2022-06 —
-  # последний x86-64-v1 совместимый.
+
+  # ────────────────────────────────────────────────────────────
+  # Stateful infrastructure overrides
+  # ────────────────────────────────────────────────────────────
+
   minio:
     image: minio/minio:RELEASE.2022-06-25T15-50-16Z
     ports:
       - "9000:9000"
       - "9101:9001"
 
-  # Temporal auto-setup ожидает driver name "postgres12" (или
-  # postgres12_pgx), не "postgresql". В docker-compose.yml main
-  # значение неправильное — патчим через override.
   temporal:
     environment:
       DB: postgres12
@@ -39,41 +30,10 @@ services:
       POSTGRES_PWD: aibank
       POSTGRES_SEEDS: postgres
 
-  # Healthcheck disable: главный docker-compose.yml использует
-  # `wget` для healthcheck, но Go-сервисы запущены на distroless
-  # (нет shell вообще), а Python — на slim (нет wget/curl).
-  # Disable заставит docker compose считать контейнер healthy
-  # сразу после start. depends_on условия service_healthy ослабнут
-  # до service_started — приемлемо для staging.
-  # Long-term fix: добавить wget/curl в Dockerfile или
-  # CMD-binary healthcheck. Здесь — компромисс.
-  tenant-service:
-    healthcheck:
-      disable: true
-  audit-service:
-    healthcheck:
-      disable: true
-  identity-service:
-    healthcheck:
-      disable: true
-  document-service:
-    healthcheck:
-      disable: true
-  llm-gateway:
-    healthcheck:
-      disable: true
-  agent-document-intake:
-    healthcheck:
-      disable: true
-  agent-reconciliation:
-    healthcheck:
-      disable: true
-  agent-ubo-tracing:
-    healthcheck:
-      disable: true
-  agent-conversational:
-    healthcheck:
-      disable: true
+  # ────────────────────────────────────────────────────────────
+  # Go-сервисы: monorepo build context + healthcheck disable
+  # (distroless static-debian12:nonroot — нет shell для wget)
+  # ────────────────────────────────────────────────────────────
 
   tenant-service:
     build:
@@ -81,6 +41,8 @@ services:
       dockerfile: docker/Dockerfile.go-service
       args:
         SERVICE_PATH: services/tenant-service
+    healthcheck:
+      disable: true
 
   audit-service:
     build:
@@ -88,6 +50,8 @@ services:
       dockerfile: docker/Dockerfile.go-service
       args:
         SERVICE_PATH: services/audit-service
+    healthcheck:
+      disable: true
 
   identity-service:
     build:
@@ -95,6 +59,8 @@ services:
       dockerfile: docker/Dockerfile.go-service
       args:
         SERVICE_PATH: services/identity-service
+    healthcheck:
+      disable: true
 
   document-service:
     build:
@@ -102,6 +68,8 @@ services:
       dockerfile: docker/Dockerfile.go-service
       args:
         SERVICE_PATH: services/document-service
+    healthcheck:
+      disable: true
 
   notification-service:
     build:
@@ -221,3 +189,27 @@ services:
       dockerfile: docker/Dockerfile.go-service
       args:
         SERVICE_PATH: tools/db-migrator
+
+  # ────────────────────────────────────────────────────────────
+  # Python AI-агенты: healthcheck disable (slim — нет wget/curl)
+  # ────────────────────────────────────────────────────────────
+
+  llm-gateway:
+    healthcheck:
+      disable: true
+
+  agent-document-intake:
+    healthcheck:
+      disable: true
+
+  agent-reconciliation:
+    healthcheck:
+      disable: true
+
+  agent-ubo-tracing:
+    healthcheck:
+      disable: true
+
+  agent-conversational:
+    healthcheck:
+      disable: true

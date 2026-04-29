@@ -194,9 +194,17 @@ services:
   # Python AI-агенты: healthcheck disable (slim — нет wget/curl)
   # ────────────────────────────────────────────────────────────
 
+  # llm-gateway имеет 4 зависимых сервиса с depends_on service_healthy
+  # (agent-document-intake, -reconciliation, -ubo-tracing, -conversational).
+  # disable: true ломает condition → "no healthcheck configured".
+  # Заменяем wget на Python urllib (gateway сам на python:3.12-slim).
   llm-gateway:
     healthcheck:
-      disable: true
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/healthz').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   agent-document-intake:
     healthcheck:

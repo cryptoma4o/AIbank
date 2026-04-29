@@ -1,0 +1,162 @@
+# docker-compose.override.yml — automatic merge с docker-compose.yml.
+#
+# Назначение: переопределить build для всех Go-сервисов AIbank на
+# monorepo-context build (context=., dockerfile=docker/Dockerfile.go-service).
+# Это нужно потому что сервисы используют go.mod replace на ../../packages/*,
+# и старый build: ./services/X не имеет packages/ в build context.
+#
+# Старые Dockerfile'ы в каждом services/X/Dockerfile сохранены для
+# обратной совместимости (для DevOps, которые билдят отдельный сервис),
+# но НЕ работают из-за replace проблемы. docker compose использует
+# этот override автоматически.
+#
+# При обновлении списка сервисов — добавь сюда новый блок и не забудь
+# про docker-compose.yml (главный файл) тоже.
+
+services:
+  tenant-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/tenant-service
+
+  audit-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/audit-service
+
+  identity-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/identity-service
+
+  document-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/document-service
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/notification-service
+
+  onboarding-orchestrator:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/onboarding-orchestrator
+
+  risk-engine:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/risk-engine
+
+  client-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/client-service
+
+  ubo-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/ubo-service
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/api-gateway
+
+  ext-egrul:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/ext-egrul
+
+  ext-rosfinmon:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/ext-rosfinmon
+
+  ext-fssp:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/ext-fssp
+
+  abs-connector:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/abs-connector
+
+  abs-adapter-cft:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/abs-adapter-cft
+
+  abs-adapter-diasoft:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/abs-adapter-diasoft
+
+  abs-adapter-rs-bank:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/abs-adapter-rs-bank
+
+  billing-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/billing-service
+
+  bff-onboarding:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/bff-onboarding
+
+  bff-admin:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: services/bff-admin
+
+  db-migrator-platform:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.go-service
+      args:
+        SERVICE_PATH: tools/db-migrator

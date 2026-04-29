@@ -1,0 +1,61 @@
+# syntax=docker/dockerfile:1.6
+#
+# Универсальный Dockerfile для Go-сервисов AIbank-монорепо.
+# Build context = корень репозитория (`.`), что позволяет COPY-ить
+# packages/* как зависимости — это требуется для go.mod replace
+# директив вроде `replace github.com/aibank/platform/packages/healthz =>
+# ../../packages/healthz`.
+#
+# Использование (из docker-compose.override.yml):
+#
+#   audit-service:
+#     build:
+#       context: .
+#       dockerfile: docker/Dockerfile.go-service
+#       args:
+#         SERVICE_PATH: services/audit-service
+#
+# Опциональные args:
+#   GO_VERSION (default 1.22) — версия Go
+#   GO_FLAGS   (default "-trimpath -ldflags=-s -w") — флаги go build
+#
+# Старые Dockerfile'ы в каждом services/X/Dockerfile сохранены для
+# обратной совместимости с DevOps командами, которые билдят сервис
+# отдельно. Они НЕ работают для сервисов с replace (это известно), но
+# не блокируют ничего, потому что docker compose использует этот
+# shared Dockerfile через override.
+
+ARG GO_VERSION=1.22
+FROM golang:${GO_VERSION}-alpine AS builder
+
+ARG SERVICE_PATH
+ARG GO_FLAGS="-trimpath -ldflags=-s -w"
+
+# Pre-deps for replace directives — копируем все packages/ сразу.
+# Это даёт Docker возможность кешировать слой пока packages не меняются.
+WORKDIR /repo
+COPY packages/ ./packages/
+
+# Копируем go.mod / go.sum сервиса для отдельного слоя кеширования
+# go mod download — пересобирается только при изменении deps, не кода.
+COPY ${SERVICE_PATH}/go.mod ${SERVICE_PATH}/go.sum* ./${SERVICE_PATH}/
+WORKDIR /repo/${SERVICE_PATH}
+RUN go mod download
+
+# Копируем сам сервис (изменяется чаще всего — последний слой).
+WORKDIR /repo
+COPY ${SERVICE_PATH}/ ./${SERVICE_PATH}/
+
+# Build. Если у сервиса cmd/server (стандартное место) — собираем оттуда;
+# fallback на корневой `.` package если cmd/server отсутствует.
+WORKDIR /repo/${SERVICE_PATH}
+RUN if [ -d cmd/server ]; then \
+      CGO_ENABLED=0 GOOS=linux go build ${GO_FLAGS} -o /service ./cmd/server; \
+    else \
+      CGO_ENABLED=0 GOOS=linux go build ${GO_FLAGS} -o /service .; \
+    fi
+
+# Runtime stage — distroless для минимального attack surface.
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=builder /service /service
+ENTRYPOINT ["/service"]

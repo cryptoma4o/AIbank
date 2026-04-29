@@ -30,6 +30,13 @@ services:
       POSTGRES_PWD: aibank
       POSTGRES_SEEDS: postgres
 
+  # Port collision: temporal-ui биндит host:8089, и client-service
+  # тоже host:8089 (свой API). Переезд temporal-ui на host:8094.
+  # Client-service остаётся на 8089 (используется в коде / agentDoc).
+  temporal-ui:
+    ports:
+      - "8094:8080"
+
   # ────────────────────────────────────────────────────────────
   # Go-сервисы: monorepo build context + healthcheck disable
   # (distroless static-debian12:nonroot — нет shell для wget)

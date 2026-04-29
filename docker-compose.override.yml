@@ -18,11 +18,12 @@ services:
   # на host:9001. MinIO console — диагностический, переносим на 9101.
   # Внутри docker network он по-прежнему доступен на :9001.
   #
-  # CPU compat fix: MinIO release ≥2024-01 требует x86-64-v2 (SSE4.2 etc).
-  # На старых VPS (наш staging at-bastion) — fatal glibc. Pin последнюю
-  # 2023 версию, которая работает на x86-64-v1.
+  # CPU compat fix: legacy QEMU Virtual CPU (наш staging at-bastion) не
+  # имеет x86-64-v2 instructions (popcnt, sse4_*, ssse3). Все MinIO
+  # релизы после ~2022-09 требуют v2 → fatal glibc. Pin 2022-06 —
+  # последний x86-64-v1 совместимый.
   minio:
-    image: minio/minio:RELEASE.2023-12-23T07-19-11Z
+    image: minio/minio:RELEASE.2022-06-25T15-50-16Z
     ports:
       - "9000:9000"
       - "9101:9001"

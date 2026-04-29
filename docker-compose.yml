@@ -467,7 +467,7 @@ services:
   web-admin:
     build: ./apps/web-admin
     ports:
-      - "3001:3001"
+      - "3001:3000"
     environment:
       BFF_ADMIN_URL: http://bff-admin:8092/graphql
     depends_on:

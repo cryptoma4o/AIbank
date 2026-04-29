@@ -37,6 +37,13 @@ services:
     ports:
       - "8094:8080"
 
+  # web-admin Next.js слушает container:3000 (default Next.js port),
+  # а main mapping 3001:3001 биндит на не-listening 3001. Меняем на
+  # 3001:3000 чтобы host:3001 → container:3000.
+  web-admin:
+    ports:
+      - "3001:3000"
+
   # ────────────────────────────────────────────────────────────
   # Go-сервисы: monorepo build context + healthcheck disable
   # (distroless static-debian12:nonroot — нет shell для wget)

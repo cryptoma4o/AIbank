@@ -14,6 +14,14 @@
 # про docker-compose.yml (главный файл) тоже.
 
 services:
+  # Port collision fix: и MinIO console и abs-adapter-cft биндились
+  # на host:9001. MinIO console — диагностический, переносим на 9101.
+  # Внутри docker network он по-прежнему доступен на :9001.
+  minio:
+    ports:
+      - "9000:9000"
+      - "9101:9001"
+
   tenant-service:
     build:
       context: .

@@ -41,20 +41,19 @@ services:
   # а main mapping 3001:3001 биндит на не-listening 3001. Меняем на
   # 3001:3000 чтобы host:3001 → container:3000.
   # NEXT_PUBLIC_*_URL — публичный hostname для browser-side fetch.
-  # Frontend: dev-mode чтобы NEXT_PUBLIC_* env читались runtime
-  # (production build их inline'ит на этапе сборки image; для staging
-  # с гибкими URL'ами проще dev-mode).
+  # Frontend: dev-mode чтобы NEXT_PUBLIC_* env читались runtime.
+  # Production image не содержит dev-deps, поэтому npm install перед npm run dev.
+  # Ports: package.json scripts диктуют — web-admin :3001, web-onboarding :3000.
   web-admin:
-    command: ["npm", "run", "dev"]
+    command: ["sh", "-c", "npm install --no-audit --no-fund && npm run dev"]
     ports:
-      - "3001:3000"
+      - "3001:3001"
     environment:
       NEXT_PUBLIC_IDENTITY_SERVICE_URL: http://206.204.106.28:8082
       NEXT_PUBLIC_BFF_ADMIN_URL: http://206.204.106.28:8092/graphql
-      PORT: "3000"
 
   web-onboarding:
-    command: ["npm", "run", "dev"]
+    command: ["sh", "-c", "npm install --no-audit --no-fund && npm run dev"]
     environment:
       NEXT_PUBLIC_IDENTITY_SERVICE_URL: http://206.204.106.28:8082
       NEXT_PUBLIC_BFF_ONBOARDING_URL: http://206.204.106.28:8091/graphql

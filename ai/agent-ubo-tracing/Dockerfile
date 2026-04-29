@@ -2,11 +2,11 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY pyproject.toml ./
-RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir .
-
+# Сначала весь код, потом pip install — иначе setuptools не видит
+# package directories (agent/, models/) при build wheel из pyproject.toml.
 COPY . .
 
-EXPOSE 8103
+RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir .
 
+EXPOSE 8103
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8103"]

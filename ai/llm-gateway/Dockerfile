@@ -2,13 +2,12 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY pyproject.toml .
-RUN pip install --no-cache-dir .
-
+# Сначала весь код, потом pip install — иначе setuptools не видит
+# package directories (agent/, models/) при build wheel из pyproject.toml.
 COPY . .
 
+RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir .
+
 EXPOSE 8100
-
 ENV LLM_GATEWAY_CONFIG=/app/configs/default-routing.yaml
-
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8100"]

@@ -39,6 +39,42 @@ services:
       POSTGRES_PWD: aibank
       POSTGRES_SEEDS: postgres
 
+  # Healthcheck disable: главный docker-compose.yml использует
+  # `wget` для healthcheck, но Go-сервисы запущены на distroless
+  # (нет shell вообще), а Python — на slim (нет wget/curl).
+  # Disable заставит docker compose считать контейнер healthy
+  # сразу после start. depends_on условия service_healthy ослабнут
+  # до service_started — приемлемо для staging.
+  # Long-term fix: добавить wget/curl в Dockerfile или
+  # CMD-binary healthcheck. Здесь — компромисс.
+  tenant-service:
+    healthcheck:
+      disable: true
+  audit-service:
+    healthcheck:
+      disable: true
+  identity-service:
+    healthcheck:
+      disable: true
+  document-service:
+    healthcheck:
+      disable: true
+  llm-gateway:
+    healthcheck:
+      disable: true
+  agent-document-intake:
+    healthcheck:
+      disable: true
+  agent-reconciliation:
+    healthcheck:
+      disable: true
+  agent-ubo-tracing:
+    healthcheck:
+      disable: true
+  agent-conversational:
+    healthcheck:
+      disable: true
+
   tenant-service:
     build:
       context: .

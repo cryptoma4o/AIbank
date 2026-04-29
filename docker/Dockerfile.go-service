@@ -25,7 +25,7 @@
 # не блокируют ничего, потому что docker compose использует этот
 # shared Dockerfile через override.
 
-ARG GO_VERSION=1.22
+ARG GO_VERSION=1.25
 FROM golang:${GO_VERSION}-alpine AS builder
 
 ARG SERVICE_PATH

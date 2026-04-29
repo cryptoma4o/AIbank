@@ -48,8 +48,18 @@ COPY ${SERVICE_PATH}/ ./${SERVICE_PATH}/
 # Build. Если у сервиса cmd/server (стандартное место) — собираем оттуда;
 # fallback на корневой `.` package если cmd/server отсутствует.
 WORKDIR /repo/${SERVICE_PATH}
-RUN if [ -d cmd/server ]; then \
+# Поддержка трёх layout'ов:
+#   - cmd/server/ (стандарт для services/*) — большинство сервисов
+#   - cmd/<other>/ (например tools/db-migrator/cmd/db-migrator/) — берём первый каталог из cmd/
+#   - корневой пакет (нет cmd/) — fallback
+RUN set -e; \
+    if [ -d cmd/server ]; then \
       CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags='-s -w' -o /service ./cmd/server; \
+    elif [ -d cmd ]; then \
+      ENTRY=$(find cmd -maxdepth 2 -name "main.go" -print -quit); \
+      ENTRY_DIR=$(dirname "$ENTRY"); \
+      echo "Building from $ENTRY_DIR"; \
+      CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags='-s -w' -o /service "./$ENTRY_DIR"; \
     else \
       CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags='-s -w' -o /service .; \
     fi

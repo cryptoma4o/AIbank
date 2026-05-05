@@ -119,7 +119,7 @@ jobs:
             --output spdx-json="sbom/${IMAGE_NAME}.spdx.json"
 
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-${{ matrix.image.name }}
           path: sbom/${{ matrix.image.name }}.*

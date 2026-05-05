@@ -26,147 +26,231 @@ updates:
     labels: ["dependencies", "go", "services"]
     open-pull-requests-limit: 3
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/abs-adapter-diasoft"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/abs-adapter-rs-bank"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/abs-connector"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/api-gateway"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/audit-service"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/bff-admin"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/bff-onboarding"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/billing-service"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/client-service"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/document-service"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/ext-egrul"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/ext-fssp"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/ext-rosfinmon"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/ext-spark"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/identity-service"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/notification-service"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/onboarding-orchestrator"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/risk-engine"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/tenant-service"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services", "core"]
     reviewers: ["ai-bank-architects"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/services/ubo-service"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "services"]
     commit-message: { prefix: "chore(deps)" }
 
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   # ─── Go modules: tools/* ─────────────────────────────────────────────────
   - package-ecosystem: "gomod"
     directory: "/tools/db-migrator"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "tools"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/tools/mock-abs"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "tools"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/tools/tenant-cli"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "tools"]
     commit-message: { prefix: "chore(deps)" }
 
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   # ─── Go modules: packages/* (shared) ─────────────────────────────────────
   - package-ecosystem: "gomod"
     directory: "/packages/audit-sdk"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "packages"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/packages/crypto-utils"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "packages", "security"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/packages/rule-engine"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "packages"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "gomod"
     directory: "/packages/domain-model/go"
     schedule: { interval: "weekly", day: "monday" }
     labels: ["dependencies", "go", "packages", "domain"]
     commit-message: { prefix: "chore(deps)" }
 
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   # ─── npm: frontend apps ──────────────────────────────────────────────────
   - package-ecosystem: "npm"
     directory: "/apps/web-onboarding"
@@ -198,55 +282,88 @@ updates:
     schedule: { interval: "weekly", day: "wednesday" }
     labels: ["dependencies", "pip", "ai"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "pip"
     directory: "/ai/rag-service"
     schedule: { interval: "weekly", day: "wednesday" }
     labels: ["dependencies", "pip", "ai"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "pip"
     directory: "/ai/eval-harness"
     schedule: { interval: "weekly", day: "wednesday" }
     labels: ["dependencies", "pip", "ai"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "pip"
     directory: "/ai/agent-conversational"
     schedule: { interval: "weekly", day: "wednesday" }
     labels: ["dependencies", "pip", "ai"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "pip"
     directory: "/ai/agent-document-intake"
     schedule: { interval: "weekly", day: "wednesday" }
     labels: ["dependencies", "pip", "ai"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "pip"
     directory: "/ai/agent-risk-scoring"
     schedule: { interval: "weekly", day: "wednesday" }
     labels: ["dependencies", "pip", "ai"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "pip"
     directory: "/ai/agent-ubo-tracing"
     schedule: { interval: "weekly", day: "wednesday" }
     labels: ["dependencies", "pip", "ai"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "pip"
     directory: "/ai/agent-reconciliation"
     schedule: { interval: "weekly", day: "wednesday" }
     labels: ["dependencies", "pip", "ai"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "pip"
     directory: "/ai/agent-compliance-assistant"
     schedule: { interval: "weekly", day: "wednesday" }
     labels: ["dependencies", "pip", "ai"]
     commit-message: { prefix: "chore(deps)" }
 
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   # ─── pip: shared Python packages ─────────────────────────────────────────
   - package-ecosystem: "pip"
     directory: "/packages/audit-sdk/python"
     schedule: { interval: "weekly", day: "wednesday" }
     labels: ["dependencies", "pip", "packages"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]
   - package-ecosystem: "pip"
     directory: "/packages/tenant-config-schema"
     schedule: { interval: "weekly", day: "wednesday" }
     labels: ["dependencies", "pip", "packages"]
     commit-message: { prefix: "chore(deps)" }
+    groups:
+      production-deps:
+        update-types: ["minor", "patch"]

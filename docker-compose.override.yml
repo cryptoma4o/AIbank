@@ -21,6 +21,14 @@ services:
     ports:
       - "9000:9000"
       - "9101:9001"
+    # 2022-06 образ не содержит `mc` (используется в healthcheck из main
+    # docker-compose.yml). Переопределяем на curl против /minio/health/ready,
+    # который сам сервер обслуживает.
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/minio/health/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   temporal:
     environment:
@@ -37,23 +45,34 @@ services:
     ports:
       - "8094:8080"
 
-  # web-admin Next.js слушает container:3000 (default Next.js port),
-  # а main mapping 3001:3001 биндит на не-listening 3001. Меняем на
-  # 3001:3000 чтобы host:3001 → container:3000.
   # NEXT_PUBLIC_*_URL — публичный hostname для browser-side fetch.
   # Frontend: dev-mode чтобы NEXT_PUBLIC_* env читались runtime.
-  # Production image не содержит dev-deps, поэтому npm install перед npm run dev.
-  # Ports: package.json scripts диктуют — web-admin :3001, web-onboarding :3000.
+  # Production image (Dockerfile multi-stage) содержит только .next/standalone
+  # без src/ → `next dev` не находит app/. Bind-mount исходников из
+  # /opt/aibank + анонимный volume на /app/node_modules чтобы bind-mount
+  # не затёр модули.
+  # ВАЖНО: standalone-build генерирует обрезанный node_modules (tree-shaken
+  # для prod runtime), который инициализирует анонимный volume при первом
+  # старте. Поэтому команда сначала `rm -rf node_modules` — иначе пакеты
+  # вроде @swc/helpers распакованы не полностью и dev-mode падает с
+  # 'Module not found: _class_private_field_loose_base'.
+  # Ports: package.json scripts — web-admin :3001, web-onboarding :3000.
   web-admin:
-    command: ["sh", "-c", "npm install --no-audit --no-fund && npm run dev"]
+    command: ["sh", "-c", "find node_modules -mindepth 1 -maxdepth 1 -exec rm -rf {} + && npm install --legacy-peer-deps --no-audit --no-fund && npm run dev"]
     ports:
       - "3001:3001"
+    volumes:
+      - ./apps/web-admin:/app
+      - /app/node_modules
     environment:
       NEXT_PUBLIC_IDENTITY_SERVICE_URL: http://206.204.106.28:8082
       NEXT_PUBLIC_BFF_ADMIN_URL: http://206.204.106.28:8092/graphql
 
   web-onboarding:
-    command: ["sh", "-c", "npm install --no-audit --no-fund && npm run dev"]
+    command: ["sh", "-c", "find node_modules -mindepth 1 -maxdepth 1 -exec rm -rf {} + && npm install --legacy-peer-deps --no-audit --no-fund && npm run dev"]
+    volumes:
+      - ./apps/web-onboarding:/app
+      - /app/node_modules
     environment:
       NEXT_PUBLIC_IDENTITY_SERVICE_URL: http://206.204.106.28:8082
       NEXT_PUBLIC_BFF_ONBOARDING_URL: http://206.204.106.28:8091/graphql

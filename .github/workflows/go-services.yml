@@ -41,9 +41,14 @@ jobs:
         name: Find all go.mod files
         run: |
           set -euo pipefail
+          # packages/proto/codegen — build-tag-gated smoke test, не входит в
+          # generic CI walk (см. комментарий в его go.mod). Без флага
+          # `-tags=protocodegen_smoke` `go vet ./...` падает с exit 1
+          # ("matched no packages") на Go 1.22+.
           modules=$(
             find services tools packages \
               -name go.mod -mindepth 2 -maxdepth 4 -type f 2>/dev/null \
+              -not -path "packages/proto/codegen/go.mod" \
               | sort \
               | jq -R --slurp --compact-output '
                   split("\n")

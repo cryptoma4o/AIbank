@@ -140,6 +140,12 @@ services:
       dockerfile: docker/Dockerfile.go-service
       args:
         SERVICE_PATH: services/onboarding-orchestrator
+    environment:
+      # Этап 1 формы — параллельный скоринг через ext-* сервисы.
+      # Hostname'ы — internal docker network (см. docker-compose.yml).
+      EXT_EGRUL_URL: http://ext-egrul:8201
+      EXT_ROSFINMON_URL: http://ext-rosfinmon:8202
+      EXT_FSSP_URL: http://ext-fssp:8203
 
   risk-engine:
     build:

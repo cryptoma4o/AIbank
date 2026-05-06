@@ -109,7 +109,7 @@ func (r *PostgresProfileRepository) Upsert(ctx context.Context, p *domain.LegalE
 		nullableFloat(authorizedAmount), authorizedCurrency,
 		legalJSON, actualJSON, p.ActualSameAsLegal,
 		postalJSON, p.PostalSameAsLegal,
-		p.OKVEDMain, pq.Array(p.OKVEDAdditional),
+		p.OKVEDMain, pq.Array(orEmpty(p.OKVEDAdditional)),
 		licensesJSON, sroJSON, contactsJSON,
 		nullableInt(p.EmployeesCount), nullableFloat(revenueAmount), revenueCurrency,
 		p.TaxRegime, p.CreatedAt, p.UpdatedAt,

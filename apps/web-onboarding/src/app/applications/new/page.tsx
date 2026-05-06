@@ -79,8 +79,36 @@ function NewApplicationContent() {
       }
       router.replace(`/applications/${id}`);
     } catch (err) {
+      // Бизнес-правило "одна заявка на applicant": бэк вернул 409, BFF
+      // пробросил extensions.code = APPLICANT_HAS_APPLICATION с ID уже
+      // идущей заявки — редиректим на неё вместо показа ошибки.
+      const existingId = extractExistingApplicationId(err);
+      if (existingId) {
+        router.replace(`/applications/${existingId}`);
+        return;
+      }
       setSubmitError(err instanceof Error ? err.message : "Не удалось создать заявку");
     }
+  }
+
+  // extractExistingApplicationId ищет id существующей заявки в Apollo-ошибке.
+  // Apollo упаковывает GraphQL errors в err.graphQLErrors[].extensions.
+  function extractExistingApplicationId(err: unknown): string | null {
+    if (!err || typeof err !== "object") return null;
+    const gqlErrors = (err as { graphQLErrors?: Array<{ extensions?: Record<string, unknown> }> })
+      .graphQLErrors;
+    if (!Array.isArray(gqlErrors)) return null;
+    for (const gerr of gqlErrors) {
+      const ext = gerr?.extensions;
+      if (
+        ext &&
+        ext.code === "APPLICANT_HAS_APPLICATION" &&
+        typeof ext.existingApplicationId === "string"
+      ) {
+        return ext.existingApplicationId;
+      }
+    }
+    return null;
   }
 
   return (

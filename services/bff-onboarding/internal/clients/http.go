@@ -33,6 +33,18 @@ var ErrUpstream = errors.New("upstream error")
 // ErrNotFound — 404 от downstream-сервиса.
 var ErrNotFound = errors.New("not found")
 
+// StatusError — структурированная 4xx-ошибка от downstream-сервиса с
+// исходным телом, чтобы вызывающий мог распарсить domain-specific детали
+// (например, existing_application_id из 409 от orchestrator).
+type StatusError struct {
+	StatusCode int
+	Body       []byte
+}
+
+func (e *StatusError) Error() string {
+	return fmt.Sprintf("client error: status %d body=%s", e.StatusCode, truncate(e.Body))
+}
+
 // httpDoer — узкий интерфейс, чтобы тесты могли заменить http.Client моком.
 type httpDoer interface {
 	Do(*http.Request) (*http.Response, error)
@@ -77,7 +89,9 @@ func (t *transport) doJSON(req *http.Request, out any) error {
 			lastErr = fmt.Errorf("%w: status %d body=%s", ErrUpstream, resp.StatusCode, truncate(body))
 			continue
 		case resp.StatusCode >= 400:
-			return fmt.Errorf("client error: status %d body=%s", resp.StatusCode, truncate(body))
+			// Возвращаем structured StatusError, чтобы вызывающий мог
+			// распарсить body (например, 409 c existing_application_id).
+			return &StatusError{StatusCode: resp.StatusCode, Body: body}
 		}
 		if out == nil {
 			return nil

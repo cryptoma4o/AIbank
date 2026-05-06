@@ -2,6 +2,8 @@ package clients
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -9,6 +11,30 @@ import (
 
 	"aibank/bff-onboarding/internal/model"
 )
+
+// ApplicantHasApplicationError возвращается из Submit, когда orchestrator
+// вернул 409 Conflict из-за бизнес-правила "одна заявка на applicant".
+// Несёт ID существующей заявки, чтобы фронт мог редиректить пользователя.
+type ApplicantHasApplicationError struct {
+	ExistingApplicationID string
+	ExistingState         string
+}
+
+func (e *ApplicantHasApplicationError) Error() string {
+	return fmt.Sprintf("applicant already has application %s (state=%s)",
+		e.ExistingApplicationID, e.ExistingState)
+}
+
+// Extensions реализует gqlerrors.ExtendedError — graphql-go автоматически
+// засунет эти поля в extensions JSON-ответа, чтобы фронт мог распарсить
+// existing_application_id и редиректить на уже идущую заявку.
+func (e *ApplicantHasApplicationError) Extensions() map[string]interface{} {
+	return map[string]interface{}{
+		"code":                    "APPLICANT_HAS_APPLICATION",
+		"existingApplicationId":   e.ExistingApplicationID,
+		"existingState":           e.ExistingState,
+	}
+}
 
 // OrchestratorClient — клиент к onboarding-orchestrator.
 type OrchestratorClient struct {
@@ -102,6 +128,25 @@ func (c *OrchestratorClient) Submit(ctx context.Context, in SubmitInput) (*model
 		WorkflowID    string `json:"workflow_id"`
 	}
 	if err := c.tr.doJSON(req, &resp); err != nil {
+		// Маппинг 409 (правило "одна заявка на applicant") в типизированную
+		// ошибку, чтобы resolver проброcил её в GraphQL extensions.
+		var se *StatusError
+		if errors.As(err, &se) && se.StatusCode == http.StatusConflict {
+			var conflict struct {
+				Error struct {
+					Code string `json:"code"`
+				} `json:"error"`
+				ExistingApplicationID string `json:"existing_application_id"`
+				ExistingState         string `json:"existing_state"`
+			}
+			if jerr := json.Unmarshal(se.Body, &conflict); jerr == nil &&
+				conflict.Error.Code == "applicant_has_application" {
+				return nil, &ApplicantHasApplicationError{
+					ExistingApplicationID: conflict.ExistingApplicationID,
+					ExistingState:         conflict.ExistingState,
+				}
+			}
+		}
 		return nil, err
 	}
 	// Сразу подгружаем полный объект, чтобы вернуть фронту консистентный shape.

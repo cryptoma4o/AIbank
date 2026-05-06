@@ -25,13 +25,17 @@ import { ADMIN_ROLES } from "@/lib/roles";
 const schema = z.object({
   email: z.string().min(1, "Введите email").email("Некорректный email"),
   password: z.string().min(1, "Введите пароль"),
+  // tenant_id опциональный: пустой допустим для platform.admin (см. подсказку
+  // под полем). Если значение задано — обязательно проверить формат, иначе
+  // identity-service вернёт validation_failed.
   tenant_id: z
     .string()
-    .min(1, "Введите идентификатор банка")
     .regex(
       /^[a-z][a-z0-9_]{1,31}$/,
       "Идентификатор банка содержит только строчные латиницу, цифры и _"
-    ),
+    )
+    .optional()
+    .or(z.literal("")),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -85,7 +89,7 @@ export default function LoginPage() {
         );
         return;
       }
-      setTokens(tokens, parsed.data.tenant_id);
+      setTokens(tokens, parsed.data.tenant_id ?? "");
       router.replace("/applications");
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Не удалось войти");

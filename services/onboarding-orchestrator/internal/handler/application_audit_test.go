@@ -55,8 +55,19 @@ func (f *fakeAppRepo) UpdateState(_ context.Context, _, _ string, _ domain.Appli
 	return nil
 }
 
-func (f *fakeAppRepo) ListByTenant(_ context.Context, _ string, _ int) ([]*domain.Application, error) {
-	return nil, nil
+func (f *fakeAppRepo) ListByTenant(_ context.Context, tenantID string, limit int) ([]*domain.Application, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	out := make([]*domain.Application, 0, len(f.apps))
+	for _, a := range f.apps {
+		if a.TenantID == tenantID {
+			out = append(out, a)
+		}
+	}
+	if limit > 0 && len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
 }
 
 // fixedIDGen — детерминированный генератор для тестов.

@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
+	"strconv"
 	"time"
 
 	"context"
@@ -83,6 +84,7 @@ func (h *ApplicationHandler) Routes() chi.Router {
 		r.Post("/{id}/signals/documents-uploaded", h.SignalDocumentsUploaded)
 		r.Post("/{id}/signals/human-decision", h.SignalHumanDecision)
 	}
+	r.Get("/", h.List)
 	r.Get("/{id}", h.Get)
 	return r
 }
@@ -243,6 +245,54 @@ func (h *ApplicationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		ApplicationID: appID,
 		WorkflowID:    workflowID,
 	})
+}
+
+// List — GET /v1/applications?tenant_id=...&state=...&legal_entity_type=...&limit=...
+//
+// Repository поддерживает фильтрацию только по tenantID + limit (см.
+// PostgresApplicationRepository.ListByTenant). Дополнительные фильтры
+// state / legal_entity_type применяются in-memory после загрузки —
+// допустимо для pre-MVP, при росте объёмов нужно расширить SQL.
+func (h *ApplicationHandler) List(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.URL.Query().Get("tenant_id")
+	if !validTenantID.MatchString(tenantID) {
+		writeError(w, http.StatusBadRequest, "validation_failed", "tenant_id query param is invalid")
+		return
+	}
+	stateFilter := r.URL.Query().Get("state")
+	if stateFilter != "" && !domain.ApplicationState(stateFilter).IsValid() {
+		writeError(w, http.StatusBadRequest, "validation_failed", "state is invalid")
+		return
+	}
+	legalFilter := r.URL.Query().Get("legal_entity_type")
+	if legalFilter != "" && !domain.LegalEntityType(legalFilter).IsValid() {
+		writeError(w, http.StatusBadRequest, "validation_failed", "legal_entity_type is invalid")
+		return
+	}
+	limit := 100
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		if n, err := strconv.Atoi(raw); err == nil && n > 0 && n <= 500 {
+			limit = n
+		}
+	}
+
+	apps, err := h.repo.ListByTenant(r.Context(), tenantID, limit)
+	if err != nil {
+		h.log.Error("list applications", "tenant_id", tenantID, "err", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
+		return
+	}
+	out := make([]*domain.Application, 0, len(apps))
+	for _, a := range apps {
+		if stateFilter != "" && string(a.State) != stateFilter {
+			continue
+		}
+		if legalFilter != "" && string(a.LegalEntityType) != legalFilter {
+			continue
+		}
+		out = append(out, a)
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 func (h *ApplicationHandler) Get(w http.ResponseWriter, r *http.Request) {

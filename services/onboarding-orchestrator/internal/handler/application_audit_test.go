@@ -70,6 +70,17 @@ func (f *fakeAppRepo) ListByTenant(_ context.Context, tenantID string, limit int
 	return out, nil
 }
 
+func (f *fakeAppRepo) GetByApplicant(_ context.Context, tenantID, applicantID string) (*domain.Application, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for _, a := range f.apps {
+		if a.TenantID == tenantID && a.ApplicantID == applicantID {
+			return a, nil
+		}
+	}
+	return nil, repository.ErrNotFound
+}
+
 // fixedIDGen — детерминированный генератор для тестов.
 type fixedIDGen struct{ id string }
 

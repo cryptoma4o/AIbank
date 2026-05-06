@@ -25,6 +25,13 @@ var ErrNotFound = errors.New("application not found")
 // См. ApplicationState state machine в internal/domain/state.go.
 var ErrInvalidTransition = errors.New("invalid state transition")
 
+// ErrAlreadyExists — у applicant'а уже есть заявка в этом тенанте.
+// Бизнес-правило enforced UNIQUE INDEX uniq_applications_tenant_applicant
+// (см. migrations/tenant/002_one_application_per_applicant.sql); race
+// condition между двумя одновременными Create-запросами от одного applicant
+// поднимет это значение через mapping pq error code 23505.
+var ErrAlreadyExists = errors.New("application already exists for applicant")
+
 // validTenantID — узкий whitelist для частей идентификатора схемы.
 // Совпадает с правилом в tenant-service/internal/repository/postgres.go,
 // чтобы tenant_id оставался согласованным во всей платформе.
@@ -95,6 +102,15 @@ func (r *PostgresApplicationRepository) Create(ctx context.Context, app *domain.
 		app.CreatedAt, app.UpdatedAt,
 	)
 	if err != nil {
+		// Race condition защита для UNIQUE (tenant_id, applicant_id):
+		// если два одновременных запроса от одного applicant'а пройдут
+		// pre-check в handler, второй INSERT упадёт с pq 23505 — мапим
+		// в ErrAlreadyExists, чтобы handler вернул 409 а не 500.
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" &&
+			pqErr.Constraint == "uniq_applications_tenant_applicant" {
+			return ErrAlreadyExists
+		}
 		return fmt.Errorf("insert application: %w", err)
 	}
 	return tx.Commit()
@@ -113,6 +129,28 @@ func (r *PostgresApplicationRepository) GetByID(ctx context.Context, tenantID, i
 		       COALESCE(risk_assessment_id,''), COALESCE(decision_id,''), account_ids,
 		       created_at, updated_at, completed_at, archived_at
 		FROM applications WHERE id = $1`, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return app, nil
+}
+
+func (r *PostgresApplicationRepository) GetByApplicant(ctx context.Context, tenantID, applicantID string) (*domain.Application, error) {
+	tx, err := r.withTenantTx(ctx, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	app, err := scanOne(ctx, tx, `
+		SELECT id, tenant_id, applicant_id, COALESCE(legal_entity_id,''), legal_entity_type,
+		       channel, state, product_codes, workflow_id,
+		       COALESCE(risk_assessment_id,''), COALESCE(decision_id,''), account_ids,
+		       created_at, updated_at, completed_at, archived_at
+		FROM applications WHERE applicant_id = $1`, applicantID)
 	if err != nil {
 		return nil, err
 	}

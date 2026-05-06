@@ -191,6 +191,21 @@ func (h *ApplicationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Бизнес-правило "одна заявка на applicant" (см. migrations/tenant/
+	// 002_one_application_per_applicant.sql). Проверяем заранее ради
+	// читаемого 409 с existing_application_id; race-condition защита
+	// сидит в repo.Create через unique_violation → ErrAlreadyExists.
+	existing, err := h.repo.GetByApplicant(r.Context(), req.TenantID, req.ApplicantID)
+	if err == nil {
+		writeApplicantConflict(w, existing)
+		return
+	}
+	if !errors.Is(err, repository.ErrNotFound) {
+		h.log.Error("lookup applicant", "tenant_id", req.TenantID, "applicant_id", req.ApplicantID, "err", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
+		return
+	}
+
 	appID := h.idgen.NewApplicationID()
 	workflowID := "app-" + appID
 
@@ -207,6 +222,15 @@ func (h *ApplicationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:       time.Now().UTC(),
 	}
 	if err := h.repo.Create(r.Context(), app); err != nil {
+		// Race condition: pre-check выше прошёл, но другой запрос успел
+		// вставить запись первым. Повторно подтягиваем существующую и
+		// возвращаем тот же 409, что и pre-check.
+		if errors.Is(err, repository.ErrAlreadyExists) {
+			if existing, lookupErr := h.repo.GetByApplicant(r.Context(), req.TenantID, req.ApplicantID); lookupErr == nil {
+				writeApplicantConflict(w, existing)
+				return
+			}
+		}
 		h.log.Error("create application", "tenant", req.TenantID, "err", err)
 		writeError(w, http.StatusInternalServerError, "create_failed", "failed to create application")
 		return
@@ -442,5 +466,19 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 func writeError(w http.ResponseWriter, status int, code, msg string) {
 	writeJSON(w, status, map[string]any{
 		"error": map[string]string{"code": code, "message": msg},
+	})
+}
+
+// writeApplicantConflict — единый ответ при попытке создать вторую заявку
+// для applicant'а. Включает existing_application_id и existing_state, чтобы
+// клиент (web-onboarding) мог отредиректить пользователя на уже идущую заявку.
+func writeApplicantConflict(w http.ResponseWriter, existing *domain.Application) {
+	writeJSON(w, http.StatusConflict, map[string]any{
+		"error": map[string]string{
+			"code":    "applicant_has_application",
+			"message": "applicant already has an application",
+		},
+		"existing_application_id": existing.ID,
+		"existing_state":          string(existing.State),
 	})
 }

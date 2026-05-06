@@ -23,4 +23,10 @@ type ApplicationRepository interface {
 
 	// ListByTenant возвращает заявки тенанта (упорядочены по created_at desc).
 	ListByTenant(ctx context.Context, tenantID string, limit int) ([]*Application, error)
+
+	// GetByApplicant возвращает единственную заявку для пары (tenantID, applicantID).
+	// Бизнес-правило (см. migrations/tenant/002_one_application_per_applicant.sql) —
+	// один applicant имеет не более одной заявки. Возвращает ErrNotFound, если
+	// applicant ещё не создавал заявок.
+	GetByApplicant(ctx context.Context, tenantID, applicantID string) (*Application, error)
 }

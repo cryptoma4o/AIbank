@@ -28,6 +28,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/graphql-go/handler"
 
 	obs "github.com/aibank/platform/packages/observability"
@@ -104,6 +105,16 @@ func main() {
 	r.Use(chimw.Recoverer)
 	r.Use(obs.ChiMiddleware("bff-admin"))
 	r.Use(chimw.Timeout(30 * time.Second))
+	// CORS для browser-side GraphQL вызовов из web-admin.
+	if origins := os.Getenv("CORS_ALLOWED_ORIGINS"); origins != "" {
+		r.Use(cors.Handler(cors.Options{
+			AllowedOrigins:   strings.Split(origins, ","),
+			AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Tenant-ID"},
+			AllowCredentials: true,
+			MaxAge:           300,
+		}))
+	}
 
 	r.Get("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)

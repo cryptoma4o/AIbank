@@ -25,6 +25,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/graphql-go/handler"
 
 	obs "github.com/aibank/platform/packages/observability"
@@ -111,6 +112,16 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(obs.ChiMiddleware("bff-onboarding"))
 	r.Use(middleware.Timeout(30 * time.Second))
+	// CORS для browser-side GraphQL вызовов из web-onboarding.
+	if origins := os.Getenv("CORS_ALLOWED_ORIGINS"); origins != "" {
+		r.Use(cors.Handler(cors.Options{
+			AllowedOrigins:   strings.Split(origins, ","),
+			AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Tenant-ID"},
+			AllowCredentials: true,
+			MaxAge:           300,
+		}))
+	}
 
 	// Liveness/readiness — без auth.
 	r.Get("/health", func(w http.ResponseWriter, _ *http.Request) {

@@ -57,6 +57,10 @@ services:
   # вроде @swc/helpers распакованы не полностью и dev-mode падает с
   # 'Module not found: _class_private_field_loose_base'.
   # Ports: package.json scripts — web-admin :3001, web-onboarding :3000.
+  # NODE_ENV=development нужен для dev-mode: Dockerfile runtime stage
+  # выставляет NODE_ENV=production, из-за чего `npm install` пропускает
+  # devDependencies (tailwindcss, postcss, autoprefixer) → webpack не
+  # может парсить @tailwind в globals.css → 500 на каждой странице.
   web-admin:
     command: ["sh", "-c", "find node_modules -mindepth 1 -maxdepth 1 -exec rm -rf {} + && npm install --legacy-peer-deps --no-audit --no-fund && npm run dev"]
     ports:
@@ -65,6 +69,7 @@ services:
       - ./apps/web-admin:/app
       - /app/node_modules
     environment:
+      NODE_ENV: development
       NEXT_PUBLIC_IDENTITY_SERVICE_URL: http://206.204.106.28:8082
       NEXT_PUBLIC_BFF_ADMIN_URL: http://206.204.106.28:8092/graphql
 
@@ -74,6 +79,7 @@ services:
       - ./apps/web-onboarding:/app
       - /app/node_modules
     environment:
+      NODE_ENV: development
       NEXT_PUBLIC_IDENTITY_SERVICE_URL: http://206.204.106.28:8082
       NEXT_PUBLIC_BFF_ONBOARDING_URL: http://206.204.106.28:8091/graphql
 
@@ -110,6 +116,7 @@ services:
       disable: true
     environment:
       JWT_SECRET: aibank-staging-dev-secret-32bytes-minimum-do-not-use-in-prod
+      CORS_ALLOWED_ORIGINS: http://206.204.106.28:3000,http://206.204.106.28:3001
 
   document-service:
     build:
@@ -229,6 +236,7 @@ services:
         SERVICE_PATH: services/bff-onboarding
     environment:
       JWT_SECRET: aibank-staging-dev-secret-32bytes-minimum-do-not-use-in-prod
+      CORS_ALLOWED_ORIGINS: http://206.204.106.28:3000,http://206.204.106.28:3001
 
   bff-admin:
     build:
@@ -238,6 +246,7 @@ services:
         SERVICE_PATH: services/bff-admin
     environment:
       JWT_SECRET: aibank-staging-dev-secret-32bytes-minimum-do-not-use-in-prod
+      CORS_ALLOWED_ORIGINS: http://206.204.106.28:3000,http://206.204.106.28:3001
 
   db-migrator-platform:
     build:

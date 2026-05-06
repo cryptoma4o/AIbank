@@ -8,11 +8,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	_ "github.com/lib/pq"
 
 	"github.com/aibank/platform/packages/healthz"
@@ -151,6 +153,19 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(obs.ChiMiddleware("identity-service"))
 	r.Use(middleware.Timeout(30 * time.Second))
+	// CORS для browser-side fetch из web-admin / web-onboarding.
+	// CORS_ALLOWED_ORIGINS — comma-separated list, либо "*" для дева.
+	// На staging задаётся в docker-compose.override.yml.
+	if origins := os.Getenv("CORS_ALLOWED_ORIGINS"); origins != "" {
+		r.Use(cors.Handler(cors.Options{
+			AllowedOrigins:   strings.Split(origins, ","),
+			AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Tenant-ID"},
+			ExposedHeaders:   []string{"Link"},
+			AllowCredentials: true,
+			MaxAge:           300,
+		}))
+	}
 
 	// Структурированные probe-эндпоинты на packages/healthz.
 	hc := healthz.New("identity-service", os.Getenv("OTEL_SERVICE_VERSION"))

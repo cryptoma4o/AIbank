@@ -29,9 +29,14 @@ type documentPayload struct {
 	UploadedAt    time.Time `json:"uploaded_at"`
 }
 
-// ListByApplication — GET /v1/documents?application_id=...
+// ListByApplication — GET /v1/documents?tenant_id=...&application_id=...
+//
+// document-service требует tenant_id в query (см. requireTenant в
+// document-service/internal/handler/document.go); X-Tenant-Id header
+// оставлен для совместимости со sidecar middleware и трассировки.
 func (c *DocumentClient) ListByApplication(ctx context.Context, tenantID, applicationID string) ([]model.Document, error) {
 	q := url.Values{}
+	q.Set("tenant_id", tenantID)
 	q.Set("application_id", applicationID)
 	u := fmt.Sprintf("%s/v1/documents?%s", c.baseURL, q.Encode())
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)

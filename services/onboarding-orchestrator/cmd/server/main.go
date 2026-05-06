@@ -32,6 +32,7 @@ import (
 	obs "github.com/aibank/platform/packages/observability"
 
 	"aibank/onboarding-orchestrator/internal/audit"
+	"aibank/onboarding-orchestrator/internal/extclients"
 	"aibank/onboarding-orchestrator/internal/handler"
 	"aibank/onboarding-orchestrator/internal/repository"
 	wf "aibank/onboarding-orchestrator/internal/workflow"
@@ -121,6 +122,16 @@ func main() {
 	auditClient := audit.MustClient(log)
 	appHandler := handler.NewApplicationHandler(repo, tc, uuidGenerator{}, auditClient, log)
 
+	// Этап 1 формы онбординга — параллельный скоринг по ИНН/ОГРН через
+	// ext-egrul / ext-rosfinmon / ext-fssp. URLs feature-флаговые: пустая
+	// переменная = источник недоступен, handler пометит его как unavailable.
+	extc := extclients.New(
+		os.Getenv("EXT_EGRUL_URL"),
+		os.Getenv("EXT_ROSFINMON_URL"),
+		os.Getenv("EXT_FSSP_URL"),
+	)
+	prequalifyHandler := handler.NewPrequalifyHandler(extc, log)
+
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -137,6 +148,7 @@ func main() {
 
 	r.Method(http.MethodGet, "/health", hc.LivenessHandler())
 	r.Method(http.MethodGet, "/ready", hc.HTTPHandler())
+	r.Post("/v1/prequalify", prequalifyHandler.Prequalify)
 	r.Mount("/v1/applications", appHandler.Routes())
 
 	srv := &http.Server{

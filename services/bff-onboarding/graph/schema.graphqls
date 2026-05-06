@@ -182,6 +182,33 @@ input SubmitApplicationInput {
   productCodes: [String!]!
 }
 
+"Запрос на этап 1 (предварительный скоринг по ИНН/ОГРН — см. docs/onboarding-form-spec.md §1)."
+input PrequalifyInput {
+  inn: String!
+  ogrn: String!
+  shortName: String!
+}
+
+"Сводный результат скоринга по ИНН/ОГРН. decision: 'proceed' | 'manual_review' | 'reject'."
+type PrequalifyResult {
+  inn: String!
+  ogrn: String!
+  shortNameHint: String!
+  egrulStatus: String
+  egrulRegistrationDate: String
+  egrulAddress: String
+  egrulCeoName: String
+  egrulFullName: String
+  nameMatchesEgrul: Boolean!
+  rosfinmonPresent: Boolean!
+  fsspProceedingsCount: Int!
+  fsspTotalDebtKopecks: Int!
+  decision: String!
+  decisionReason: String
+  unavailableSources: [String!]!
+  checkedAt: String!
+}
+
 input UploadDocumentInput {
   applicationId: ID!
   type: DocumentType!
@@ -190,6 +217,9 @@ input UploadDocumentInput {
 }
 
 type Mutation {
+  "Этап 1 формы онбординга — предварительный скоринг по ИНН/ОГРН."
+  prequalify(input: PrequalifyInput!): PrequalifyResult!
+
   "Создаёт заявку и стартует Temporal-workflow в orchestrator."
   submitApplication(input: SubmitApplicationInput!): Application!
 

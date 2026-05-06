@@ -116,6 +116,50 @@ type SubmitInput struct {
 	RiskThresholds  map[string]any `json:"risk_thresholds"`
 }
 
+// PrequalifyInput — тело POST /v1/prequalify (этап 1 формы онбординга).
+type PrequalifyInput struct {
+	TenantID  string `json:"tenant_id"`
+	INN       string `json:"inn"`
+	OGRN      string `json:"ogrn"`
+	ShortName string `json:"short_name"`
+}
+
+// PrequalifyResult зеркалит ответ orchestrator'а — см.
+// services/onboarding-orchestrator/internal/handler/prequalify.go.PrequalifyResponse.
+type PrequalifyResult struct {
+	INN                   string    `json:"inn"`
+	OGRN                  string    `json:"ogrn"`
+	ShortNameHint         string    `json:"short_name_hint"`
+	EGRULStatus           string    `json:"egrul_status"`
+	EGRULRegistrationDate string    `json:"egrul_registration_date"`
+	EGRULAddress          string    `json:"egrul_address"`
+	EGRULCEOName          string    `json:"egrul_ceo_name"`
+	EGRULFullName         string    `json:"egrul_full_name"`
+	NameMatchesEGRUL      bool      `json:"name_matches_egrul"`
+	RosfinmonPresent      bool      `json:"rosfinmon_present"`
+	FSSPProceedingsCount  int       `json:"fssp_proceedings_count"`
+	FSSPTotalDebtKopecks  int64     `json:"fssp_total_debt_kopecks"`
+	Decision              string    `json:"decision"`
+	DecisionReason        string    `json:"decision_reason"`
+	UnavailableSources    []string  `json:"unavailable_sources"`
+	CheckedAt             time.Time `json:"checked_at"`
+}
+
+// Prequalify — POST /v1/prequalify (этап 1 формы онбординга, см.
+// docs/onboarding-form-spec.md §1).
+func (c *OrchestratorClient) Prequalify(ctx context.Context, in PrequalifyInput) (*PrequalifyResult, error) {
+	u := fmt.Sprintf("%s/v1/prequalify", c.baseURL)
+	req, err := newJSONRequest(ctx, http.MethodPost, u, in)
+	if err != nil {
+		return nil, err
+	}
+	var out PrequalifyResult
+	if err := c.tr.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // Submit — POST /v1/applications, стартует Temporal-workflow.
 func (c *OrchestratorClient) Submit(ctx context.Context, in SubmitInput) (*model.Application, error) {
 	u := fmt.Sprintf("%s/v1/applications", c.baseURL)

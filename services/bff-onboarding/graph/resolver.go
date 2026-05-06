@@ -226,9 +226,45 @@ func (r *Resolver) Schema() (graphql.Schema, error) {
 		},
 	})
 
+	prequalifyInput := graphql.NewInputObject(graphql.InputObjectConfig{
+		Name: "PrequalifyInput",
+		Fields: graphql.InputObjectConfigFieldMap{
+			"inn":       &graphql.InputObjectFieldConfig{Type: graphql.NewNonNull(graphql.String)},
+			"ogrn":      &graphql.InputObjectFieldConfig{Type: graphql.NewNonNull(graphql.String)},
+			"shortName": &graphql.InputObjectFieldConfig{Type: graphql.NewNonNull(graphql.String)},
+		},
+	})
+
+	prequalifyResultType := graphql.NewObject(graphql.ObjectConfig{
+		Name: "PrequalifyResult",
+		Fields: graphql.Fields{
+			"inn":                   &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+			"ogrn":                  &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+			"shortNameHint":         &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+			"egrulStatus":           &graphql.Field{Type: graphql.String},
+			"egrulRegistrationDate": &graphql.Field{Type: graphql.String},
+			"egrulAddress":          &graphql.Field{Type: graphql.String},
+			"egrulCeoName":          &graphql.Field{Type: graphql.String},
+			"egrulFullName":         &graphql.Field{Type: graphql.String},
+			"nameMatchesEgrul":      &graphql.Field{Type: graphql.NewNonNull(graphql.Boolean)},
+			"rosfinmonPresent":      &graphql.Field{Type: graphql.NewNonNull(graphql.Boolean)},
+			"fsspProceedingsCount":  &graphql.Field{Type: graphql.NewNonNull(graphql.Int)},
+			"fsspTotalDebtKopecks":  &graphql.Field{Type: graphql.NewNonNull(graphql.Int)},
+			"decision":              &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+			"decisionReason":        &graphql.Field{Type: graphql.String},
+			"unavailableSources":    &graphql.Field{Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(graphql.String)))},
+			"checkedAt":             &graphql.Field{Type: graphql.NewNonNull(graphql.String)},
+		},
+	})
+
 	mutationType := graphql.NewObject(graphql.ObjectConfig{
 		Name: "Mutation",
 		Fields: graphql.Fields{
+			"prequalify": &graphql.Field{
+				Type:    graphql.NewNonNull(prequalifyResultType),
+				Args:    graphql.FieldConfigArgument{"input": {Type: graphql.NewNonNull(prequalifyInput)}},
+				Resolve: r.resolvePrequalify,
+			},
 			"submitApplication": &graphql.Field{
 				Type:    graphql.NewNonNull(applicationType),
 				Args:    graphql.FieldConfigArgument{"input": {Type: graphql.NewNonNull(submitInput)}},
@@ -426,6 +462,52 @@ func applicationFromSource(src interface{}) *model.Application {
 }
 
 // ── Mutation resolvers ───────────────────────────────────────────────
+
+// resolvePrequalify — Mutation.prequalify (этап 1 формы онбординга).
+// applicant_id из инпута не принимаем: tenant_id берём из JWT, чтобы клиент
+// не мог скоринговать чужой банк.
+func (r *Resolver) resolvePrequalify(p graphql.ResolveParams) (interface{}, error) {
+	ac, err := authFrom(p.Context)
+	if err != nil {
+		return nil, err
+	}
+	in, _ := p.Args["input"].(map[string]interface{})
+	if in == nil {
+		return nil, fmt.Errorf("input is required")
+	}
+	inn, _ := in["inn"].(string)
+	ogrn, _ := in["ogrn"].(string)
+	shortName, _ := in["shortName"].(string)
+
+	res, err := r.Orchestrator.Prequalify(p.Context, clients.PrequalifyInput{
+		TenantID:  ac.TenantID,
+		INN:       inn,
+		OGRN:      ogrn,
+		ShortName: shortName,
+	})
+	if err != nil {
+		return nil, err
+	}
+	// Преобразуем в map с camelCase-ключами, совместимыми с GraphQL-полями.
+	return map[string]interface{}{
+		"inn":                   res.INN,
+		"ogrn":                  res.OGRN,
+		"shortNameHint":         res.ShortNameHint,
+		"egrulStatus":           res.EGRULStatus,
+		"egrulRegistrationDate": res.EGRULRegistrationDate,
+		"egrulAddress":          res.EGRULAddress,
+		"egrulCeoName":          res.EGRULCEOName,
+		"egrulFullName":         res.EGRULFullName,
+		"nameMatchesEgrul":      res.NameMatchesEGRUL,
+		"rosfinmonPresent":      res.RosfinmonPresent,
+		"fsspProceedingsCount":  res.FSSPProceedingsCount,
+		"fsspTotalDebtKopecks":  res.FSSPTotalDebtKopecks,
+		"decision":              res.Decision,
+		"decisionReason":        res.DecisionReason,
+		"unavailableSources":    res.UnavailableSources,
+		"checkedAt":             res.CheckedAt.Format("2006-01-02T15:04:05Z"),
+	}, nil
+}
 
 func (r *Resolver) resolveSubmitApplication(p graphql.ResolveParams) (interface{}, error) {
 	ac, err := authFrom(p.Context)

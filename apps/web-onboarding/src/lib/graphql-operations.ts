@@ -68,6 +68,25 @@ export const QUERY_APPLICATION = gql`
   }
 `;
 
+export const MUTATION_PREQUALIFY = gql`
+  mutation Prequalify($input: PrequalifyInput!) {
+    prequalify(input: $input) {
+      decision
+      decisionReason
+      egrulStatus
+      egrulFullName
+      egrulCeoName
+      egrulRegistrationDate
+      egrulAddress
+      nameMatchesEgrul
+      rosfinmonPresent
+      fsspProceedingsCount
+      unavailableSources
+      checkedAt
+    }
+  }
+`;
+
 export const MUTATION_SUBMIT_APPLICATION = gql`
   mutation SubmitApplication($input: SubmitApplicationInput!) {
     submitApplication(input: $input) {

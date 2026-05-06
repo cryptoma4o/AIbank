@@ -36,6 +36,13 @@ func mustGet(t *testing.T, h http.Handler, url string) *httptest.ResponseRecorde
 	return rr
 }
 
+// listResponse — ожидаемая форма ответа List.
+// Формат `{items:[...]}` — контракт с bff-admin orchestrator client
+// (services/bff-admin/internal/clients/orchestrator.go).
+type listResponse struct {
+	Items []domain.Application `json:"items"`
+}
+
 // TestList_HappyPath — два тенанта seeded; запрос с tenant_id=demo возвращает
 // только записи demo (изоляция тенанта).
 func TestList_HappyPath(t *testing.T) {
@@ -50,14 +57,14 @@ func TestList_HappyPath(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", rr.Code, rr.Body)
 	}
-	var got []domain.Application
+	var got listResponse
 	if err := json.Unmarshal(rr.Body.Bytes(), &got); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if len(got) != 2 {
-		t.Fatalf("expected 2 apps for tenant demo, got %d", len(got))
+	if len(got.Items) != 2 {
+		t.Fatalf("expected 2 apps for tenant demo, got %d", len(got.Items))
 	}
-	for _, a := range got {
+	for _, a := range got.Items {
 		if a.TenantID != "demo" {
 			t.Fatalf("cross-tenant leak: %+v", a)
 		}
@@ -76,10 +83,10 @@ func TestList_StateFilter(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", rr.Code, rr.Body)
 	}
-	var got []domain.Application
+	var got listResponse
 	_ = json.Unmarshal(rr.Body.Bytes(), &got)
-	if len(got) != 1 || got[0].ID != "b" {
-		t.Fatalf("expected only id=b approved, got %+v", got)
+	if len(got.Items) != 1 || got.Items[0].ID != "b" {
+		t.Fatalf("expected only id=b approved, got %+v", got.Items)
 	}
 }
 

@@ -203,6 +203,7 @@ func (h *ApplicationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		State:           domain.StateDraft,
 		ProductCodes:    req.ProductCodes,
 		WorkflowID:      workflowID,
+		AccountIDs:      []string{},
 		CreatedAt:       time.Now().UTC(),
 	}
 	if err := h.repo.Create(r.Context(), app); err != nil {
@@ -292,7 +293,9 @@ func (h *ApplicationHandler) List(w http.ResponseWriter, r *http.Request) {
 		}
 		out = append(out, a)
 	}
-	writeJSON(w, http.StatusOK, out)
+	// Wrap в {items: [...]} — формат, который ожидает bff-admin
+	// orchestrator-клиент (см. services/bff-admin/internal/clients/orchestrator.go).
+	writeJSON(w, http.StatusOK, map[string]any{"items": out})
 }
 
 func (h *ApplicationHandler) Get(w http.ResponseWriter, r *http.Request) {

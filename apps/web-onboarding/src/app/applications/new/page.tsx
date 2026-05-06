@@ -73,6 +73,16 @@ function NewApplicationContent() {
           },
         },
       });
+
+      // Apollo с errorPolicy='none' (default) бросает на errors, но при
+      // 'all' / 'ignore' / любых кастомных конфигах ошибки приедут в
+      // res.errors. Проверяем оба пути.
+      const existingFromRes = extractExistingApplicationId(res?.errors);
+      if (existingFromRes) {
+        router.replace(`/applications/${existingFromRes}`);
+        return;
+      }
+
       const id = res.data?.submitApplication?.id;
       if (!id) {
         throw new Error("BFF вернул пустой идентификатор заявки");
@@ -82,7 +92,10 @@ function NewApplicationContent() {
       // Бизнес-правило "одна заявка на applicant": бэк вернул 409, BFF
       // пробросил extensions.code = APPLICANT_HAS_APPLICATION с ID уже
       // идущей заявки — редиректим на неё вместо показа ошибки.
-      const existingId = extractExistingApplicationId(err);
+      const errObj = err as { graphQLErrors?: unknown; networkError?: { result?: { errors?: unknown } } };
+      const existingId =
+        extractExistingApplicationId(errObj?.graphQLErrors) ||
+        extractExistingApplicationId(errObj?.networkError?.result?.errors);
       if (existingId) {
         router.replace(`/applications/${existingId}`);
         return;
@@ -91,15 +104,12 @@ function NewApplicationContent() {
     }
   }
 
-  // extractExistingApplicationId ищет id существующей заявки в Apollo-ошибке.
-  // Apollo упаковывает GraphQL errors в err.graphQLErrors[].extensions.
-  function extractExistingApplicationId(err: unknown): string | null {
-    if (!err || typeof err !== "object") return null;
-    const gqlErrors = (err as { graphQLErrors?: Array<{ extensions?: Record<string, unknown> }> })
-      .graphQLErrors;
-    if (!Array.isArray(gqlErrors)) return null;
-    for (const gerr of gqlErrors) {
-      const ext = gerr?.extensions;
+  // extractExistingApplicationId ищет id существующей заявки в массиве
+  // GraphQL ошибок (graphQLErrors / res.errors / networkError.result.errors).
+  function extractExistingApplicationId(errors: unknown): string | null {
+    if (!Array.isArray(errors)) return null;
+    for (const gerr of errors) {
+      const ext = (gerr as { extensions?: Record<string, unknown> })?.extensions;
       if (
         ext &&
         ext.code === "APPLICANT_HAS_APPLICATION" &&

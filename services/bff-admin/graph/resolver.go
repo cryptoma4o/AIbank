@@ -256,6 +256,14 @@ func (r *Resolver) Schema() (graphql.Schema, error) {
 			"reason":   &graphql.InputObjectFieldConfig{Type: graphql.NewNonNull(graphql.String)},
 		},
 	})
+	transitionInput := graphql.NewInputObject(graphql.InputObjectConfig{
+		Name: "TransitionApplicationStateInput",
+		Fields: graphql.InputObjectConfigFieldMap{
+			"applicationId": &graphql.InputObjectFieldConfig{Type: graphql.NewNonNull(graphql.ID)},
+			"newState":      &graphql.InputObjectFieldConfig{Type: graphql.NewNonNull(graphql.String)},
+			"reason":        &graphql.InputObjectFieldConfig{Type: graphql.String},
+		},
+	})
 
 	queryType := graphql.NewObject(graphql.ObjectConfig{
 		Name: "Query",
@@ -301,6 +309,11 @@ func (r *Resolver) Schema() (graphql.Schema, error) {
 				Type:    graphql.NewNonNull(tenantType),
 				Args:    graphql.FieldConfigArgument{"input": {Type: graphql.NewNonNull(suspendInput)}},
 				Resolve: r.resolveSuspendTenant,
+			},
+			"transitionApplicationState": &graphql.Field{
+				Type:    graphql.NewNonNull(applicationType),
+				Args:    graphql.FieldConfigArgument{"input": {Type: graphql.NewNonNull(transitionInput)}},
+				Resolve: r.resolveTransitionApplicationState,
 			},
 		},
 	})
@@ -457,6 +470,28 @@ func (r *Resolver) resolveRisk(p graphql.ResolveParams) (interface{}, error) {
 }
 
 // ── Mutation resolvers ───────────────────────────────────────────────
+
+// resolveTransitionApplicationState — Mutation.transitionApplicationState.
+// Прокси к orchestrator POST /v1/applications/{id}/transitions. Не делает
+// дополнительной авторизации — bff-admin уже требует bank.* / platform.admin
+// в middleware. Audit-trail формируется на стороне orchestrator.
+func (r *Resolver) resolveTransitionApplicationState(p graphql.ResolveParams) (interface{}, error) {
+	ac, err := authFrom(p.Context)
+	if err != nil {
+		return nil, err
+	}
+	in, _ := p.Args["input"].(map[string]interface{})
+	if in == nil {
+		return nil, fmt.Errorf("input required")
+	}
+	applicationID, _ := in["applicationId"].(string)
+	newState, _ := in["newState"].(string)
+	reason, _ := in["reason"].(string)
+	if applicationID == "" || newState == "" {
+		return nil, fmt.Errorf("applicationId and newState are required")
+	}
+	return r.Orchestrator.TransitionState(p.Context, ac.TenantID, applicationID, newState, reason)
+}
 
 func (r *Resolver) resolveUpdateDecision(p graphql.ResolveParams) (interface{}, error) {
 	ac, err := authFrom(p.Context)

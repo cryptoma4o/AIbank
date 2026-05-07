@@ -138,6 +138,29 @@ func (c *OrchestratorClient) Get(ctx context.Context, tenantID, id string) (*App
 
 // UpdateDecision — POST /v1/applications/{id}/decision.
 //
+// TransitionState — POST /v1/applications/{id}/transitions.
+//
+// Ручной перевод заявки между состояниями state machine. Используется,
+// пока Temporal-activities не реализованы и workflow не двигает заявку
+// автоматически — bank-оператор переключает её в админ-панели.
+func (c *OrchestratorClient) TransitionState(ctx context.Context, tenantID, applicationID, newState, reason string) (*Application, error) {
+	u := fmt.Sprintf("%s/v1/applications/%s/transitions", c.baseURL, applicationID)
+	body := map[string]any{
+		"tenant_id": tenantID,
+		"new_state": newState,
+		"reason":    reason,
+	}
+	req, err := newJSONRequest(ctx, http.MethodPost, u, body)
+	if err != nil {
+		return nil, err
+	}
+	var app Application
+	if err := c.tr.doJSON(req, &app); err != nil {
+		return nil, err
+	}
+	return &app, nil
+}
+
 // Используется для ручных решений в manual_review состоянии.
 func (c *OrchestratorClient) UpdateDecision(ctx context.Context, tenantID, applicationID, decision, reasoning string) (*Decision, error) {
 	u := fmt.Sprintf("%s/v1/applications/%s/decision", c.baseURL, applicationID)

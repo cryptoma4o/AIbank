@@ -86,6 +86,9 @@ func (h *ApplicationHandler) Routes() chi.Router {
 	}
 	r.Get("/", h.List)
 	r.Get("/{id}", h.Get)
+	// Admin: ручной перевод заявки между состояниями (используется bank-оператором,
+	// пока Temporal activities не реализованы). Защищён через bank.* role в bff-admin.
+	r.Post("/{id}/transitions", h.TransitionState)
 	return r
 }
 
@@ -453,6 +456,78 @@ func (h *ApplicationHandler) SignalHumanDecision(w http.ResponseWriter, r *http.
 	auditsdk.SetEntity(r.Context(), "application", id, humanPayload)
 
 	writeJSON(w, http.StatusAccepted, map[string]string{"status": "accepted"})
+}
+
+// ── Admin transition ─────────────────────────────────────────────────
+
+type transitionRequest struct {
+	TenantID string `json:"tenant_id"`
+	NewState string `json:"new_state"`
+	Reason   string `json:"reason,omitempty"`
+}
+
+func (req transitionRequest) validate() error {
+	if !validTenantID.MatchString(req.TenantID) {
+		return errors.New("tenant_id is invalid")
+	}
+	if !domain.ApplicationState(req.NewState).IsValid() {
+		return errors.New("new_state is not a valid ApplicationState")
+	}
+	return nil
+}
+
+// TransitionState — POST /v1/applications/{id}/transitions.
+//
+// Admin-endpoint для ручного перевода заявки между состояниями. Используется
+// bank-оператором/комплаенсом из админ-панели, пока Temporal-activities не
+// реализованы (см. activities.go — только интерфейсы). Repository сам
+// валидирует допустимость перехода через CanTransition() — если переход
+// запрещён state machine'ой, возвращается 409 Conflict.
+//
+// Audit-emit делается с reason — банковские роли обязаны указывать причину
+// для compliance-trail (115-ФЗ).
+func (h *ApplicationHandler) TransitionState(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "validation_failed", "id is required")
+		return
+	}
+	var req transitionRequest
+	if err := json.NewDecoder(io.LimitReader(r.Body, 32*1024)).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_body", err.Error())
+		return
+	}
+	if err := req.validate(); err != nil {
+		writeError(w, http.StatusBadRequest, "validation_failed", err.Error())
+		return
+	}
+
+	if err := h.repo.UpdateState(r.Context(), req.TenantID, id, domain.ApplicationState(req.NewState)); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			writeError(w, http.StatusNotFound, "not_found", "application not found")
+			return
+		}
+		if errors.Is(err, repository.ErrInvalidTransition) {
+			writeJSON(w, http.StatusConflict, map[string]any{
+				"error": map[string]string{
+					"code":    "invalid_transition",
+					"message": err.Error(),
+				},
+			})
+			return
+		}
+		h.log.Error("transition state", "id", id, "new_state", req.NewState, "err", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
+		return
+	}
+
+	app, err := h.repo.GetByID(r.Context(), req.TenantID, id)
+	if err != nil {
+		h.log.Error("read back after transition", "id", id, "err", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
+		return
+	}
+	writeJSON(w, http.StatusOK, app)
 }
 
 // ── helpers ──────────────────────────────────────────────────────────

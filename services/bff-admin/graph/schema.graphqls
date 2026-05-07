@@ -127,6 +127,14 @@ input SuspendTenantInput {
   reason: String!
 }
 
+"Ручной перевод заявки между состояниями (state machine). Используется
+bank-оператором, пока Temporal-activities не реализованы."
+input TransitionApplicationStateInput {
+  applicationId: ID!
+  newState: String!
+  reason: String
+}
+
 """
 ComplianceDashboard — агрегированные KPI для комплаенс-офицера банка.
 
@@ -194,4 +202,11 @@ type Mutation {
   Приостановка тенанта (полный stop приёма заявок).  Требует platform.admin.
   """
   suspendTenant(input: SuspendTenantInput!): Tenant!
+
+  """
+  Ручной перевод заявки между состояниями state machine. Требует bank.* роль.
+  Допустимость перехода валидирует orchestrator (см. domain/state.go), при
+  запрещённом переходе возвращается GraphQL error с extensions.code = invalid_transition.
+  """
+  transitionApplicationState(input: TransitionApplicationStateInput!): Application!
 }

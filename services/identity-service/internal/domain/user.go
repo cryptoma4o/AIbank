@@ -12,12 +12,15 @@ const (
 	RoleBankOperator          Role = "bank.operator"
 	RoleBankComplianceOfficer Role = "bank.compliance_officer"
 	RoleBankAdmin             Role = "bank.admin"
+	// RoleApplicant — клиент банка, проходящий онбординг (этап 1 формы).
+	// Появилась в migrations/002_allow_applicant_role.sql.
+	RoleApplicant Role = "applicant"
 )
 
 // IsValid возвращает true, если роль — одна из определённых выше.
 func (r Role) IsValid() bool {
 	switch r {
-	case RolePlatformAdmin, RoleBankOperator, RoleBankComplianceOfficer, RoleBankAdmin:
+	case RolePlatformAdmin, RoleBankOperator, RoleBankComplianceOfficer, RoleBankAdmin, RoleApplicant:
 		return true
 	}
 	return false

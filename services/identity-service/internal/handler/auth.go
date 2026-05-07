@@ -26,6 +26,10 @@ var validTenantID = regexp.MustCompile(`^[a-z][a-z0-9_]{1,31}$`)
 // validINN — 12 цифр для физлица.
 var validINN = regexp.MustCompile(`^[0-9]{12}$`)
 
+// validEmail — упрощённая RFC 5322 lite-проверка (server-side; основная
+// валидация — на фронте). Достаточная для отсечения опечаток.
+var validEmail = regexp.MustCompile(`^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$`)
+
 const maxBodyBytes = 64 * 1024
 
 // AuthHandler обслуживает /v1/auth/*, /v1/applicants[/...] и /v1/me.
@@ -335,6 +339,8 @@ type createApplicantRequest struct {
 	INN      string         `json:"inn"`
 	Phone    string         `json:"phone"`
 	FullName string         `json:"full_name"`
+	Email    string         `json:"email,omitempty"`
+	Password string         `json:"password,omitempty"`
 	Consents []consentInput `json:"consents"`
 }
 
@@ -350,6 +356,16 @@ func (req createApplicantRequest) validate() error {
 	}
 	if strings.TrimSpace(req.FullName) == "" {
 		return errors.New("full_name is required")
+	}
+	// Email + password — необязательны (для обратной совместимости с
+	// SMS/OTP flow), но если переданы — должны быть валидны и идти парой.
+	if req.Email != "" || req.Password != "" {
+		if !validEmail.MatchString(req.Email) {
+			return errors.New("email must be a valid address when provided")
+		}
+		if len(req.Password) < 8 {
+			return errors.New("password must be at least 8 chars when provided")
+		}
 	}
 	for i, c := range req.Consents {
 		if !domain.ConsentType(c.Type).IsValid() {
@@ -437,6 +453,41 @@ func (h *AuthHandler) CreateApplicant(w http.ResponseWriter, r *http.Request) {
 		h.log.Error("create applicant with consents", "tenant_id", a.TenantID, "err", err)
 		writeError(w, http.StatusInternalServerError, "create_failed", "failed to create applicant")
 		return
+	}
+
+	// Если applicant передал email + password — создаём ему запись в
+	// platform.users с role=applicant, чтобы тот же /v1/auth/login flow
+	// мог вернуть JWT. Идемпотентность: GetByEmail → если уже есть, не
+	// перезаписываем (повторная регистрация одного и того же applicant —
+	// нормальный сценарий, см. logic выше).
+	if req.Email != "" && req.Password != "" {
+		emailNorm := strings.ToLower(strings.TrimSpace(req.Email))
+		if existingUser, err := h.users.GetByEmail(r.Context(), emailNorm); err == nil && existingUser != nil {
+			// Уже зарегистрирован — пропускаем, login сработает с прежним паролем.
+			h.log.Info("applicant user already exists, skipping users insert", "email", emailNorm)
+		} else {
+			hash, hashErr := auth.Hash(req.Password)
+			if hashErr != nil {
+				h.log.Error("hash password", "err", hashErr)
+				writeError(w, http.StatusBadRequest, "validation_failed", hashErr.Error())
+				return
+			}
+			tenantID := a.TenantID
+			user := &domain.User{
+				ID:           "usr_" + uuid.NewString(),
+				TenantID:     &tenantID,
+				Email:        emailNorm,
+				PasswordHash: hash,
+				Role:         domain.RoleApplicant,
+				IsActive:     true,
+			}
+			if err := h.users.Create(r.Context(), user); err != nil {
+				h.log.Error("create applicant user", "email", emailNorm, "err", err)
+				// Не отдаём 500 — applicant уже создан в tnt_<>.applicants;
+				// users-запись повторно создастся при следующем register с
+				// тем же email. Лог достаточен для диагностики.
+			}
+		}
 	}
 
 	// Audit-emit: новый applicant зарегистрирован.

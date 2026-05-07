@@ -9,6 +9,7 @@
 //   принимаем его явно.
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -145,6 +146,13 @@ export default function LoginPage() {
         >
           {submitting ? <LoadingSpinner label="Входим…" /> : "Войти"}
         </button>
+
+        <p className="text-center text-sm text-gray-600">
+          Нет аккаунта?{" "}
+          <Link href="/register" className="text-primary hover:underline">
+            Зарегистрироваться
+          </Link>
+        </p>
       </form>
     </div>
   );

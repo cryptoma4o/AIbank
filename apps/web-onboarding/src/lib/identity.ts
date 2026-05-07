@@ -8,7 +8,7 @@ import { getAccessToken, type TokenPair } from "./auth";
 
 const DEFAULT_IDENTITY_URL = "http://localhost:8082";
 
-function identityUrl(): string {
+export function identityUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_IDENTITY_SERVICE_URL;
   return fromEnv && fromEnv.length > 0 ? fromEnv : DEFAULT_IDENTITY_URL;
 }

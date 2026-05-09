@@ -118,3 +118,13 @@ export const MUTATION_UPDATE_DECISION = gql`
     }
   }
 `;
+
+export const MUTATION_TRANSITION_APPLICATION_STATE = gql`
+  mutation TransitionApplicationState($input: TransitionApplicationStateInput!) {
+    transitionApplicationState(input: $input) {
+      id
+      state
+      updatedAt
+    }
+  }
+`;

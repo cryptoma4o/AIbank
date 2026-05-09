@@ -24,9 +24,15 @@ import { DocumentList } from "@/components/DocumentList";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { RiskBadge } from "@/components/RiskBadge";
+import { TransitionModal } from "@/components/TransitionModal";
 import { hasAnyRole } from "@/lib/auth";
-import { isDecisionState } from "@/lib/application-states";
 import {
+  isDecisionState,
+  isTerminalState,
+  type ApplicationState,
+} from "@/lib/application-states";
+import {
+  MUTATION_TRANSITION_APPLICATION_STATE,
   MUTATION_UPDATE_DECISION,
   QUERY_APPLICATION,
   QUERY_AUDIT_EVENTS,
@@ -64,11 +70,15 @@ interface AuditData {
 function HeaderSection({
   app,
   canDecide,
+  canTransition,
   onOpen,
+  onOpenTransition,
 }: {
   app: ApplicationDetail;
   canDecide: boolean;
+  canTransition: boolean;
   onOpen: (kind: DecisionKind) => void;
+  onOpenTransition: () => void;
 }) {
   return (
     <header className="flex flex-wrap items-start justify-between gap-4 rounded-md border border-gray-200 bg-white p-4">
@@ -85,39 +95,51 @@ function HeaderSection({
           {formatDate(app.updatedAt)} · канал {app.channel}
         </p>
       </div>
-      {canDecide ? (
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {canDecide ? (
+          <>
+            <button
+              type="button"
+              onClick={() => onOpen("APPROVED")}
+              className="rounded-md bg-success px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
+            >
+              Одобрить
+            </button>
+            <button
+              type="button"
+              onClick={() => onOpen("APPROVED_WITH_EDD")}
+              className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-hover"
+            >
+              Одобрить с EDD
+            </button>
+            <button
+              type="button"
+              onClick={() => onOpen("DECLINED")}
+              className="rounded-md bg-danger px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700"
+            >
+              Отказать
+            </button>
+            <button
+              type="button"
+              onClick={() => onOpen("ESCALATED")}
+              className="rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-100"
+              title="Эскалация старшему офицеру"
+            >
+              Эскалировать
+            </button>
+          </>
+        ) : null}
+        {canTransition ? (
           <button
             type="button"
-            onClick={() => onOpen("APPROVED")}
-            className="rounded-md bg-success px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
+            onClick={onOpenTransition}
+            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            title="Ручной перевод между состояниями state machine"
           >
-            Одобрить
+            Перевести в другое состояние
           </button>
-          <button
-            type="button"
-            onClick={() => onOpen("APPROVED_WITH_EDD")}
-            className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-hover"
-          >
-            Одобрить с EDD
-          </button>
-          <button
-            type="button"
-            onClick={() => onOpen("DECLINED")}
-            className="rounded-md bg-danger px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700"
-          >
-            Отказать
-          </button>
-          <button
-            type="button"
-            onClick={() => onOpen("ESCALATED")}
-            className="rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-100"
-            title="Эскалация старшему офицеру"
-          >
-            Эскалировать
-          </button>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </header>
   );
 }
@@ -318,12 +340,15 @@ function ApplicationContent({ id }: { id: string }) {
     variables: { filter: { limit: 50 } },
   });
   const [updateDecision] = useMutation(MUTATION_UPDATE_DECISION);
+  const [transitionState] = useMutation(MUTATION_TRANSITION_APPLICATION_STATE);
 
   const [modal, setModal] = useState<DecisionKind | null>(null);
+  const [transitionOpen, setTransitionOpen] = useState(false);
 
   const canDecide = hasAnyRole(DECISION_ROLES);
   const app = data?.application ?? null;
   const showDecisionButtons = !!app && isDecisionState(app.state) && canDecide;
+  const showTransitionButton = !!app && !isTerminalState(app.state);
 
   const events = useMemo(() => {
     const all = auditQuery.data?.auditEvents ?? [];
@@ -361,6 +386,16 @@ function ApplicationContent({ id }: { id: string }) {
     await auditQuery.refetch();
   }
 
+  async function handleTransitionSubmit(input: {
+    applicationId: string;
+    newState: ApplicationState;
+    reason: string;
+  }) {
+    await transitionState({ variables: { input } });
+    await refetch();
+    await auditQuery.refetch();
+  }
+
   return (
     <div className="space-y-4">
       <div>
@@ -375,7 +410,9 @@ function ApplicationContent({ id }: { id: string }) {
       <HeaderSection
         app={app}
         canDecide={showDecisionButtons}
+        canTransition={showTransitionButton}
         onOpen={(k) => setModal(k)}
+        onOpenTransition={() => setTransitionOpen(true)}
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -415,6 +452,14 @@ function ApplicationContent({ id }: { id: string }) {
         applicationId={app.id}
         onClose={() => setModal(null)}
         onSubmit={handleDecisionSubmit}
+      />
+
+      <TransitionModal
+        open={transitionOpen}
+        applicationId={app.id}
+        currentState={app.state}
+        onClose={() => setTransitionOpen(false)}
+        onSubmit={handleTransitionSubmit}
       />
     </div>
   );

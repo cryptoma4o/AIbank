@@ -199,13 +199,21 @@ func (r *Resolver) Schema() (graphql.Schema, error) {
 		},
 	})
 
+	// Типы этапов 2-10 формы онбординга — собираются в отдельном файле
+	// resolver_form.go, чтобы не разрывать контекст этого файла.
+	formT := r.buildFormTypes(timeScalar, jsonScalar)
+
+	queryFields := graphql.Fields{
+		"me":             &graphql.Field{Type: graphql.NewNonNull(meType), Resolve: r.resolveMe},
+		"application":    &graphql.Field{Type: applicationType, Args: graphql.FieldConfigArgument{"id": {Type: graphql.NewNonNull(graphql.ID)}}, Resolve: r.resolveApplication},
+		"myApplications": &graphql.Field{Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(applicationType))), Resolve: r.resolveMyApplications},
+	}
+	for k, v := range r.queryFormFields(formT) {
+		queryFields[k] = v
+	}
 	queryType := graphql.NewObject(graphql.ObjectConfig{
-		Name: "Query",
-		Fields: graphql.Fields{
-			"me":              &graphql.Field{Type: graphql.NewNonNull(meType), Resolve: r.resolveMe},
-			"application":     &graphql.Field{Type: applicationType, Args: graphql.FieldConfigArgument{"id": {Type: graphql.NewNonNull(graphql.ID)}}, Resolve: r.resolveApplication},
-			"myApplications":  &graphql.Field{Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(applicationType))), Resolve: r.resolveMyApplications},
-		},
+		Name:   "Query",
+		Fields: queryFields,
 	})
 
 	submitInput := graphql.NewInputObject(graphql.InputObjectConfig{
@@ -257,30 +265,34 @@ func (r *Resolver) Schema() (graphql.Schema, error) {
 		},
 	})
 
-	mutationType := graphql.NewObject(graphql.ObjectConfig{
-		Name: "Mutation",
-		Fields: graphql.Fields{
-			"prequalify": &graphql.Field{
-				Type:    graphql.NewNonNull(prequalifyResultType),
-				Args:    graphql.FieldConfigArgument{"input": {Type: graphql.NewNonNull(prequalifyInput)}},
-				Resolve: r.resolvePrequalify,
-			},
-			"submitApplication": &graphql.Field{
-				Type:    graphql.NewNonNull(applicationType),
-				Args:    graphql.FieldConfigArgument{"input": {Type: graphql.NewNonNull(submitInput)}},
-				Resolve: r.resolveSubmitApplication,
-			},
-			"uploadDocument": &graphql.Field{
-				Type:    graphql.NewNonNull(documentType),
-				Args:    graphql.FieldConfigArgument{"input": {Type: graphql.NewNonNull(uploadInput)}},
-				Resolve: r.resolveUploadDocument,
-			},
-			"sendDocumentsUploadedSignal": &graphql.Field{
-				Type:    graphql.NewNonNull(graphql.Boolean),
-				Args:    graphql.FieldConfigArgument{"applicationId": {Type: graphql.NewNonNull(graphql.ID)}},
-				Resolve: r.resolveSendDocumentsUploadedSignal,
-			},
+	mutationFields := graphql.Fields{
+		"prequalify": &graphql.Field{
+			Type:    graphql.NewNonNull(prequalifyResultType),
+			Args:    graphql.FieldConfigArgument{"input": {Type: graphql.NewNonNull(prequalifyInput)}},
+			Resolve: r.resolvePrequalify,
 		},
+		"submitApplication": &graphql.Field{
+			Type:    graphql.NewNonNull(applicationType),
+			Args:    graphql.FieldConfigArgument{"input": {Type: graphql.NewNonNull(submitInput)}},
+			Resolve: r.resolveSubmitApplication,
+		},
+		"uploadDocument": &graphql.Field{
+			Type:    graphql.NewNonNull(documentType),
+			Args:    graphql.FieldConfigArgument{"input": {Type: graphql.NewNonNull(uploadInput)}},
+			Resolve: r.resolveUploadDocument,
+		},
+		"sendDocumentsUploadedSignal": &graphql.Field{
+			Type:    graphql.NewNonNull(graphql.Boolean),
+			Args:    graphql.FieldConfigArgument{"applicationId": {Type: graphql.NewNonNull(graphql.ID)}},
+			Resolve: r.resolveSendDocumentsUploadedSignal,
+		},
+	}
+	for k, v := range r.mutationFormFields(formT) {
+		mutationFields[k] = v
+	}
+	mutationType := graphql.NewObject(graphql.ObjectConfig{
+		Name:   "Mutation",
+		Fields: mutationFields,
 	})
 
 	return graphql.NewSchema(graphql.SchemaConfig{

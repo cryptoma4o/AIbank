@@ -174,6 +174,30 @@ type Query {
 
   "Все заявки текущего пользователя (для applicant — свои; для bank.* — все в тенанте)."
   myApplications: [Application!]!
+
+  "Анкета юрлица по applicationId (этап 2). null, если ещё не заполнена."
+  legalEntityProfile(applicationId: ID!): LegalEntityProfile
+
+  "AML-анкета о деятельности (этап 3)."
+  applicationActivity(applicationId: ID!): ApplicationActivity
+
+  "Все представители юрлица по applicationId (этап 4)."
+  representatives(applicationId: ID!): [Representative!]!
+
+  "Один представитель по id (этап 4)."
+  representative(id: ID!): Representative
+
+  "Граф владения (этап 5)."
+  uboGraph(applicationId: ID!): UBOGraph
+
+  "Сводный результат AML-проверок (этап 7)."
+  screening(applicationId: ID!): ScreeningResultSet
+
+  "Параметры постоянного мониторинга счёта (этапы 8/10)."
+  monitoringProfile(applicationId: ID!): MonitoringProfile
+
+  "Открываемый счёт (этап 9)."
+  bankAccount(applicationId: ID!): BankAccount
 }
 
 input SubmitApplicationInput {
@@ -216,6 +240,456 @@ input UploadDocumentInput {
   contentBase64: String!
 }
 
+# ── Этапы 2-10 формы онбординга ─────────────────────────────────────
+#
+# Все output types зеркалят соответствующие $defs в
+# packages/domain-model/schema.json (v1.1.0). Глубоко-вложенные
+# структуры (адреса, FATCA, агрегаты UBO/Account) объявлены ниже.
+# Произвольные JSON-поля (params в правилах мониторинга, factors) —
+# через scalar JSON.
+
+"Money + ISO 4217 currency."
+type MoneyAmount {
+  amount: Float!
+  currency: String!
+}
+
+"Структурированный адрес (этапы 2/4)."
+type StructuredAddress {
+  countryCode: String!
+  postalCode: String
+  regionCode: String
+  regionName: String
+  city: String!
+  street: String
+  building: String
+  office: String
+  fiasId: String
+}
+
+type LicenseInfo {
+  number: String!
+  issueDate: String!
+  expiryDate: String
+  issuer: String!
+  activityType: String!
+}
+
+type SROMembership {
+  name: String!
+  regNumber: String!
+  joinDate: String!
+}
+
+type ContactInfo {
+  phone: String
+  email: String
+  website: String
+}
+
+"Анкета юрлица — этап 2."
+type LegalEntityProfile {
+  id: ID!
+  tenantId: String!
+  applicationId: ID!
+  legalEntityId: ID!
+  opfCode: String
+  registrationAuthority: String
+  authorizedCapital: MoneyAmount
+  legalAddress: StructuredAddress
+  actualAddress: StructuredAddress
+  actualSameAsLegal: Boolean!
+  postalAddress: StructuredAddress
+  postalSameAsLegal: Boolean!
+  okvedMain: String
+  okvedAdditional: [String!]
+  licenses: [LicenseInfo!]
+  sroMembership: [SROMembership!]
+  contacts: ContactInfo
+  employeesCount: Int
+  revenueLastYear: MoneyAmount
+  taxRegime: String
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type Counterparty {
+  name: String!
+  inn: String
+  country: String!
+  sharePercent: Float!
+  relationshipType: String!
+}
+
+type OperationalModel {
+  geography: [String!]
+  monthlyTurnoverPlanned: MoneyAmount
+  annualTurnoverPlanned: MoneyAmount
+  cashSharePercent: Float
+  foreignEconomicActivity: Boolean!
+  foreignCountries: [String!]
+  currencyOperations: [String!]
+}
+
+type FundsSource {
+  category: String!
+  description: String
+}
+
+"AML-сведения о деятельности — этап 3."
+type ApplicationActivity {
+  id: ID!
+  tenantId: String!
+  applicationId: ID!
+  businessDescription: String!
+  businessCategory: String!
+  topSuppliers: [Counterparty!]
+  topBuyers: [Counterparty!]
+  operationalModel: OperationalModel
+  fundsSource: FundsSource!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type IDDocument {
+  docType: String!
+  series: String
+  number: String!
+  issueDate: String
+  expiryDate: String
+  issuedBy: String
+  departmentCode: String
+}
+
+type AuthorityInfo {
+  position: String!
+  authorityBasis: String!
+  authorityDocNumber: String
+  authorityDocDate: String
+  signatureSampleDocId: String
+}
+
+type ForeignerInfo {
+  migrationCardNumber: String
+  migrationCardIssuedAt: String
+  migrationCardExpiresAt: String
+  residenceDocType: String
+  residenceDocNumber: String
+  residenceDocIssuedAt: String
+  residenceDocExpiresAt: String
+}
+
+type PDLDeclaration {
+  isPdl: Boolean!
+  category: String
+  position: String
+  relation: String
+}
+
+"ЕИО или иной представитель юрлица — этап 4."
+type Representative {
+  id: ID!
+  tenantId: String!
+  applicationId: ID!
+  legalEntityId: ID!
+  lastName: String!
+  firstName: String!
+  middleName: String
+  birthDate: String!
+  birthPlace: String
+  citizenship: [String!]
+  inn: String
+  snils: String
+  idDocument: IDDocument!
+  registrationAddress: StructuredAddress
+  actualAddress: StructuredAddress
+  foreignerInfo: ForeignerInfo
+  authority: AuthorityInfo!
+  pdlDeclaration: PDLDeclaration
+  isPrimary: Boolean!
+  isSignatory: Boolean!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type FATCATIN {
+  country: String!
+  tin: String!
+}
+
+type FATCADeclaration {
+  taxResidencyCountries: [String!]
+  tinPerCountry: [FATCATIN!]
+  usPerson: Boolean!
+  formDocId: String
+}
+
+type UBONode {
+  id: ID!
+  nodeType: String!
+  name: String!
+  personId: String
+  legalEntityId: String
+  directStake: Float!
+  effectiveStake: Float!
+  isUbo: Boolean!
+  controlBasis: String
+  fatcaDeclaration: FATCADeclaration
+}
+
+type UBOEdge {
+  fromNodeId: String!
+  toNodeId: String!
+  stake: Float!
+  documentId: String
+}
+
+type OwnershipChainLink {
+  level: Int!
+  entityName: String!
+  entityInnOrRegNumber: String
+  country: String
+  sharePercent: Float!
+}
+
+type UBOOwnershipChain {
+  uboNodeId: String!
+  links: [OwnershipChainLink!]!
+  isSoleBeneficiary: Boolean!
+}
+
+"Граф владения — этап 5."
+type UBOGraph {
+  id: ID!
+  tenantId: String!
+  applicationId: ID!
+  legalEntityId: ID!
+  nodes: [UBONode!]!
+  edges: [UBOEdge!]!
+  ownershipChains: [UBOOwnershipChain!]
+  noUboReason: String
+  eioAsUboConfirmation: Boolean!
+  diagramDocId: String
+  computedAt: Time
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type ScreeningResult {
+  listName: String!
+  matchLevel: String!
+  score: Float
+  matchedEntityName: String
+  checkedAt: Time
+}
+
+type AdverseMediaHit {
+  category: String!
+  title: String!
+  url: String!
+  source: String
+  publishedAt: String!
+  summary: String
+}
+
+type GeoLocation {
+  country: String
+  city: String
+  latitude: Float
+  longitude: Float
+}
+
+type AntiFraudSignals {
+  deviceFingerprint: String
+  ipAddress: String
+  geolocation: GeoLocation
+}
+
+"Сводный результат AML-проверок — этап 7."
+type ScreeningResultSet {
+  id: ID!
+  tenantId: String!
+  applicationId: ID!
+  sanctionsResults: [ScreeningResult!]
+  pepResults: [ScreeningResult!]
+  adverseMediaHits: [AdverseMediaHit!]
+  okvedConsistencyScore: Float
+  turnoverRealismScore: Float
+  antiFraudSignals: AntiFraudSignals
+  performedAt: Time!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type MonitoringRule {
+  code: String!
+  description: String!
+  params: JSON
+}
+
+type TransactionLimits {
+  dailyOutgoing: MoneyAmount
+  dailyCashWithdrawal: MoneyAmount
+  monthlyOutgoing: MoneyAmount
+  singleTransactionMax: MoneyAmount
+}
+
+"Параметры постоянного мониторинга счёта — этапы 8/10."
+type MonitoringProfile {
+  id: ID!
+  tenantId: String!
+  applicationId: ID!
+  accountId: String
+  reviewFrequencyMonths: Int!
+  nextReviewDate: String!
+  monitoringRules: [MonitoringRule!]
+  kycRefreshTriggers: [String!]
+  transactionLimits: TransactionLimits
+  notificationChannels: [String!]
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type AccountAgreements {
+  agreementAcceptance: Boolean!
+  agreementAcceptedAt: Time!
+  dboAgreement: Boolean!
+  dboChannels: [String!]
+  edoAgreement: Boolean!
+  personalDataConsent: Boolean!
+  signingMethod: String!
+  ukepCertificateSerial: String
+}
+
+"Открываемый счёт — этап 9. Имя BankAccount, чтобы не конфликтовать с Account из identity."
+type BankAccount {
+  id: ID!
+  tenantId: String!
+  applicationId: ID!
+  legalEntityId: ID!
+  accountNumber: String
+  bik: String
+  bankName: String
+  currency: String!
+  accountType: String!
+  correspondentAccount: String
+  tariffPlan: String
+  agreements: AccountAgreements!
+  monitoringProfileId: String
+  absReference: String
+  openedAt: Time
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+# ── Input types для этапов 2-10 ─────────────────────────────────────
+#
+# Глубоко-вложенные поля принимаем как scalar JSON, чтобы не тащить
+# 30+ input-структур на каждый AML-документ. Резолверы прокинут map
+# напрямую в orchestrator REST. Top-level структуру и обязательные
+# поля валидирует handler в services/onboarding-orchestrator.
+
+input SubmitLegalEntityProfileInput {
+  applicationId: ID!
+  legalEntityId: ID!
+  opfCode: String
+  registrationAuthority: String
+  authorizedCapital: JSON
+  legalAddressStruct: JSON
+  actualAddressStruct: JSON
+  actualSameAsLegal: Boolean
+  postalAddressStruct: JSON
+  postalSameAsLegal: Boolean
+  okvedMainV2: String
+  okvedAdditionalV2: [String!]
+  licenses: [JSON!]
+  sroMembership: [JSON!]
+  contacts: JSON
+  employeesCount: Int
+  revenueLastYear: JSON
+  taxRegime: String
+}
+
+input SubmitApplicationActivityInput {
+  applicationId: ID!
+  businessDescription: String!
+  businessCategory: String!
+  topSuppliers: [JSON!]
+  topBuyers: [JSON!]
+  operationalModel: JSON
+  fundsSource: JSON!
+}
+
+input UpsertRepresentativeInput {
+  id: ID
+  applicationId: ID!
+  legalEntityId: ID!
+  lastName: String!
+  firstName: String!
+  middleName: String
+  birthDate: String!
+  birthPlace: String
+  citizenship: [String!]
+  inn: String
+  snils: String
+  idDocument: JSON!
+  registrationAddress: JSON
+  actualAddress: JSON
+  foreignerInfo: JSON
+  authority: JSON!
+  pdlDeclaration: JSON
+  isPrimary: Boolean
+  isSignatory: Boolean
+}
+
+input UpsertUBOGraphInput {
+  applicationId: ID!
+  legalEntityId: ID!
+  nodes: [JSON!]!
+  edges: [JSON!]!
+  ownershipChains: [JSON!]
+  noUboReason: String
+  eioAsUboConfirmation: Boolean
+  diagramDocId: String
+}
+
+input UpsertScreeningInput {
+  applicationId: ID!
+  sanctionsResults: [JSON!]
+  pepResults: [JSON!]
+  adverseMediaHits: [JSON!]
+  okvedConsistencyScore: Float
+  turnoverRealismScore: Float
+  antiFraudSignals: JSON
+}
+
+input UpsertMonitoringProfileInput {
+  applicationId: ID!
+  accountId: String
+  reviewFrequencyMonths: Int!
+  nextReviewDate: String!
+  monitoringRules: [JSON!]
+  kycRefreshTriggers: [String!]
+  transactionLimits: JSON
+  notificationChannels: [String!]
+}
+
+input UpsertBankAccountInput {
+  applicationId: ID!
+  legalEntityId: ID!
+  accountNumber: String
+  bik: String
+  bankName: String
+  currency: String!
+  accountType: String!
+  correspondentAccount: String
+  tariffPlan: String
+  agreements: JSON!
+  monitoringProfileId: String
+  absReference: String
+  openedAt: Time
+}
+
 type Mutation {
   "Этап 1 формы онбординга — предварительный скоринг по ИНН/ОГРН."
   prequalify(input: PrequalifyInput!): PrequalifyResult!
@@ -228,4 +702,25 @@ type Mutation {
 
   "Сигнал orchestrator'у, что клиент завершил загрузку документов."
   sendDocumentsUploadedSignal(applicationId: ID!): Boolean!
+
+  "Этап 2 — анкета юрлица."
+  submitLegalEntityProfile(input: SubmitLegalEntityProfileInput!): LegalEntityProfile!
+
+  "Этап 3 — AML-сведения о деятельности."
+  submitApplicationActivity(input: SubmitApplicationActivityInput!): ApplicationActivity!
+
+  "Этап 4 — добавить/обновить представителя."
+  upsertRepresentative(input: UpsertRepresentativeInput!): Representative!
+
+  "Этап 5 — граф владения целиком."
+  upsertUboGraph(input: UpsertUBOGraphInput!): UBOGraph!
+
+  "Этап 7 — записать результаты AML-скрининга."
+  upsertScreening(input: UpsertScreeningInput!): ScreeningResultSet!
+
+  "Этапы 8/10 — настройки постоянного мониторинга."
+  upsertMonitoringProfile(input: UpsertMonitoringProfileInput!): MonitoringProfile!
+
+  "Этап 9 — открываемый счёт."
+  upsertBankAccount(input: UpsertBankAccountInput!): BankAccount!
 }

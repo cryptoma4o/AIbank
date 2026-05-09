@@ -123,12 +123,14 @@ func main() {
 	activityRepo := repository.NewPostgresActivityRepository(db)
 	repRepo := repository.NewPostgresRepresentativeRepository(db)
 	uboRepo := repository.NewPostgresUBOGraphRepository(db)
+	screeningRepo := repository.NewPostgresScreeningRepository(db)
 	auditClient := audit.MustClient(log)
 	appHandler := handler.NewApplicationHandler(repo, tc, uuidGenerator{}, auditClient, log)
 	profileHandler := handler.NewProfileHandler(profileRepo, log)
 	activityHandler := handler.NewActivityHandler(activityRepo, log)
 	repHandler := handler.NewRepresentativeHandler(repRepo, log)
 	uboHandler := handler.NewUBOHandler(uboRepo, log)
+	screeningHandler := handler.NewScreeningHandler(screeningRepo, log)
 
 	// Этап 1 формы онбординга — параллельный скоринг по ИНН/ОГРН через
 	// ext-egrul / ext-rosfinmon / ext-fssp. URLs feature-флаговые: пустая
@@ -161,6 +163,7 @@ func main() {
 	r.Mount("/v1/application-activities", activityHandler.Routes())
 	r.Mount("/v1/representatives", repHandler.Routes())
 	r.Mount("/v1/ubo-graphs", uboHandler.Routes())
+	r.Mount("/v1/screenings", screeningHandler.Routes())
 	r.Mount("/v1/applications", appHandler.Routes())
 
 	srv := &http.Server{

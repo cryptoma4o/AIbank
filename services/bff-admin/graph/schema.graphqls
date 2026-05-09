@@ -168,6 +168,367 @@ type ComplianceDashboard {
   forgottenApplicantsCount: Int!
 }
 
+# ── Этапы 2-10 формы онбординга ────────────────────────────────────
+#
+# Read-only типы для admin-просмотра данных, заполненных applicant'ом
+# в bff-onboarding.  Все query nullable: возвращают null, если applicant
+# ещё не дошёл до соответствующего этапа.
+
+"Структурированный адрес (этапы 2/4)."
+type StructuredAddress {
+  countryCode: String!
+  postalCode: String
+  regionCode: String
+  regionName: String
+  city: String!
+  street: String
+  building: String
+  office: String
+  fiasId: String
+}
+
+"Сумма + валюта (ISO 4217)."
+type MoneyAmount {
+  amount: Float!
+  currency: String!
+}
+
+"Контакты юрлица."
+type ContactInfo {
+  phone: String
+  email: String
+  website: String
+}
+
+"Лицензия / разрешение (этап 2)."
+type LicenseInfo {
+  number: String!
+  issueDate: String!
+  expiryDate: String
+  issuer: String!
+  activityType: String!
+}
+
+"Членство в СРО (этап 2)."
+type SROMembership {
+  name: String!
+  regNumber: String!
+  joinDate: String!
+}
+
+"Расширенная анкета юрлица (этап 2)."
+type LegalEntityProfile {
+  id: ID!
+  tenantId: ID!
+  applicationId: ID!
+  legalEntityId: ID!
+  opfCode: String
+  registrationAuthority: String
+  authorizedCapital: MoneyAmount
+  legalAddress: StructuredAddress
+  actualAddress: StructuredAddress
+  actualSameAsLegal: Boolean!
+  postalAddress: StructuredAddress
+  postalSameAsLegal: Boolean!
+  okvedMain: String
+  okvedAdditional: [String!]
+  licenses: [LicenseInfo!]
+  sroMembership: [SROMembership!]
+  contacts: ContactInfo
+  employeesCount: Int
+  revenueLastYear: MoneyAmount
+  taxRegime: String
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+"Top-5 поставщик/покупатель (этап 3)."
+type Counterparty {
+  name: String!
+  inn: String
+  country: String!
+  sharePercent: Float!
+  relationshipType: String!
+}
+
+"Планируемая модель операций (этап 3)."
+type OperationalModel {
+  geography: [String!]
+  monthlyTurnoverPlanned: MoneyAmount
+  annualTurnoverPlanned: MoneyAmount
+  cashSharePercent: Float
+  foreignEconomicActivity: Boolean!
+  foreignCountries: [String!]
+  currencyOperations: [String!]
+}
+
+"Источник средств (этап 3)."
+type FundsSource {
+  category: String!
+  description: String
+}
+
+"AML-анкета о деятельности (этап 3)."
+type ApplicationActivity {
+  id: ID!
+  tenantId: ID!
+  applicationId: ID!
+  businessDescription: String!
+  businessCategory: String!
+  topSuppliers: [Counterparty!]
+  topBuyers: [Counterparty!]
+  operationalModel: OperationalModel
+  fundsSource: FundsSource!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+"Документ, удостоверяющий личность (этап 4)."
+type IDDocument {
+  docType: String!
+  series: String
+  number: String!
+  issueDate: String
+  expiryDate: String
+  issuedBy: String
+  departmentCode: String
+}
+
+"Полномочия представителя (этап 4)."
+type AuthorityInfo {
+  position: String!
+  authorityBasis: String!
+  authorityDocNumber: String
+  authorityDocDate: String
+  signatureSampleDocId: String
+}
+
+"Сведения об иностранном гражданине (этап 4)."
+type ForeignerInfo {
+  migrationCardNumber: String
+  migrationCardIssuedAt: String
+  migrationCardExpiresAt: String
+  residenceDocType: String
+  residenceDocNumber: String
+  residenceDocIssuedAt: String
+  residenceDocExpiresAt: String
+}
+
+"Декларация ПДЛ (этап 4)."
+type PDLDeclaration {
+  isPdl: Boolean!
+  category: String
+  position: String
+  relation: String
+}
+
+"ЕИО или представитель юрлица (этап 4)."
+type Representative {
+  id: ID!
+  tenantId: ID!
+  applicationId: ID!
+  legalEntityId: ID!
+  lastName: String!
+  firstName: String!
+  middleName: String
+  birthDate: String!
+  birthPlace: String
+  citizenship: [String!]
+  inn: String
+  snils: String
+  idDocument: IDDocument!
+  registrationAddress: StructuredAddress
+  actualAddress: StructuredAddress
+  foreignerInfo: ForeignerInfo
+  authority: AuthorityInfo!
+  pdlDeclaration: PDLDeclaration
+  isPrimary: Boolean!
+  isSignatory: Boolean!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+"FATCA/CRS-декларация (этап 5)."
+type FATCATIN {
+  country: String!
+  tin: String!
+}
+type FATCADeclaration {
+  taxResidencyCountries: [String!]
+  tinPerCountry: [FATCATIN!]
+  usPerson: Boolean!
+  formDocId: String
+}
+
+"Узел графа владения (этап 5)."
+type UBONode {
+  id: ID!
+  nodeType: String!
+  name: String!
+  personId: ID
+  legalEntityId: ID
+  directStake: Float!
+  effectiveStake: Float!
+  isUbo: Boolean!
+  controlBasis: String
+  fatcaDeclaration: FATCADeclaration
+}
+
+"Ребро графа владения (этап 5)."
+type UBOEdge {
+  fromNodeId: ID!
+  toNodeId: ID!
+  stake: Float!
+  documentId: ID
+}
+
+"Звено цепочки владения (этап 5)."
+type OwnershipChainLink {
+  level: Int!
+  entityName: String!
+  entityInnOrRegNumber: String
+  country: String
+  sharePercent: Float!
+}
+
+"Линейная цепочка владения от UBO к юрлицу (этап 5)."
+type UBOOwnershipChain {
+  uboNodeId: ID!
+  links: [OwnershipChainLink!]!
+  isSoleBeneficiary: Boolean!
+}
+
+"Граф владения юрлицом (этап 5)."
+type UBOGraph {
+  id: ID!
+  tenantId: ID!
+  applicationId: ID!
+  legalEntityId: ID!
+  nodes: [UBONode!]!
+  edges: [UBOEdge!]!
+  ownershipChains: [UBOOwnershipChain!]
+  noUboReason: String
+  eioAsUboConfirmation: Boolean!
+  diagramDocId: ID
+  computedAt: Time
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+"Отметка matching по watch list (этап 7)."
+type ScreeningResult {
+  listName: String!
+  matchLevel: String!
+  score: Float
+  matchedEntityName: String
+  checkedAt: Time
+}
+
+"Найденная негативная публикация (этап 7)."
+type AdverseMediaHit {
+  category: String!
+  title: String!
+  url: String!
+  source: String
+  publishedAt: String!
+  summary: String
+}
+
+"Гео-метка по IP (этап 7)."
+type GeoLocation {
+  country: String
+  city: String
+  latitude: Float
+  longitude: Float
+}
+
+"Анти-фрод сигналы при подаче заявки (этап 7)."
+type AntiFraudSignals {
+  deviceFingerprint: String
+  ipAddress: String
+  geolocation: GeoLocation
+}
+
+"Сводный результат AML-проверок по заявке (этап 7)."
+type ScreeningResultSet {
+  id: ID!
+  tenantId: ID!
+  applicationId: ID!
+  sanctionsResults: [ScreeningResult!]
+  pepResults: [ScreeningResult!]
+  adverseMediaHits: [AdverseMediaHit!]
+  okvedConsistencyScore: Float
+  turnoverRealismScore: Float
+  antiFraudSignals: AntiFraudSignals
+  performedAt: Time!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+"Одно правило 375-П / per-tenant (этап 8)."
+type MonitoringRule {
+  code: String!
+  description: String!
+  params: JSON
+}
+
+"Лимиты по типам операций (этап 8)."
+type TransactionLimits {
+  dailyOutgoing: MoneyAmount
+  dailyCashWithdrawal: MoneyAmount
+  monthlyOutgoing: MoneyAmount
+  singleTransactionMax: MoneyAmount
+}
+
+"Параметры мониторинга счёта (этапы 8 и 10)."
+type MonitoringProfile {
+  id: ID!
+  tenantId: ID!
+  applicationId: ID!
+  accountId: ID
+  reviewFrequencyMonths: Int!
+  nextReviewDate: String!
+  monitoringRules: [MonitoringRule!]
+  kycRefreshTriggers: [String!]
+  transactionLimits: TransactionLimits
+  notificationChannels: [String!]
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+"Пакет согласий и подписи при открытии счёта (этап 10)."
+type AccountAgreements {
+  agreementAcceptance: Boolean!
+  agreementAcceptedAt: Time!
+  dboAgreement: Boolean!
+  dboChannels: [String!]
+  edoAgreement: Boolean!
+  personalDataConsent: Boolean!
+  signingMethod: String!
+  ukepCertificateSerial: String
+}
+
+"Открытый счёт (этап 10). Назван BankAccount чтобы избежать конфликта с встроенным Account."
+type BankAccount {
+  id: ID!
+  tenantId: ID!
+  applicationId: ID!
+  legalEntityId: ID!
+  accountNumber: String
+  bik: String
+  bankName: String
+  currency: String!
+  accountType: String!
+  correspondentAccount: String
+  tariffPlan: String
+  agreements: AccountAgreements!
+  monitoringProfileId: ID
+  absReference: String
+  openedAt: Time
+  createdAt: Time!
+  updatedAt: Time!
+}
+
 type Query {
   "Тенант, к которому относится текущий администратор."
   tenant: Tenant
@@ -190,6 +551,27 @@ type Query {
   с auth.tenant (cross-tenant разрешён только для platform.admin).
   """
   complianceDashboard(tenantId: String!, from: Time, to: Time): ComplianceDashboard!
+
+  "Этап 2 формы онбординга — расширенная анкета юрлица. null если applicant ещё не дошёл."
+  legalEntityProfile(applicationId: ID!): LegalEntityProfile
+
+  "Этап 3 — AML-анкета о деятельности. null если applicant ещё не дошёл."
+  applicationActivity(applicationId: ID!): ApplicationActivity
+
+  "Этап 4 — список ЕИО и представителей юрлица. Пустой список если applicant ещё не дошёл."
+  representatives(applicationId: ID!): [Representative!]!
+
+  "Этап 5 — граф владения. null если applicant ещё не дошёл."
+  uboGraph(applicationId: ID!): UBOGraph
+
+  "Этап 7 — результаты AML-скрининга. null если ещё не выполнен."
+  screening(applicationId: ID!): ScreeningResultSet
+
+  "Этапы 8/10 — параметры мониторинга счёта. null если ещё не настроен."
+  monitoringProfile(applicationId: ID!): MonitoringProfile
+
+  "Этап 10 — открытый счёт. null если ещё не открыт."
+  bankAccount(applicationId: ID!): BankAccount
 }
 
 type Mutation {

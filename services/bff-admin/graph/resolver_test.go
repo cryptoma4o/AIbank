@@ -246,6 +246,161 @@ func newDashboardResolver(apps *mockApps, ubo *mockUBO, aud *mockAudit) *Resolve
 	return r
 }
 
+// ── Этапы 2-10 формы онбординга ─────────────────────────────────────
+
+// TestQuery_LegalEntityProfile_ReturnsData — happy-path: orchestrator
+// возвращает профиль, GraphQL раскладывает поля через reflection-резолвер.
+func TestQuery_LegalEntityProfile_ReturnsData(t *testing.T) {
+	srv := stubServer(t, map[string]string{
+		"/v1/legal-entity-profiles/by-application/app_1": `{
+			"id":"prof_1","tenant_id":"alpha","application_id":"app_1","legal_entity_id":"le_1",
+			"opf_code":"12200","registration_authority":"ФНС",
+			"actual_same_as_legal":true,"postal_same_as_legal":true,
+			"okved_main_v2":"62.01","okved_additional_v2":["63.11"],
+			"contacts":{"phone":"+7","email":"a@b.c"},
+			"created_at":"2026-04-26T10:00:00Z","updated_at":"2026-04-26T10:01:00Z"
+		}`,
+	})
+	defer srv.Close()
+	r := newTestResolver(t, srv.URL)
+	schema, _ := r.Schema()
+	res := graphql.Do(graphql.Params{
+		Schema:        schema,
+		RequestString: `{ legalEntityProfile(applicationId:"app_1") { id legalEntityId opfCode okvedMain contacts { email } } }`,
+		Context:       adminCtx(auth.RoleBankAdmin),
+	})
+	if len(res.Errors) > 0 {
+		t.Fatalf("graphql errors: %+v", res.Errors)
+	}
+	data, _ := json.Marshal(res.Data)
+	got := string(data)
+	for _, want := range []string{
+		`"id":"prof_1"`, `"legalEntityId":"le_1"`, `"opfCode":"12200"`,
+		`"okvedMain":"62.01"`, `"email":"a@b.c"`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("expected substring %q in result, got: %s", want, got)
+		}
+	}
+}
+
+// TestQuery_LegalEntityProfile_NullOn404 — applicant ещё не дошёл до этапа 2.
+// Ожидаем data.legalEntityProfile = null без ошибок.
+func TestQuery_LegalEntityProfile_NullOn404(t *testing.T) {
+	srv := stubServer(t, nil) // 404 на всё
+	defer srv.Close()
+	r := newTestResolver(t, srv.URL)
+	schema, _ := r.Schema()
+	res := graphql.Do(graphql.Params{
+		Schema:        schema,
+		RequestString: `{ legalEntityProfile(applicationId:"app_404") { id } }`,
+		Context:       adminCtx(auth.RoleBankAdmin),
+	})
+	if len(res.Errors) > 0 {
+		t.Fatalf("expected no errors on 404, got: %+v", res.Errors)
+	}
+	data, _ := json.Marshal(res.Data)
+	if !strings.Contains(string(data), `"legalEntityProfile":null`) {
+		t.Fatalf("expected legalEntityProfile=null, got: %s", data)
+	}
+}
+
+// TestQuery_Representatives_UnwrapsItemsEnvelope — orchestrator возвращает
+// {items:[...]}, GraphQL — массив. Также проверяем nested структуры.
+func TestQuery_Representatives_UnwrapsItemsEnvelope(t *testing.T) {
+	srv := stubServer(t, map[string]string{
+		"/v1/representatives/by-application/app_1": `{"items":[
+			{"id":"rep_1","tenant_id":"alpha","application_id":"app_1","legal_entity_id":"le_1",
+			 "last_name":"Иванов","first_name":"Иван","birth_date":"1980-01-01",
+			 "id_document":{"doc_type":"passport_ru","number":"4500000001"},
+			 "authority":{"position":"CEO","authority_basis":"charter"},
+			 "is_primary":true,"is_signatory":true,
+			 "created_at":"2026-04-26T10:00:00Z","updated_at":"2026-04-26T10:01:00Z"}
+		]}`,
+	})
+	defer srv.Close()
+	r := newTestResolver(t, srv.URL)
+	schema, _ := r.Schema()
+	res := graphql.Do(graphql.Params{
+		Schema:        schema,
+		RequestString: `{ representatives(applicationId:"app_1") { id lastName isPrimary idDocument { docType number } authority { position authorityBasis } } }`,
+		Context:       adminCtx(auth.RoleBankAdmin),
+	})
+	if len(res.Errors) > 0 {
+		t.Fatalf("graphql errors: %+v", res.Errors)
+	}
+	data, _ := json.Marshal(res.Data)
+	got := string(data)
+	for _, want := range []string{
+		`"id":"rep_1"`, `"lastName":"Иванов"`, `"isPrimary":true`,
+		`"docType":"passport_ru"`, `"number":"4500000001"`,
+		`"position":"CEO"`, `"authorityBasis":"charter"`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("expected substring %q in result, got: %s", want, got)
+		}
+	}
+}
+
+// TestQuery_Representatives_EmptyOn404 — на 404 возвращаем пустой массив,
+// чтобы non-null контракт `[Representative!]!` не ломался.
+func TestQuery_Representatives_EmptyOn404(t *testing.T) {
+	srv := stubServer(t, nil)
+	defer srv.Close()
+	r := newTestResolver(t, srv.URL)
+	schema, _ := r.Schema()
+	res := graphql.Do(graphql.Params{
+		Schema:        schema,
+		RequestString: `{ representatives(applicationId:"app_404") { id } }`,
+		Context:       adminCtx(auth.RoleBankAdmin),
+	})
+	if len(res.Errors) > 0 {
+		t.Fatalf("expected no errors on 404, got: %+v", res.Errors)
+	}
+	data, _ := json.Marshal(res.Data)
+	if !strings.Contains(string(data), `"representatives":[]`) {
+		t.Fatalf("expected representatives=[], got: %s", data)
+	}
+}
+
+// TestQuery_BankAccount_UsesAuthTenant — admin не может попросить чужой
+// тенант: всегда подставляется tenant_id из AuthContext.
+func TestQuery_BankAccount_UsesAuthTenant(t *testing.T) {
+	var capturedTenant string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/v1/accounts/by-application/") {
+			capturedTenant = r.URL.Query().Get("tenant_id")
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{
+				"id":"acc_1","tenant_id":"alpha","application_id":"app_1","legal_entity_id":"le_1",
+				"currency":"RUB","account_type":"current",
+				"agreements":{"agreement_acceptance":true,"agreement_accepted_at":"2026-04-26T10:00:00Z","dbo_agreement":true,"edo_agreement":true,"personal_data_consent":true,"signing_method":"sms_code"},
+				"created_at":"2026-04-26T10:00:00Z","updated_at":"2026-04-26T10:01:00Z"
+			}`))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
+	r := newTestResolver(t, srv.URL)
+	schema, _ := r.Schema()
+	res := graphql.Do(graphql.Params{
+		Schema:        schema,
+		RequestString: `{ bankAccount(applicationId:"app_1") { id currency agreements { signingMethod } } }`,
+		Context:       adminCtx(auth.RoleBankAdmin),
+	})
+	if len(res.Errors) > 0 {
+		t.Fatalf("graphql errors: %+v", res.Errors)
+	}
+	if capturedTenant != "alpha" {
+		t.Fatalf("expected tenant_id=alpha from auth, got %q", capturedTenant)
+	}
+	data, _ := json.Marshal(res.Data)
+	if !strings.Contains(string(data), `"signingMethod":"sms_code"`) {
+		t.Fatalf("nested AccountAgreements not resolved correctly: %s", data)
+	}
+}
+
 // TestComplianceDashboard_RequiresComplianceRole — bank.operator не должен
 // получать доступ (даже если каким-то образом прошёл middleware).
 func TestComplianceDashboard_RequiresComplianceRole(t *testing.T) {

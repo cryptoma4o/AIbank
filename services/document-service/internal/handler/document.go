@@ -88,6 +88,7 @@ func (h *DocumentHandler) Routes() chi.Router {
 		r.Post("/", h.UploadDocument)
 	}
 	r.Get("/", h.ListDocuments)
+	r.Get("/checklist", h.Checklist)
 	r.Get("/{id}", h.GetDocument)
 	r.Get("/{id}/content", h.GetContent)
 
@@ -453,6 +454,73 @@ func (h *DocumentHandler) ListDocuments(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"items": docs, "count": len(docs)})
+}
+
+// ChecklistItem — позиция чеклиста: что требуется и что уже загружено.
+type checklistItem struct {
+	Type       string `json:"type"`
+	Status     string `json:"status"` // "loaded" | "missing"
+	DocumentID string `json:"document_id,omitempty"`
+}
+
+// Checklist — GET /v1/documents/checklist?tenant_id=...&application_id=...&legal_entity_form=LLC
+//
+// Возвращает чеклист обязательных документов в зависимости от юр.формы
+// заявителя (этап 6 формы онбординга, см. docs/onboarding-form-spec.md §6).
+// Для каждой позиции возвращает status (loaded/missing) и document_id если
+// уже загружено. Опциональные документы возвращаются отдельным массивом.
+func (h *DocumentHandler) Checklist(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := requireTenant(w, r)
+	if !ok {
+		return
+	}
+	applicationID := strings.TrimSpace(r.URL.Query().Get("application_id"))
+	if applicationID == "" {
+		writeError(w, http.StatusBadRequest, "missing_application", "application_id is required")
+		return
+	}
+	form := domain.LegalEntityForm(strings.TrimSpace(r.URL.Query().Get("legal_entity_form")))
+	if !domain.IsValidLegalEntityForm(form) {
+		writeError(w, http.StatusBadRequest, "invalid_legal_entity_form",
+			"legal_entity_form must be IP|LLC|JSC|NPF")
+		return
+	}
+
+	required := domain.RequiredDocumentTypes(form)
+	docs, err := h.repo.ListByApplication(r.Context(), tenantID, applicationID)
+	if err != nil {
+		h.log.Error("checklist: list documents", "tenant", tenantID, "app", applicationID, "err", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "internal error")
+		return
+	}
+	uploaded := make(map[domain.DocumentType]string, len(docs))
+	for _, d := range docs {
+		// Берём первый загруженный документ каждого типа. Если нужны дубли —
+		// расширим API до []DocumentID per type.
+		if _, exists := uploaded[d.Type]; !exists {
+			uploaded[d.Type] = d.ID
+		}
+	}
+
+	items := make([]checklistItem, 0, len(required))
+	missing := 0
+	for _, t := range required {
+		item := checklistItem{Type: string(t), Status: "missing"}
+		if id, ok := uploaded[t]; ok {
+			item.Status = "loaded"
+			item.DocumentID = id
+		} else {
+			missing++
+		}
+		items = append(items, item)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"legal_entity_form": string(form),
+		"required":          items,
+		"missing_count":     missing,
+		"complete":          missing == 0,
+	})
 }
 
 // requireTenant извлекает и валидирует tenant_id из query string.

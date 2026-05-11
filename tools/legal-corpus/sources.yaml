@@ -1,0 +1,55 @@
+# Источники нормативных документов для индексации в Qdrant.
+#
+# Каждый закон имеет несколько URL для fallback'а — сайты часто меняют схемы,
+# и один источник может быть недоступен. fetch.py пробует URL'ы по порядку
+# и сохраняет первый успешный ответ.
+#
+# Если ни один URL не работает — положи файл вручную в docs/legal/raw/<id>.html
+# или <id>.txt; fetch.py при наличии local_override использует его.
+#
+# Поле version_date фиксируется как human-знание о редакции — для аудита.
+
+documents:
+  - id: "115-fz"
+    title: "Федеральный закон от 07.08.2001 N 115-ФЗ «О противодействии легализации (отмыванию) доходов, полученных преступным путём, и финансированию терроризма»"
+    short: "115-ФЗ"
+    source_type: "law"
+    version_date: "2026-01-01"
+    urls:
+      - "http://pravo.gov.ru/proxy/ips/?docbody&nd=102072376"
+      - "https://www.consultant.ru/document/cons_doc_LAW_32834/"
+    local_override: "docs/legal/raw/115-fz.html"
+
+  # Ручной выжимка ключевых статей 115-ФЗ (статьи 6, 7, 7.3) с актуальными
+  # числами и формулировками. Дополняет 115-fz.html (где с consultant.ru
+  # пришёл только перечень статей без содержания). Когда pravo.gov.ru снова
+  # начнёт отдавать — этот файл можно удалить, оригинал перекроет.
+  - id: "115-fz-key"
+    title: "Ключевые статьи 115-ФЗ (статьи 6, 7, 7.3) — порог 1 000 000 ₽, идентификация, дробление"
+    short: "115-ФЗ"
+    source_type: "law"
+    version_date: "2026-01-01"
+    urls: []
+    # Файл docs/legal/raw/115-fz-key.txt подхватывается chunk_and_index.py
+    # автоматически как .txt fallback (.html отсутствует — нет fetch URL).
+    local_override: "docs/legal/raw/115-fz-key.txt"
+
+  - id: "152-fz"
+    title: "Федеральный закон от 27.07.2006 N 152-ФЗ «О персональных данных»"
+    short: "152-ФЗ"
+    source_type: "law"
+    version_date: "2026-01-01"
+    urls:
+      - "http://pravo.gov.ru/proxy/ips/?docbody&nd=102108261"
+      - "https://www.consultant.ru/document/cons_doc_LAW_61801/"
+    local_override: "docs/legal/raw/152-fz.html"
+
+  - id: "375-p"
+    title: "Положение Банка России от 02.03.2012 N 375-П «О требованиях к правилам внутреннего контроля кредитной организации в целях противодействия легализации...»"
+    short: "375-П"
+    source_type: "regulation"
+    version_date: "2026-01-01"
+    urls:
+      - "http://pravo.gov.ru/proxy/ips/?docbody&nd=102155418"
+      - "https://www.consultant.ru/document/cons_doc_LAW_129405/"
+    local_override: "docs/legal/raw/375-p.html"

@@ -1,0 +1,15 @@
+{
+  "name": "aibank-e2e-ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Playwright E2E UI-tests против live AIbank staging (без моков).",
+  "scripts": {
+    "test": "playwright test",
+    "test:onboarding": "playwright test --project=onboarding",
+    "test:admin": "playwright test --project=admin",
+    "install:browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.40.0"
+  }
+}

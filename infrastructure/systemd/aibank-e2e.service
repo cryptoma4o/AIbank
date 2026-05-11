@@ -1,0 +1,31 @@
+[Unit]
+Description=AIbank E2E test runner (hourly smoke against live staging)
+Documentation=file:///opt/aibank/tests/e2e/README.md
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+
+# Контейнер использует --network host чтобы из своих запросов идти на
+# 127.0.0.1:3000/3001/8000-8092 хоста (где работает docker-compose стек).
+# .omc/ монтируется в /app/.omc контейнера — туда дописывается e2e-results.jsonl.
+ExecStart=/usr/bin/docker run --rm \
+    --network host \
+    -v /opt/aibank/.omc:/app/.omc \
+    -e E2E_BASE_URL=http://localhost \
+    -e E2E_TENANT=demo \
+    aibank-e2e-runner:latest
+
+# Если контейнер не успел за 5 минут — что-то крепко сломалось.
+TimeoutStartSec=300
+
+# Если упало — журналируем и идём дальше; следующий запуск через час повторит.
+SuccessExitStatus=0 1
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aibank-e2e
+
+[Install]
+WantedBy=multi-user.target

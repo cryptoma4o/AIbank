@@ -1,0 +1,16 @@
+[Unit]
+Description=AIbank E2E hourly run
+Documentation=file:///opt/aibank/tests/e2e/README.md
+Requires=aibank-e2e.service
+
+[Timer]
+# Раз в час, в начале часа.
+OnCalendar=hourly
+# Если хост был выключен/перезагружался — догоняем при ближайшем старте.
+Persistent=true
+# Случайная задержка 0-300 сек, чтобы не молотить ровно в :00:00.
+RandomizedDelaySec=300
+Unit=aibank-e2e.service
+
+[Install]
+WantedBy=timers.target

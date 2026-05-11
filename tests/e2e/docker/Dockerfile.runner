@@ -1,0 +1,49 @@
+# E2E runner для AIbank: pytest (API) + Playwright (UI) в одном образе.
+#
+# Запуск:
+#   docker build -f tests/e2e/docker/Dockerfile.runner -t aibank-e2e-runner:latest .
+#   docker run --rm --network host \
+#     -v $(pwd)/.omc:/app/.omc \
+#     -e E2E_BASE_URL=http://localhost \
+#     aibank-e2e-runner:latest
+#
+# Образ содержит chromium + node + python — ~1.5GB, но без зависимостей хоста.
+
+FROM mcr.microsoft.com/playwright:v1.40.0-jammy
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# python3 уже есть в jammy-образе Playwright; добавляем pip и pytest-инструменты.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3-pip ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+# Pytest + json-report для агрегации.
+RUN pip3 install --no-cache-dir \
+    "pytest>=8.0" \
+    "pytest-json-report>=1.5"
+
+WORKDIR /app
+
+# Копируем только тесты (не весь репо). Repo bind-mount не нужен.
+COPY tests/e2e /app/tests/e2e
+COPY scripts/seed-staging-companies.py /app/scripts/seed-staging-companies.py
+
+# Устанавливаем UI-зависимости + дозагружаем chromium точно той версии, что в
+# package.json (если она расходится с базовым образом).
+WORKDIR /app/tests/e2e/ui
+RUN if [ -f package.json ]; then \
+      npm install --no-audit --no-fund \
+      && npx playwright install chromium; \
+    else \
+      echo "ui/package.json отсутствует — UI часть будет пропущена runner'ом"; \
+    fi
+
+WORKDIR /app
+
+# Дефолтная команда — runner.
+CMD ["bash", "/app/tests/e2e/runner/run.sh"]

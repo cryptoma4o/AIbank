@@ -1,0 +1,64 @@
+# Staging routing config — реальный LLM через Ollama (без GPU, на CPU).
+#
+# Активируется через ENV у llm-gateway:
+#   LLM_GATEWAY_CONFIG=/app/configs/staging-ollama.yaml
+#   LLM_GATEWAY_FORCE_MOCK=0
+#
+# В отличие от default-routing.yaml (vLLM + GPU модели 26-32B), здесь
+# квантованные 7-8B модели через llama.cpp под капотом Ollama.
+#
+# URL backend можно переопределить через ENV:
+#   VLLM_BACKEND_URL_OLLAMA=http://ollama:11434
+
+version: 1
+
+backends:
+  ollama:
+    type: openai_compatible
+    # url — без /v1 (gateway сам добавляет /v1/chat/completions).
+    url: http://ollama:11434
+    # CPU-inference медленнее GPU. qwen2.5:7b ~5-10 tok/s на 8 vCPU.
+    # 600 tokens generation + prompt processing = до 3 минут.
+    # Ставим 600 чтобы long-context RAG-запросы не падали в fallback.
+    timeout_s: 600
+  mock:
+    type: mock
+
+models:
+  # Имя модели в YAML = имя, которое gateway отправит в Ollama как payload.model.
+  # Поэтому в Ollama должен быть алиас с тем же именем (через Modelfile + ollama create).
+  tlite:
+    backend: ollama
+    # Self-hosted — нулевая стоимость для биллинга (CPU тратится, но не платится за API).
+    cost_per_1k_input_kop: 0
+    cost_per_1k_output_kop: 0
+  qwen-vl:
+    backend: ollama
+    cost_per_1k_input_kop: 0
+    cost_per_1k_output_kop: 0
+  mock-fast:
+    backend: mock
+    cost_per_1k_input_kop: 0
+    cost_per_1k_output_kop: 0
+
+# Маппинг роль → модель. Агенты вызывают через role:* — конкретная модель
+# меняется без передеплоя агентов. Fallback на mock-fast если Ollama упал.
+roles:
+  ru-chat:
+    model: tlite
+    fallback: mock-fast
+  text-reasoning:
+    model: tlite
+    fallback: mock-fast
+  reconciliation:
+    model: tlite
+    fallback: mock-fast
+  ubo-tracing:
+    model: tlite
+    fallback: mock-fast
+  document-vision:
+    model: qwen-vl
+    fallback: mock-fast
+  rag:
+    model: tlite
+    fallback: mock-fast

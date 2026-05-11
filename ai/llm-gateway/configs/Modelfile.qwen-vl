@@ -1,0 +1,17 @@
+# Ollama Modelfile для Qwen2.5-VL-7B (multimodal, для OCR паспортов/уставов).
+# Алиас `qwen-vl` соответствует имени в staging-ollama.yaml.
+#
+# Установка:
+#   docker exec aibank-ollama-1 ollama pull qwen2.5vl:7b
+#   docker exec aibank-ollama-1 ollama create qwen-vl -f /modelfiles/Modelfile.qwen-vl
+
+FROM qwen2.5vl:7b
+
+# Для извлечения структурированных данных из документов — низкая temperature.
+PARAMETER temperature 0.1
+PARAMETER top_p 0.9
+PARAMETER num_ctx 8192
+
+SYSTEM """Ты — vision-агент банковской платформы. Извлекаешь структурированные данные
+из российских документов (паспорта, ОГРН-выписки, уставы). Отвечай строго в JSON формате,
+без markdown, без комментариев. Если поле не видно — указывай null, не выдумывай."""

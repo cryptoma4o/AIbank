@@ -1,0 +1,28 @@
+# Ollama Modelfile для основной text-LLM на staging (CPU).
+#
+# Эволюция модели:
+#   1. Планировали T-Lite 7B (T-Bank) — Ollama HF-proxy отдаёт 500.
+#   2. Перешли на Qwen2.5-7B — но на QEMU x86-v1 (без AVX2) CPU
+#      выдаёт <0.2 tok/sec, для realtime онбординга непригодно.
+#   3. Сейчас Qwen2.5-3B — компромисс: 3 GB RAM, 3-5 tok/sec на CPU,
+#      качество русского хорошее. Под realtime chat подходит.
+#
+# Когда появится GPU — заменить FROM на t-pro / qwen2.5:14b / т.п.,
+# имя алиаса остаётся tlite — config gateway не трогаем.
+#
+# Установка на сервере:
+#   docker exec aibank-ollama-1 ollama pull qwen2.5:3b
+#   docker exec aibank-ollama-1 ollama create tlite -f /modelfiles/Modelfile.tlite
+
+FROM qwen2.5:3b
+
+# Параметры для онбординга: умеренно креативно для chat, но воспроизводимо.
+PARAMETER temperature 0.3
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER num_ctx 4096
+
+# System prompt: банковский контекст, русский язык.
+SYSTEM """Ты — AI-ассистент банковской платформы AIbank, помогаешь при онбординге
+юридических лиц и индивидуальных предпринимателей. Отвечай на русском языке кратко
+и по делу. Не выдумывай факты — если не знаешь ответа, скажи об этом."""

@@ -1,0 +1,68 @@
+# T-Pro 32B на GPU через vLLM — отдельный stack для GPU-сервера.
+#
+# Назначение:
+#   1. SaaS: разворачивается на арендованном GPU-хосте (Selectel ML / Yandex
+#      Cloud / вне staging-сервера 206.204.106.28 без GPU).
+#   2. On-prem банка: разворачивается у клиента на их собственном H100/A100.
+#
+# Подключение к нашему llm-gateway:
+#   В docker-compose.yml AIbank или Helm values задать:
+#     VLLM_TPRO_URL=https://<gpu-host>:8000
+#   Дальше gateway автоматически использует этот backend для роли
+#   text-reasoning / reconciliation / ubo-tracing (см. default-routing.yaml).
+#
+# Требования к хосту:
+#   - NVIDIA GPU 24+ GB VRAM (AWQ Q4) или 64+ GB (FP16)
+#   - nvidia-container-toolkit установлен
+#   - Docker >= 20.10
+#
+# Запуск:
+#   cd infrastructure/vllm-tpro
+#   docker compose up -d
+#   curl http://localhost:8000/v1/models
+
+services:
+  vllm-tpro:
+    image: vllm/vllm-openai:v0.6.3   # стабильная версия, поддерживает Qwen2/Gemma3 архитектуры
+    container_name: vllm-tpro
+    restart: unless-stopped
+    runtime: nvidia                  # требует nvidia-container-toolkit
+    environment:
+      # ID модели на Hugging Face. Сменить через .env при необходимости.
+      # T-Pro-it-1.0 — последняя итерация (32B параметров, RU-focus).
+      MODEL_ID: ${VLLM_MODEL_ID:-t-tech/T-pro-it-1.0-Q4_K_M-GGUF}
+      # HF token нужен только если модель приватная. T-Pro публичная.
+      HUGGING_FACE_HUB_TOKEN: ${HF_TOKEN:-}
+      NVIDIA_VISIBLE_DEVICES: all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ports:
+      # На GPU-хосте порт можно открыть наружу (для нашего gateway), но
+      # обязательно за TLS-прокси (nginx + Let's Encrypt или внутренний CA).
+      - "8000:8000"
+    volumes:
+      # Кэш HF — модели не качаются повторно при рестарте.
+      - hf-cache:/root/.cache/huggingface
+    command: >
+      --model ${VLLM_MODEL_ID:-t-tech/T-pro-it-1.0-Q4_K_M-GGUF}
+      --served-model-name t-pro
+      --quantization awq
+      --max-model-len 4096
+      --gpu-memory-utilization 0.90
+      --tensor-parallel-size ${TP_SIZE:-1}
+      --host 0.0.0.0
+      --port 8000
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 300s             # cold-загрузка модели в VRAM ~3-5 мин
+
+volumes:
+  hf-cache:

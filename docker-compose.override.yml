@@ -269,6 +269,11 @@ services:
   # (agent-document-intake, -reconciliation, -ubo-tracing, -conversational).
   # disable: true ломает condition → "no healthcheck configured".
   # Заменяем wget на Python urllib (gateway сам на python:3.12-slim).
+  #
+  # Staging-конфиг: переключаем с mock на Ollama (T-Lite + Qwen-VL).
+  # staging-ollama.yaml монтируется в /app/configs/ через bind-mount,
+  # чтобы не пересобирать image gateway. Конфиг по умолчанию остаётся
+  # в image (default-routing.yaml для GPU-vLLM).
   llm-gateway:
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/healthz').read()"]
@@ -276,6 +281,14 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    environment:
+      LLM_GATEWAY_FORCE_MOCK: "0"
+      LLM_GATEWAY_CONFIG: /app/configs/staging-ollama.yaml
+    volumes:
+      - ./ai/llm-gateway/configs/staging-ollama.yaml:/app/configs/staging-ollama.yaml:ro
+    depends_on:
+      ollama:
+        condition: service_started
 
   agent-document-intake:
     healthcheck:
@@ -292,3 +305,119 @@ services:
   agent-conversational:
     healthcheck:
       disable: true
+
+  # ────────────────────────────────────────────────────────────
+  # TEI (Text Embeddings Inference) — sidecar для rag-service.
+  # Хостит BAAI/bge-m3 (1024-мерные multilingual embeddings, хороший русский).
+  # Cold-start на CPU ~60-90 сек.
+  # ────────────────────────────────────────────────────────────
+  tei:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.6
+    container_name: aibank-tei-1
+    restart: unless-stopped
+    networks: [default]
+    volumes:
+      - tei-models:/data
+    environment:
+      # Явно указываем HF endpoint — в старых tag'ах cpu-1.5 был баг
+      # "relative URL without a base", который чинится этой переменной.
+      HF_ENDPOINT: https://huggingface.co
+      HF_HUB_ENABLE_HF_TRANSFER: "0"
+    command:
+      - "--model-id"
+      - "BAAI/bge-m3"
+      - "--port"
+      - "80"
+    ports:
+      - "127.0.0.1:8002:80"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 30
+      start_period: 300s    # BGE-M3 = ~2.3GB, на CPU cold-load 2-4 мин
+
+  # ────────────────────────────────────────────────────────────
+  # rag-service — semantic search over banking regulations.
+  # Embedder=tei (BGE-M3 1024-мер), backend=qdrant (per-tenant collections).
+  # ────────────────────────────────────────────────────────────
+  rag-service:
+    build: ./ai/rag-service
+    container_name: aibank-rag-service-1
+    restart: unless-stopped
+    networks: [default]
+    environment:
+      RAG_EMBEDDER: tei
+      RAG_TEI_URL: http://tei:80
+      RAG_EMBED_DIM: "1024"
+      QDRANT_URL: http://qdrant:6333
+      RAG_BACKEND: qdrant
+      RAG_RERANKER: lexical    # без GPU — оставляем lexical
+      LOG_LEVEL: INFO
+    ports:
+      - "127.0.0.1:8105:8105"
+    depends_on:
+      qdrant:
+        condition: service_started
+      tei:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8105/healthz').read()"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  # ────────────────────────────────────────────────────────────
+  # agent-compliance-assistant — Q&A по 115-ФЗ через RAG + LLM.
+  # В main docker-compose.yml не определён, поднимаем здесь.
+  # ────────────────────────────────────────────────────────────
+  agent-compliance-assistant:
+    build: ./ai/agent-compliance-assistant
+    container_name: aibank-agent-compliance-assistant-1
+    restart: unless-stopped
+    networks: [default]
+    environment:
+      LLM_GATEWAY_URL: http://llm-gateway:8100
+      RAG_SERVICE_URL: http://rag-service:8105
+      LOG_LEVEL: INFO
+    ports:
+      - "127.0.0.1:8106:8106"
+    depends_on:
+      llm-gateway:
+        condition: service_started
+      rag-service:
+        condition: service_started
+    healthcheck:
+      disable: true
+
+  # ────────────────────────────────────────────────────────────
+  # Ollama: локальный inference для staging (CPU, T-Lite + Qwen-VL).
+  # См. ai/llm-gateway/configs/staging-ollama.yaml и Modelfile.*.
+  # Модели загружаются один раз через scripts/setup-ollama-staging.sh.
+  # ────────────────────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: aibank-ollama-1
+    restart: unless-stopped
+    networks: [default]
+    volumes:
+      - ollama-models:/root/.ollama
+      - ./ai/llm-gateway/configs/Modelfile.tlite:/modelfiles/Modelfile.tlite:ro
+      - ./ai/llm-gateway/configs/Modelfile.qwen-vl:/modelfiles/Modelfile.qwen-vl:ro
+    ports:
+      # Только localhost — порт не публикуется наружу (наш hygiene-стандарт).
+      - "127.0.0.1:11434:11434"
+    environment:
+      # Держать модель в RAM 30 мин после последнего запроса.
+      # На CPU cold-start 15-30 сек, поэтому keep-alive экономит время.
+      OLLAMA_KEEP_ALIVE: "30m"
+      # 2 параллельных запроса (8 vCPU делятся: 4 на T-Lite, 4 на vision).
+      OLLAMA_NUM_PARALLEL: "2"
+      # Не нужен сам по себе (CPU), но safe-default чтобы Ollama не пыталась
+      # детектить GPU.
+      OLLAMA_NUM_GPU: "0"
+
+volumes:
+  ollama-models:
+  tei-models:

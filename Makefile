@@ -1,4 +1,4 @@
-.PHONY: help generate validate-schema build test lint up down logs migrate-platform smoke smoke-clean bench bench-tenant bench-audit bench-llm bench-bff bench-seed context-light context-full agent-pr-check changed-services
+.PHONY: help generate validate-schema build test lint up down logs migrate-platform smoke smoke-clean bench bench-tenant bench-audit bench-llm bench-bff bench-seed context-light context-full agent-pr-check changed-services e2e-staging e2e-staging-build e2e-staging-api e2e-staging-install-timer rag-up rag-index rag-reindex rag-smoke
 
 help:
 	@echo "AIbank Makefile"
@@ -128,3 +128,63 @@ agent-pr-check:
 	@$(MAKE) --no-print-directory lint
 	@$(MAKE) --no-print-directory test-go
 	@echo "✓ Готово. Если PR трогает ai/, запусти также: make eval-agents"
+
+# ── E2E staging tests ─────────────────────────────────────────────────────
+# Прогоняет 10 API-сценариев онбординга + Playwright UI-smoke против
+# live-стека. Результаты — append-only в .omc/e2e-results.jsonl.
+#
+# Окружение:
+#   E2E_BASE_URL  — http://localhost (default, для прогона на staging-сервере)
+#                   или http://206.204.106.28 (для прогона с локальной машины)
+#   E2E_TENANT    — demo (default)
+#   E2E_SKIP_UI=1 — пропустить Playwright (быстрый API-only прогон ~1 мин)
+
+e2e-staging-build:
+	@echo "→ Сборка Docker-образа aibank-e2e-runner..."
+	docker build -f tests/e2e/docker/Dockerfile.runner -t aibank-e2e-runner:latest .
+
+e2e-staging-api:  ## Быстрый API-only прогон без Docker (15 тестов, ~2 сек)
+	@E2E_BASE_URL=$${E2E_BASE_URL:-http://localhost} \
+	 E2E_TENANT=$${E2E_TENANT:-demo} \
+	 E2E_SKIP_UI=1 \
+	 bash tests/e2e/runner/run.sh
+
+e2e-staging: e2e-staging-build  ## Полный E2E прогон в Docker (API + UI)
+	docker run --rm --network host \
+	  -v $$(pwd)/.omc:/app/.omc \
+	  -e E2E_BASE_URL=$${E2E_BASE_URL:-http://localhost} \
+	  -e E2E_TENANT=$${E2E_TENANT:-demo} \
+	  aibank-e2e-runner:latest
+
+e2e-staging-install-timer:  ## Поставить systemd timer (hourly) на staging-сервер
+	@echo "→ Копирую unit-файлы..."
+	scp -i ~/.ssh/aibank_deploy infrastructure/systemd/aibank-e2e.service \
+	  infrastructure/systemd/aibank-e2e.timer \
+	  root@206.204.106.28:/etc/systemd/system/
+	@echo "→ Активирую timer..."
+	ssh -i ~/.ssh/aibank_deploy root@206.204.106.28 \
+	  'systemctl daemon-reload && systemctl enable --now aibank-e2e.timer && systemctl list-timers aibank-e2e.timer'
+
+# ── RAG: индексация банковской нормативки ────────────────────────────────
+# Pipeline: скачать → распарсить → нарезать → POST /v1/index в rag-service.
+# См. tools/legal-corpus/README.md
+
+rag-up:  ## Поднять tei + rag-service (Qdrant уже должен быть UP)
+	docker compose up -d tei rag-service
+	@echo "→ Жду готовности (BGE-M3 cold-load ~2-3 мин)..."
+	@for i in $$(seq 1 60); do \
+	  if curl -fsS http://localhost:8105/healthz >/dev/null 2>&1; then \
+	    echo "✓ rag-service healthy ($$i × 5s)"; exit 0; \
+	  fi; sleep 5; \
+	done; echo "✗ rag-service не поднялся за 5 мин"; exit 1
+
+rag-index: rag-up  ## Скачать тексты законов + проиндексировать (один раз)
+	cd tools/legal-corpus && python3 fetch.py
+	cd tools/legal-corpus && RAG_SERVICE_URL=http://localhost:8105 python3 chunk_and_index.py
+
+rag-reindex:  ## Принудительная переиндексация (force fetch + recreate)
+	cd tools/legal-corpus && python3 fetch.py --force
+	cd tools/legal-corpus && RAG_SERVICE_URL=http://localhost:8105 python3 chunk_and_index.py --recreate
+
+rag-smoke:  ## E2E проверка поиска по нормативке
+	@E2E_BASE_URL=http://localhost python3 -m pytest tests/e2e/api/test_rag_service.py -v

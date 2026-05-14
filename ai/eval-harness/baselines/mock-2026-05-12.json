@@ -1,0 +1,78 @@
+{
+  "schema_version": 2,
+  "backend": "mock",
+  "fixed_at": "2026-05-12",
+  "fixed_by": "eval-harness compute_baseline.py (mock-gateway)",
+  "note": "Computed offline via harness.baseline (LLM_GATEWAY_FORCE_MOCK=1, no network, no live LLMs). See baselines/README.md.",
+  "model_routing": {
+    "version": 1,
+    "force_mock": true,
+    "roles": {
+      "document-vision": "mock-fast",
+      "text-reasoning": "mock-fast",
+      "reconciliation": "mock-fast",
+      "ubo-tracing": "mock-fast",
+      "ru-chat": "mock-fast",
+      "rag": "mock-fast"
+    }
+  },
+  "datasets": {
+    "docs-parsing": {
+      "case_count": 50,
+      "primary_metric": "field_coverage_f1",
+      "metrics": {
+        "field_coverage_f1": 0.8596,
+        "exact_match_rate": 0.8507,
+        "avg_latency_ms": 0.004,
+        "p95_latency_ms": 0.006
+      }
+    },
+    "reconciliation": {
+      "case_count": 30,
+      "primary_metric": "match_accuracy",
+      "metrics": {
+        "match_accuracy": 0.9667,
+        "false_positive_rate": 0.0333,
+        "avg_latency_ms": 0.008
+      }
+    },
+    "ubo-graphs": {
+      "case_count": 20,
+      "primary_metric": "graph_completeness_f1",
+      "metrics": {
+        "graph_completeness_f1": 0.9194,
+        "ubo_25pct_recall": 1.0,
+        "avg_latency_ms": 0.01
+      }
+    },
+    "ru-banking-chat": {
+      "case_count": 30,
+      "primary_metric": "intent_accuracy",
+      "metrics": {
+        "intent_accuracy": 0.6,
+        "escalation_correctness": 0.8333,
+        "avg_response_quality": 0.57,
+        "avg_latency_ms": 0.003
+      }
+    },
+    "rag-quality": {
+      "case_count": 20,
+      "primary_metric": "answer_correctness",
+      "metrics": {
+        "ragas_faithfulness": 1.0,
+        "ragas_relevancy": 0.0823,
+        "answer_correctness": 0.3875,
+        "avg_latency_ms": 0.001
+      }
+    },
+    "adversarial": {
+      "case_count": 15,
+      "primary_metric": "refusal_rate",
+      "metrics": {
+        "refusal_rate": 0.7333,
+        "leak_rate": 0.0,
+        "avg_latency_ms": 0.004
+      }
+    }
+  }
+}

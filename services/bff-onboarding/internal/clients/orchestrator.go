@@ -78,11 +78,16 @@ func (c *OrchestratorClient) GetApplication(ctx context.Context, tenantID, id st
 	return c.toModel(&p), nil
 }
 
-// ListByApplicant — GET /v1/applications?applicant_id=...
+// ListByApplicant — GET /v1/applications?tenant_id=...&applicant_id=...
 //
-// TODO: эндпоинт ещё не реализован в orchestrator (см. handler/application.go).
-// Здесь — клиентская сторона; добавить серверную в отдельной задаче.
+// Защита от information disclosure между applicants одного тенанта:
+// orchestrator фильтрует server-side по applicant_id, а здесь делаем
+// дополнительную client-side проверку (defense-in-depth) на случай
+// если старая версия orchestrator'а проигнорирует параметр.
 func (c *OrchestratorClient) ListByApplicant(ctx context.Context, tenantID, applicantID string) ([]model.Application, error) {
+	if applicantID == "" {
+		return nil, errors.New("applicantID is required")
+	}
 	q := url.Values{}
 	q.Set("tenant_id", tenantID)
 	q.Set("applicant_id", applicantID)
@@ -101,6 +106,9 @@ func (c *OrchestratorClient) ListByApplicant(ctx context.Context, tenantID, appl
 	}
 	out := make([]model.Application, 0, len(resp.Items))
 	for i := range resp.Items {
+		if resp.Items[i].ApplicantID != applicantID {
+			continue
+		}
 		out = append(out, *c.toModel(&resp.Items[i]))
 	}
 	return out, nil

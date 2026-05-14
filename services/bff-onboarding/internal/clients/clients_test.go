@@ -144,6 +144,51 @@ func TestOrchestratorClient_GetApplication(t *testing.T) {
 	}
 }
 
+// TestOrchestratorClient_ListByApplicant_FiltersByApplicant — security regression:
+// applicant A не должен видеть заявки applicant B того же тенанта.
+// Передаём applicant_id в query (server-side filter в orchestrator) И
+// делаем client-side проверку (defense-in-depth) на случай старой версии
+// orchestrator'а, которая проигнорирует параметр.
+func TestOrchestratorClient_ListByApplicant_FiltersByApplicant(t *testing.T) {
+	var gotApplicant string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotApplicant = r.URL.Query().Get("applicant_id")
+		if r.URL.Query().Get("tenant_id") != "tnt_alpha" {
+			t.Fatalf("expected tenant_id=tnt_alpha, got %q", r.URL.Query().Get("tenant_id"))
+		}
+		// Симулируем broken orchestrator, который вернёт ВСЕ заявки тенанта,
+		// включая чужие. Client-side фильтр обязан их отбросить.
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"items":[
+			{"id":"appA","tenant_id":"tnt_alpha","applicant_id":"userA","legal_entity_type":"LLC","channel":"web","state":"draft","product_codes":[],"workflow_id":"","created_at":"2026-05-01T10:00:00Z","updated_at":"2026-05-01T10:00:00Z"},
+			{"id":"appB","tenant_id":"tnt_alpha","applicant_id":"userB","legal_entity_type":"LLC","channel":"web","state":"draft","product_codes":[],"workflow_id":"","created_at":"2026-05-01T10:00:00Z","updated_at":"2026-05-01T10:00:00Z"}
+		]}`))
+	}))
+	defer srv.Close()
+
+	c := NewOrchestratorClient(srv.URL)
+	apps, err := c.ListByApplicant(context.Background(), "tnt_alpha", "userA")
+	if err != nil {
+		t.Fatalf("ListByApplicant: %v", err)
+	}
+	if gotApplicant != "userA" {
+		t.Fatalf("expected server to receive applicant_id=userA, got %q", gotApplicant)
+	}
+	if len(apps) != 1 || apps[0].ID != "appA" || apps[0].ApplicantID != "userA" {
+		t.Fatalf("cross-applicant leak: %+v", apps)
+	}
+}
+
+// TestOrchestratorClient_ListByApplicant_EmptyApplicantRejected — пустой
+// applicantID — пограничный случай: без фильтра клиент мог бы получить
+// все заявки тенанта. Возвращаем ошибку, не делая HTTP-запрос.
+func TestOrchestratorClient_ListByApplicant_EmptyApplicantRejected(t *testing.T) {
+	c := NewOrchestratorClient("http://unused")
+	if _, err := c.ListByApplicant(context.Background(), "tnt_alpha", ""); err == nil {
+		t.Fatal("expected error for empty applicantID, got nil")
+	}
+}
+
 func TestOrchestratorClient_SignalDocumentsUploaded(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/applications/app_1/signals/documents-uploaded" {

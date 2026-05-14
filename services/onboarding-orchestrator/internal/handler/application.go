@@ -275,18 +275,23 @@ func (h *ApplicationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// List — GET /v1/applications?tenant_id=...&state=...&legal_entity_type=...&limit=...
+// List — GET /v1/applications?tenant_id=...&applicant_id=...&state=...&legal_entity_type=...&limit=...
 //
 // Repository поддерживает фильтрацию только по tenantID + limit (см.
 // PostgresApplicationRepository.ListByTenant). Дополнительные фильтры
-// state / legal_entity_type применяются in-memory после загрузки —
-// допустимо для pre-MVP, при росте объёмов нужно расширить SQL.
+// applicant_id / state / legal_entity_type применяются in-memory после
+// загрузки — допустимо для pre-MVP, при росте объёмов нужно расширить SQL.
+//
+// applicant_id — security-критичный фильтр: bff-onboarding передаёт
+// UserID из JWT, чтобы applicant видел только свои заявки и не получал
+// заявки других applicants того же тенанта.
 func (h *ApplicationHandler) List(w http.ResponseWriter, r *http.Request) {
 	tenantID := r.URL.Query().Get("tenant_id")
 	if !validTenantID.MatchString(tenantID) {
 		writeError(w, http.StatusBadRequest, "validation_failed", "tenant_id query param is invalid")
 		return
 	}
+	applicantFilter := r.URL.Query().Get("applicant_id")
 	stateFilter := r.URL.Query().Get("state")
 	if stateFilter != "" && !domain.ApplicationState(stateFilter).IsValid() {
 		writeError(w, http.StatusBadRequest, "validation_failed", "state is invalid")
@@ -312,6 +317,9 @@ func (h *ApplicationHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]*domain.Application, 0, len(apps))
 	for _, a := range apps {
+		if applicantFilter != "" && a.ApplicantID != applicantFilter {
+			continue
+		}
 		if stateFilter != "" && string(a.State) != stateFilter {
 			continue
 		}

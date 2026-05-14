@@ -108,6 +108,33 @@ func TestList_EmptyTenantID(t *testing.T) {
 	}
 }
 
+// TestList_ApplicantFilter — фильтрация по applicant_id защищает от
+// information disclosure между applicants одного тенанта. Bff-onboarding
+// передаёт UserID из JWT, чтобы applicant A не увидел заявки applicant B.
+func TestList_ApplicantFilter(t *testing.T) {
+	apps := []*domain.Application{
+		{ID: "appA1", TenantID: "demo", ApplicantID: "userA", LegalEntityType: domain.LegalEntityLLC, Channel: domain.ChannelWeb, State: domain.StateDraft},
+		{ID: "appA2", TenantID: "demo", ApplicantID: "userA", LegalEntityType: domain.LegalEntityIP, Channel: domain.ChannelWeb, State: domain.StateApproved},
+		{ID: "appB1", TenantID: "demo", ApplicantID: "userB", LegalEntityType: domain.LegalEntityLLC, Channel: domain.ChannelWeb, State: domain.StateDraft},
+	}
+	h := listTestSetup(t, apps)
+
+	rr := mustGet(t, h, "/v1/applications?tenant_id=demo&applicant_id=userA")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rr.Code, rr.Body)
+	}
+	var got listResponse
+	_ = json.Unmarshal(rr.Body.Bytes(), &got)
+	if len(got.Items) != 2 {
+		t.Fatalf("expected 2 apps for userA, got %d: %+v", len(got.Items), got.Items)
+	}
+	for _, a := range got.Items {
+		if a.ApplicantID != "userA" {
+			t.Fatalf("cross-applicant leak: %+v", a)
+		}
+	}
+}
+
 // TestList_BadState — невалидное значение state.
 func TestList_BadState(t *testing.T) {
 	h := listTestSetup(t, nil)

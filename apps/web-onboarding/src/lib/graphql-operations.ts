@@ -99,3 +99,135 @@ export const MUTATION_SUBMIT_APPLICATION = gql`
     }
   }
 `;
+
+// ── Этап 3 — AML-сведения о деятельности ───────────────────────────────
+//
+// См. docs/onboarding-form-spec.md §3 и schema.graphqls типы
+// ApplicationActivity / SubmitApplicationActivityInput.  Глубоко-вложенные
+// поля (top-suppliers, top-buyers, operational-model, funds-source) BFF
+// принимает как scalar JSON — это позволяет фронту посылать ровно ту же
+// форму, которую ждёт onboarding-orchestrator.
+
+export const QUERY_APPLICATION_ACTIVITY = gql`
+  query ApplicationActivity($applicationId: ID!) {
+    applicationActivity(applicationId: $applicationId) {
+      id
+      applicationId
+      businessDescription
+      businessCategory
+      topSuppliers {
+        name
+        inn
+        country
+        sharePercent
+        relationshipType
+      }
+      topBuyers {
+        name
+        inn
+        country
+        sharePercent
+        relationshipType
+      }
+      operationalModel {
+        geography
+        monthlyTurnoverPlanned {
+          amount
+          currency
+        }
+        annualTurnoverPlanned {
+          amount
+          currency
+        }
+        cashSharePercent
+        foreignEconomicActivity
+        foreignCountries
+        currencyOperations
+      }
+      fundsSource {
+        category
+        description
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const MUTATION_SUBMIT_APPLICATION_ACTIVITY = gql`
+  mutation SubmitApplicationActivity($input: SubmitApplicationActivityInput!) {
+    submitApplicationActivity(input: $input) {
+      id
+      applicationId
+      businessDescription
+      businessCategory
+      updatedAt
+    }
+  }
+`;
+
+// ── Этап 4 — ЕИО и представители ───────────────────────────────────────
+//
+// См. docs/onboarding-form-spec.md §4 и schema.graphqls типы
+// Representative / UpsertRepresentativeInput.  ID-документ, адреса,
+// authority, pdlDeclaration BFF принимает как scalar JSON.
+
+export const QUERY_REPRESENTATIVES = gql`
+  query Representatives($applicationId: ID!) {
+    representatives(applicationId: $applicationId) {
+      id
+      applicationId
+      legalEntityId
+      lastName
+      firstName
+      middleName
+      birthDate
+      birthPlace
+      citizenship
+      inn
+      snils
+      idDocument {
+        docType
+        series
+        number
+        issueDate
+        expiryDate
+        issuedBy
+        departmentCode
+      }
+      authority {
+        position
+        authorityBasis
+        authorityDocNumber
+        authorityDocDate
+      }
+      pdlDeclaration {
+        isPdl
+        category
+        position
+        relation
+      }
+      isPrimary
+      isSignatory
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const MUTATION_UPSERT_REPRESENTATIVE = gql`
+  mutation UpsertRepresentative($input: UpsertRepresentativeInput!) {
+    upsertRepresentative(input: $input) {
+      id
+      applicationId
+      legalEntityId
+      lastName
+      firstName
+      middleName
+      birthDate
+      isPrimary
+      isSignatory
+      updatedAt
+    }
+  }
+`;

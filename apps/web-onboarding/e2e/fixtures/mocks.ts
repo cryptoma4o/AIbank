@@ -206,6 +206,77 @@ export async function installMocks(
         }),
       });
     }
+    // ── Этап 3: AML-сведения о деятельности ──────────────────────────
+    if (op === "ApplicationActivity") {
+      // По умолчанию — никаких сохранённых данных, форма стартует пустой.
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ data: { applicationActivity: null } }),
+      });
+    }
+    if (op === "SubmitApplicationActivity") {
+      const vars = (body.variables ?? {}) as {
+        input?: { applicationId?: string };
+      };
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            submitApplicationActivity: {
+              id: "activity-1",
+              applicationId: vars.input?.applicationId ?? NEW_APPLICATION_ID,
+              businessDescription: "stub",
+              businessCategory: "low",
+              updatedAt: "2026-05-12T10:00:00Z",
+            },
+          },
+        }),
+      });
+    }
+    // ── Этап 4: представители ────────────────────────────────────────
+    if (op === "Representatives") {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ data: { representatives: [] } }),
+      });
+    }
+    if (op === "UpsertRepresentative") {
+      const vars = (body.variables ?? {}) as {
+        input?: {
+          applicationId?: string;
+          legalEntityId?: string;
+          lastName?: string;
+          firstName?: string;
+          middleName?: string;
+          birthDate?: string;
+          isPrimary?: boolean;
+          isSignatory?: boolean;
+        };
+      };
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            upsertRepresentative: {
+              id: "rep-1",
+              applicationId: vars.input?.applicationId ?? NEW_APPLICATION_ID,
+              legalEntityId: vars.input?.legalEntityId ?? NEW_APPLICATION_ID,
+              lastName: vars.input?.lastName ?? "Иванов",
+              firstName: vars.input?.firstName ?? "Иван",
+              middleName: vars.input?.middleName ?? null,
+              birthDate: vars.input?.birthDate ?? "1980-01-01",
+              isPrimary: vars.input?.isPrimary ?? true,
+              isSignatory: vars.input?.isSignatory ?? true,
+              updatedAt: "2026-05-12T10:00:00Z",
+            },
+          },
+        }),
+      });
+    }
     // Unknown operation — return empty data, never 500.
     return route.fulfill({
       status: 200,

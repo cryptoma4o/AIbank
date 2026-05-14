@@ -22,6 +22,7 @@ import { z } from "zod";
 import { AuthGuard } from "@/components/AuthGuard";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { WizardProgress } from "@/components/WizardProgress";
 import {
   MUTATION_PREQUALIFY,
   MUTATION_SUBMIT_APPLICATION,
@@ -187,8 +188,13 @@ function NewApplicationContent() {
 
   const submitAllowed = prequalifyResult?.decision === "proceed";
 
+  // Шаг wizard'а на этой странице: 1 пока не пройден prequalify;
+  // 2 после успешного скоринга (форма этапа 2 разблокирована).
+  const currentWizardStep = submitAllowed ? 2 : 1;
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
+      <WizardProgress currentStep={currentWizardStep} applicationId={null} />
       <h1 className="text-2xl font-semibold text-gray-900">Новая заявка</h1>
       <p className="mt-2 text-sm text-gray-500">
         Сначала проверьте ИНН/ОГРН по ЕГРЮЛ, перечню Росфинмониторинга и ФССП. После

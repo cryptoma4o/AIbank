@@ -18,6 +18,7 @@ import { ErrorBanner } from "@/components/ErrorBanner";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { RiskBadge } from "@/components/RiskBadge";
 import { StateBadge } from "@/components/StateBadge";
+import { WizardProgress } from "@/components/WizardProgress";
 import { getAccessToken } from "@/lib/auth";
 import { QUERY_APPLICATION } from "@/lib/graphql-operations";
 import type { ApplicationDetail } from "@/types";
@@ -140,6 +141,39 @@ function ApplicationContent() {
           refetch();
         }}
       />
+
+      <section
+        className="rounded-xl border border-gray-200 bg-white p-6 space-y-4"
+        data-testid="wizard-cta"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">
+              Анкета онбординга
+            </h2>
+            <p className="text-xs text-gray-500">
+              После создания заявки заполните AML-сведения и данные представителей.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Link
+              href={`/applications/${app.id}/wizard/3`}
+              className="rounded-lg border border-primary px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary-50"
+              data-testid="goto-stage-3"
+            >
+              Этап 3 · Деятельность
+            </Link>
+            <Link
+              href={`/applications/${app.id}/wizard/4`}
+              className="rounded-lg border border-primary px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary-50"
+              data-testid="goto-stage-4"
+            >
+              Этап 4 · Представители
+            </Link>
+          </div>
+        </div>
+        <WizardProgress currentStep={2} applicationId={app.id} />
+      </section>
 
       <section className="rounded-xl border border-gray-200 bg-white p-6">
         <h2 className="mb-4 text-base font-semibold text-gray-900">Этапы прохождения</h2>

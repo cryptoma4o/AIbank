@@ -19,3 +19,9 @@
 
 - name: Deploy AIbank application
   import_playbook: 07_aibank.yml
+
+# Запускается только при deployment_mode == on_prem (gating внутри самого
+# play через `meta: end_play`). На SaaS-инсталляциях Istio управляется
+# облачным provider'ом, поэтому import можно оставить безусловным.
+- name: Install Istio control plane + apply mTLS mesh policies (on-prem only)
+  import_playbook: 08_istio_mtls.yml

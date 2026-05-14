@@ -1,0 +1,124 @@
+---
+# roles/istio/tasks/main.yml
+# Установка Istio control plane + применение AIbank-специфичных
+# mesh-policies (см. ADR-0014 + infrastructure/helm/charts/istio-mesh).
+#
+# Идемпотентность: каждая «изменяющая» задача предваряется `kubectl get` /
+# `istioctl status` проверкой. См. infrastructure/ansible/AGENTS.md.
+
+- name: Verify istioctl binary is present (provisioned by prerequisites)
+  stat:
+    path: "{{ istioctl_bin }}"
+  register: istioctl_stat
+
+- name: Fail if istioctl is missing
+  fail:
+    msg: >
+      istioctl not found at {{ istioctl_bin }}.
+      Provision it via 01_prerequisites.yml or air-gapped bundle —
+      этот плейбук не качает бинари из интернета (см. AGENTS.md § air-gapped).
+  when: not istioctl_stat.stat.exists
+
+- name: Check whether istiod is already installed
+  command: >
+    kubectl --kubeconfig {{ kubeconfig_path }}
+    -n {{ istio_namespace }} get deployment istiod
+    --ignore-not-found -o name
+  register: istiod_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Istio control plane (istioctl install)
+  command: >
+    {{ istioctl_bin }} install
+    --kubeconfig {{ kubeconfig_path }}
+    --set profile={{ istio_profile }}
+    --set meshConfig.accessLogFile=/dev/stdout
+    --set values.global.meshID={{ istio_mesh_id }}
+    --set values.global.network={{ istio_network }}
+    --skip-confirmation
+  when: istiod_check.stdout == ""
+  register: istioctl_install
+  changed_when: istioctl_install.rc == 0
+
+- name: Wait for istiod to become Ready
+  command: >
+    kubectl --kubeconfig {{ kubeconfig_path }}
+    -n {{ istio_namespace }} wait
+    --for=condition=Available deployment/istiod
+    --timeout=300s
+  changed_when: false
+
+# --- AIbank-namespaces ----------------------------------------------------
+
+- name: Ensure AIbank mesh namespaces exist
+  command: >
+    kubectl --kubeconfig {{ kubeconfig_path }}
+    create namespace {{ item }}
+    --dry-run=client -o yaml
+  register: ns_yaml
+  changed_when: false
+  loop: "{{ istio_mesh_namespaces }}"
+
+- name: Apply AIbank mesh namespaces
+  shell: |
+    kubectl --kubeconfig {{ kubeconfig_path }} \
+      create namespace {{ item }} \
+      --dry-run=client -o yaml | \
+    kubectl --kubeconfig {{ kubeconfig_path }} apply -f -
+  loop: "{{ istio_mesh_namespaces }}"
+  register: ns_apply
+  changed_when: "'created' in ns_apply.stdout or 'configured' in ns_apply.stdout"
+
+# --- AIbank mesh-policies (через helm chart istio-mesh) -------------------
+
+- name: Check whether aibank-mesh helm release is already installed
+  command: >
+    helm --kubeconfig {{ kubeconfig_path }}
+    -n {{ istio_namespace }} status {{ istio_mesh_release_name }}
+  register: mesh_release_check
+  changed_when: false
+  failed_when: false
+
+- name: Install aibank-mesh helm release (PeerAuthentication + AuthorizationPolicy)
+  command: >
+    helm --kubeconfig {{ kubeconfig_path }}
+    upgrade --install {{ istio_mesh_release_name }}
+    {{ istio_mesh_chart_path }}
+    --namespace {{ istio_namespace }}
+    --set peerAuth.mode={{ istio_peer_auth_mode }}
+    --wait --timeout 5m
+  register: mesh_release_apply
+  changed_when: mesh_release_apply.rc == 0
+  notify: restart aibank deployments
+
+# --- Verification ---------------------------------------------------------
+
+- name: Run istioctl analyze (mesh sanity check)
+  command: >
+    {{ istioctl_bin }} analyze
+    --kubeconfig {{ kubeconfig_path }}
+    --all-namespaces
+  register: istioctl_analyze
+  changed_when: false
+  # exit 0 = no errors, exit 1 = warnings/info — оба ок;
+  # exit >1 = реальные errors → fail.
+  failed_when: istioctl_analyze.rc not in [0, 1]
+
+- name: Verify PeerAuthentication STRICT is applied in every AIbank namespace
+  command: >
+    kubectl --kubeconfig {{ kubeconfig_path }}
+    -n {{ item }} get peerauthentication default
+    -o jsonpath='{.spec.mtls.mode}'
+  register: peerauth_mode
+  changed_when: false
+  failed_when: peerauth_mode.stdout != istio_peer_auth_mode
+  loop: "{{ istio_mesh_namespaces }}"
+
+- name: Summary — Istio mesh verification
+  debug:
+    msg:
+      - "Istio control plane: ready in namespace {{ istio_namespace }}"
+      - "Mesh namespaces with injection: {{ istio_mesh_namespaces | join(', ') }}"
+      - "PeerAuthentication mode: {{ istio_peer_auth_mode }} (verified per-ns)"
+      - "istioctl analyze rc: {{ istioctl_analyze.rc }} (0=clean, 1=warnings)"

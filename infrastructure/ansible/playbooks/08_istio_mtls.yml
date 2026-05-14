@@ -1,0 +1,51 @@
+---
+# 08_istio_mtls.yml
+# -----------------------------------------------------------------------------
+# Назначение
+#   Устанавливает Istio control plane и применяет AIbank-специфичные
+#   mesh-policies (PeerAuthentication STRICT, AuthorizationPolicy default-deny,
+#   NetworkPolicy defence-in-depth). Реализует решения из ADR-0014.
+#
+# Когда запускается
+#   * После 07_aibank.yml — namespace'ы aibank-* уже созданы umbrella chart'ом,
+#     но pods ещё без sidecar.
+#   * **Только on-prem кластеры** (bare-metal banks). На SaaS-инсталляциях
+#     Istio приходит как managed-addon облачного провайдера (Yandex
+#     Managed K8s mesh) — этот play следует пропускать через инвентарную
+#     переменную `deployment_mode == "on_prem"`.
+#
+# После запуска
+#   * `kubectl rollout restart deployment -n aibank-*` (триггерится handler'ом
+#     при первом применении), чтобы pods получили istio-proxy sidecar.
+#   * Прогнать smoke (см. README chart'а § Verification).
+#
+# Связанная документация
+#   * docs/adr/0014-mtls-istio.md
+#   * infrastructure/helm/charts/istio-mesh/README.md
+#   * infrastructure/ansible/roles/istio/
+# -----------------------------------------------------------------------------
+
+- name: Install Istio control plane + apply AIbank mTLS mesh policies
+  hosts: masters[0]
+  gather_facts: false
+
+  # Пропустить на SaaS-инсталляциях, где Istio управляется облачным provider'ом.
+  # Переменная задаётся в inventory/group_vars/all.yml (например
+  # `deployment_mode: on_prem` или `saas`).
+  any_errors_fatal: true
+  vars:
+    deployment_mode: "{{ deployment_mode | default('on_prem') }}"
+
+  pre_tasks:
+    - name: Skip play on SaaS deployments (Istio is part of managed K8s addons)
+      meta: end_play
+      when: deployment_mode != "on_prem"
+
+    - name: Verify kubeconfig is present
+      stat:
+        path: "{{ kubeconfig_path | default('/etc/kubernetes/admin.conf') }}"
+      register: kubeconfig_stat
+      failed_when: not kubeconfig_stat.stat.exists
+
+  roles:
+    - role: istio

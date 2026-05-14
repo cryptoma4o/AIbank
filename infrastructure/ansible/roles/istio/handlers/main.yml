@@ -1,0 +1,13 @@
+---
+# roles/istio/handlers/main.yml
+# Хендлеры триггерятся при изменении PeerAuthentication / namespace labels:
+# AIbank-pods должны быть пере-rollout'аны, чтобы получить sidecar.
+
+- name: restart aibank deployments
+  command: >
+    kubectl --kubeconfig {{ kubeconfig_path }}
+    rollout restart deployment -n {{ item }}
+  loop: "{{ istio_mesh_namespaces }}"
+  # Не падать если namespace ещё пустой (первый деплой).
+  failed_when: false
+  changed_when: true

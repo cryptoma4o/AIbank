@@ -1,0 +1,38 @@
+---
+# roles/istio/defaults/main.yml
+# См. ADR-0014 (mTLS Istio) и infrastructure/helm/charts/istio-mesh.
+
+# Версия Istio control plane. Должна совпадать с appVersion в Chart.yaml
+# чарта istio-mesh (на момент написания — 1.22).
+istio_version: "1.22.3"
+
+# Profile для istioctl install. default достаточно для AIbank.
+istio_profile: "default"
+
+# meshID и network — для будущей multi-cluster federation (см. README chart'а).
+istio_mesh_id: "aibank"
+istio_network: "aibank-network"
+
+# Каталог с istioctl на bastion/master (предполагается, что бинарь уже
+# распакован отдельной задачей в prerequisites — этот плейбук не качает
+# его из интернета). См. air-gapped pattern в infrastructure/ansible/AGENTS.md.
+istioctl_bin: "/usr/local/bin/istioctl"
+
+# Namespace для control plane.
+istio_namespace: "istio-system"
+
+# AIbank-namespace'ы (должны совпадать с meshNamespaces в values.yaml чарта).
+istio_mesh_namespaces:
+  - aibank-services
+  - aibank-bff
+  - aibank-ai
+
+# PeerAuthentication mode. STRICT — целевое production-state.
+istio_peer_auth_mode: "STRICT"
+
+# Где лежит chart istio-mesh (внутри репо).
+istio_mesh_chart_path: "/opt/aibank/helm/istio-mesh"
+istio_mesh_release_name: "aibank-mesh"
+
+# kubeconfig на master-узле (берётся kubeadm init'ом).
+kubeconfig_path: "/etc/kubernetes/admin.conf"

@@ -24,13 +24,15 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
-	"go.temporal.io/sdk/activity"
+	temporalactivity "go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 
+	auditsdk "github.com/aibank/platform/packages/audit-sdk"
 	"github.com/aibank/platform/packages/healthz"
 	obs "github.com/aibank/platform/packages/observability"
 
+	"aibank/onboarding-orchestrator/internal/activity"
 	"aibank/onboarding-orchestrator/internal/audit"
 	"aibank/onboarding-orchestrator/internal/extclients"
 	"aibank/onboarding-orchestrator/internal/handler"
@@ -107,9 +109,12 @@ func main() {
 	}
 	defer tc.Close()
 
+	// Audit client first — activities and HTTP handlers share it.
+	auditClient := audit.MustClient(log)
+
 	w := worker.New(tc, wf.TaskQueue, worker.Options{})
 	w.RegisterWorkflow(wf.OnboardingWorkflow)
-	registerActivityStubs(w)
+	registerActivities(w, auditClient, log)
 
 	if err := w.Start(); err != nil {
 		log.Error("worker start", "err", err)
@@ -126,7 +131,6 @@ func main() {
 	screeningRepo := repository.NewPostgresScreeningRepository(db)
 	monitoringRepo := repository.NewPostgresMonitoringRepository(db)
 	accountRepo := repository.NewPostgresAccountRepository(db)
-	auditClient := audit.MustClient(log)
 	appHandler := handler.NewApplicationHandler(repo, tc, uuidGenerator{}, auditClient, log)
 	profileHandler := handler.NewProfileHandler(profileRepo, log)
 	activityHandler := handler.NewActivityHandler(activityRepo, log)
@@ -209,30 +213,40 @@ func getenv(key, def string) string {
 	return def
 }
 
-// registerActivityStubs регистрирует STUB-имплементации активностей, чтобы
-// worker мог запуститься, но любой реальный workflow-flow упирался в
-// явную ошибку.  Реальные активности подключаются в отдельных деплоях
-// (identity-service, document-service, reconciliation-service, risk-engine,
-// abs-connector) — каждый из них регистрирует свой набор активностей в
-// той же task queue под теми же именами.
+// registerActivities wires Temporal activities into the worker.
 //
-// TODO: вынести регистрацию активностей в DI-обвязку, когда появятся
-// реальные клиенты внешних сервисов (см. plan: services/identity-service,
-// services/document-service, services/reconciliation-service,
-// services/risk-engine, services/abs-connector).
-func registerActivityStubs(w worker.Worker) {
+// VerifyIdentity (→ identity-service) and AssessRisk (→ risk-engine) have real
+// implementations in internal/activity. Их endpoint URLs приходят из env:
+//   - IDENTITY_SERVICE_URL (по умолчанию http://identity-service:8082)
+//   - RISK_ENGINE_URL      (по умолчанию http://risk-engine:8086)
+// Empty env vars не блокируют worker — клиент сразу вернёт ошибку первого
+// http-вызова, Temporal зафиксирует это в activity history.
+//
+// Остальные активности (ExtractDocument, Reconcile, OpenAccount, CancelAccount)
+// пока что регистрируются стабами — соответствующие downstream-сервисы
+// (document-service, reconciliation-service, abs-connector) ещё не имеют
+// production-готовых контрактов. После их выкатки заменить стабы по аналогии.
+func registerActivities(w worker.Worker, auditClient *auditsdk.Client, log *slog.Logger) {
+	identityActs := activity.NewIdentityActivities(activity.IdentityConfig{
+		BaseURL: getenv("IDENTITY_SERVICE_URL", "http://identity-service:8082"),
+	}, auditClient, log)
+	w.RegisterActivityWithOptions(identityActs.VerifyIdentity, temporalactivity.RegisterOptions{Name: wf.ActivityVerifyIdentity})
+
+	riskActs := activity.NewRiskActivities(activity.RiskConfig{
+		BaseURL: getenv("RISK_ENGINE_URL", "http://risk-engine:8086"),
+	}, auditClient, log)
+	w.RegisterActivityWithOptions(riskActs.RunRiskAssessment, temporalactivity.RegisterOptions{Name: wf.ActivityAssessRisk})
+
 	stub := func(ctx context.Context, _ ...any) (any, error) {
-		activity.GetLogger(ctx).Warn("activity stub invoked — real activity not wired")
+		temporalactivity.GetLogger(ctx).Warn("activity stub invoked — real activity not wired")
 		return nil, errors.New("real activity not wired")
 	}
 	for _, name := range []string{
-		wf.ActivityVerifyIdentity,
 		wf.ActivityExtractDocument,
 		wf.ActivityReconcile,
-		wf.ActivityAssessRisk,
 		wf.ActivityOpenAccount,
 		wf.ActivityCancelAccount,
 	} {
-		w.RegisterActivityWithOptions(stub, activity.RegisterOptions{Name: name})
+		w.RegisterActivityWithOptions(stub, temporalactivity.RegisterOptions{Name: name})
 	}
 }

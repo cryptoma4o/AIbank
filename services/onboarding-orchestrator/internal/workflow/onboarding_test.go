@@ -23,8 +23,8 @@ type activityMocks struct {
 	mock.Mock
 }
 
-func (m *activityMocks) VerifyIdentity(_ context.Context, applicantID string) (*workflow.IdentityVerificationResult, error) {
-	args := m.Called(applicantID)
+func (m *activityMocks) VerifyIdentity(_ context.Context, tenantID, applicantID string) (*workflow.IdentityVerificationResult, error) {
+	args := m.Called(tenantID, applicantID)
 	if v := args.Get(0); v != nil {
 		return v.(*workflow.IdentityVerificationResult), args.Error(1)
 	}
@@ -47,8 +47,8 @@ func (m *activityMocks) Reconcile(_ context.Context, applicationID string, extra
 	return nil, args.Error(1)
 }
 
-func (m *activityMocks) AssessRisk(_ context.Context, applicationID string) (*workflow.RiskAssessmentResult, error) {
-	args := m.Called(applicationID)
+func (m *activityMocks) AssessRisk(_ context.Context, tenantID, applicationID string) (*workflow.RiskAssessmentResult, error) {
+	args := m.Called(tenantID, applicationID)
 	if v := args.Get(0); v != nil {
 		return v.(*workflow.RiskAssessmentResult), args.Error(1)
 	}
@@ -112,7 +112,7 @@ func TestOnboardingWorkflow_HappyPath_AutoApproved(t *testing.T) {
 	input := baseInput()
 	docs := sampleDocs()
 
-	mocks.On("VerifyIdentity", input.ApplicantID).
+	mocks.On("VerifyIdentity", input.TenantID, input.ApplicantID).
 		Return(&workflow.IdentityVerificationResult{Verified: true, Method: "ESIA"}, nil)
 
 	mocks.On("ExtractDocument", docs[0]).
@@ -123,7 +123,7 @@ func TestOnboardingWorkflow_HappyPath_AutoApproved(t *testing.T) {
 	mocks.On("Reconcile", input.ApplicationID, mock.AnythingOfType("[]workflow.DocumentExtractionResult")).
 		Return(&workflow.ReconciliationResult{Matched: true, RequiresReview: false}, nil)
 
-	mocks.On("AssessRisk", input.ApplicationID).
+	mocks.On("AssessRisk", input.TenantID, input.ApplicationID).
 		Return(&workflow.RiskAssessmentResult{
 			AssessmentID:   "ra_1",
 			Score:          0.10, // < 0.30 → auto-approve
@@ -151,8 +151,8 @@ func TestOnboardingWorkflow_HappyPath_AutoApproved(t *testing.T) {
 	require.Equal(t, []string{"acc_1"}, out.AccountIDs)
 
 	// Подтверждаем последовательность активностей.
-	mocks.AssertCalled(t, "VerifyIdentity", input.ApplicantID)
-	mocks.AssertCalled(t, "AssessRisk", input.ApplicationID)
+	mocks.AssertCalled(t, "VerifyIdentity", input.TenantID, input.ApplicantID)
+	mocks.AssertCalled(t, "AssessRisk", input.TenantID, input.ApplicationID)
 	mocks.AssertCalled(t, "OpenAccount", input.ApplicationID, input.ProductCodes)
 	mocks.AssertNotCalled(t, "CancelAccount", mock.Anything)
 }
@@ -168,14 +168,14 @@ func TestOnboardingWorkflow_ManualReviewApproved(t *testing.T) {
 	input := baseInput()
 	docs := sampleDocs()
 
-	mocks.On("VerifyIdentity", input.ApplicantID).
+	mocks.On("VerifyIdentity", input.TenantID, input.ApplicantID).
 		Return(&workflow.IdentityVerificationResult{Verified: true, Method: "ESIA"}, nil)
 	mocks.On("ExtractDocument", mock.Anything).
 		Return(&workflow.DocumentExtractionResult{IsValid: true, Confidence: 0.9}, nil)
 	mocks.On("Reconcile", input.ApplicationID, mock.Anything).
 		Return(&workflow.ReconciliationResult{Matched: true}, nil)
 	// Score между порогами — manual_review.
-	mocks.On("AssessRisk", input.ApplicationID).
+	mocks.On("AssessRisk", input.TenantID, input.ApplicationID).
 		Return(&workflow.RiskAssessmentResult{
 			Score: 0.55, Category: "MEDIUM", Recommendation: "MANUAL_REVIEW",
 		}, nil)
@@ -219,13 +219,13 @@ func TestOnboardingWorkflow_DeclinedAtRiskAssessing(t *testing.T) {
 	input := baseInput()
 	docs := sampleDocs()
 
-	mocks.On("VerifyIdentity", input.ApplicantID).
+	mocks.On("VerifyIdentity", input.TenantID, input.ApplicantID).
 		Return(&workflow.IdentityVerificationResult{Verified: true, Method: "ESIA"}, nil)
 	mocks.On("ExtractDocument", mock.Anything).
 		Return(&workflow.DocumentExtractionResult{IsValid: true, Confidence: 0.9}, nil)
 	mocks.On("Reconcile", input.ApplicationID, mock.Anything).
 		Return(&workflow.ReconciliationResult{Matched: true}, nil)
-	mocks.On("AssessRisk", input.ApplicationID).
+	mocks.On("AssessRisk", input.TenantID, input.ApplicationID).
 		Return(&workflow.RiskAssessmentResult{
 			Score:           0.95,
 			Category:        "HIGH",
@@ -254,6 +254,42 @@ func TestOnboardingWorkflow_DeclinedAtRiskAssessing(t *testing.T) {
 	mocks.AssertNotCalled(t, "CancelAccount", mock.Anything)
 }
 
+// ── Test: identity not verified → workflow ends declined ─────────────
+//
+// Закрывает регрессию по AT-2026-05-08: если identity-service вернёт
+// applicant-not-found или esia_verified=false, workflow ОБЯЗАН завершиться
+// в StateDeclined без вызова downstream-активностей.
+func TestOnboardingWorkflow_IdentityNotVerified_Declines(t *testing.T) {
+	suite := testsuite.WorkflowTestSuite{}
+	env := suite.NewTestWorkflowEnvironment()
+
+	mocks := &activityMocks{}
+	mocks.register(env)
+
+	input := baseInput()
+
+	mocks.On("VerifyIdentity", input.TenantID, input.ApplicantID).
+		Return(&workflow.IdentityVerificationResult{
+			Verified: false,
+			Reason:   "applicant_not_found",
+		}, nil)
+
+	env.ExecuteWorkflow(workflow.OnboardingWorkflow, input)
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.NoError(t, env.GetWorkflowError())
+
+	var out workflow.ApplicationOutput
+	require.NoError(t, env.GetWorkflowResult(&out))
+	require.Equal(t, domain.StateDeclined, out.FinalState)
+	require.Contains(t, out.Reason, "applicant_not_found")
+
+	// Никаких downstream активностей.
+	mocks.AssertNotCalled(t, "ExtractDocument", mock.Anything)
+	mocks.AssertNotCalled(t, "AssessRisk", mock.Anything, mock.Anything)
+	mocks.AssertNotCalled(t, "OpenAccount", mock.Anything, mock.Anything)
+}
+
 // ── Test 4: ABS open fails → compensation, no double-open ────────────
 func TestOnboardingWorkflow_ABSOpenFails_Compensation(t *testing.T) {
 	suite := testsuite.WorkflowTestSuite{}
@@ -265,13 +301,13 @@ func TestOnboardingWorkflow_ABSOpenFails_Compensation(t *testing.T) {
 	input := baseInput()
 	docs := sampleDocs()
 
-	mocks.On("VerifyIdentity", input.ApplicantID).
+	mocks.On("VerifyIdentity", input.TenantID, input.ApplicantID).
 		Return(&workflow.IdentityVerificationResult{Verified: true, Method: "ESIA"}, nil)
 	mocks.On("ExtractDocument", mock.Anything).
 		Return(&workflow.DocumentExtractionResult{IsValid: true, Confidence: 0.9}, nil)
 	mocks.On("Reconcile", input.ApplicationID, mock.Anything).
 		Return(&workflow.ReconciliationResult{Matched: true}, nil)
-	mocks.On("AssessRisk", input.ApplicationID).
+	mocks.On("AssessRisk", input.TenantID, input.ApplicationID).
 		Return(&workflow.RiskAssessmentResult{
 			Score: 0.10, Category: "LOW", Recommendation: "AUTO_APPROVE",
 		}, nil)

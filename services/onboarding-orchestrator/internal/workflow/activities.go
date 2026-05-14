@@ -18,10 +18,13 @@ const (
 // IdentityActivity — порт к identity-service (ЕСИА, УКЭП, ручная верификация).
 //
 // Вызывается из workflow на переходе draft→identifying.
+//
+// Workflow invokes the activity by string name (ActivityVerifyIdentity) with
+// the argument tuple (tenantID, applicantID); see onboarding.go §1.
 type IdentityActivity interface {
 	// Verify — синхронный вызов identity-service. Должен быть idempotent
-	// по applicantID (повтор при retry активности — ок).
-	Verify(ctx context.Context, applicantID string) (*IdentityVerificationResult, error)
+	// по (tenantID, applicantID) (повтор при retry активности — ок).
+	Verify(ctx context.Context, tenantID, applicantID string) (*IdentityVerificationResult, error)
 }
 
 // DocumentActivity — порт к document-service (загрузка/распознавание).
@@ -42,10 +45,13 @@ type ReconciliationActivity interface {
 }
 
 // RiskActivity — порт к risk-engine.
+//
+// Workflow invokes the activity by string name (ActivityAssessRisk) with the
+// argument tuple (tenantID, applicationID); see onboarding.go §4.
 type RiskActivity interface {
 	// Assess вычисляет риск-скор и возвращает рекомендацию.
 	// Применяет blocking-rules — например, OKVED_BLOCKED, ROSFINMON_HIT.
-	Assess(ctx context.Context, applicationID string) (*RiskAssessmentResult, error)
+	Assess(ctx context.Context, tenantID, applicationID string) (*RiskAssessmentResult, error)
 }
 
 // ABSActivity — порт к abs-connector (АБС банка).

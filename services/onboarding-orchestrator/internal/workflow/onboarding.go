@@ -66,7 +66,7 @@ func OnboardingWorkflow(ctx workflow.Context, input ApplicationInput) (*Applicat
 
 	// ── 1. draft → identifying ────────────────────────────────────────
 	var idResult IdentityVerificationResult
-	if err := workflow.ExecuteActivity(ctx, ActivityVerifyIdentity, input.ApplicantID).
+	if err := workflow.ExecuteActivity(ctx, ActivityVerifyIdentity, input.TenantID, input.ApplicantID).
 		Get(ctx, &idResult); err != nil {
 		out.FinalState = domain.StateDeclined
 		out.Reason = "identity verification failed: " + err.Error()
@@ -116,7 +116,7 @@ func OnboardingWorkflow(ctx workflow.Context, input ApplicationInput) (*Applicat
 
 	// ── 4. validating → risk_assessing ────────────────────────────────
 	var risk RiskAssessmentResult
-	if err := workflow.ExecuteActivity(ctx, ActivityAssessRisk, input.ApplicationID).
+	if err := workflow.ExecuteActivity(ctx, ActivityAssessRisk, input.TenantID, input.ApplicationID).
 		Get(ctx, &risk); err != nil {
 		out.FinalState = domain.StateDeclined
 		out.Reason = "risk assessment failed: " + err.Error()
